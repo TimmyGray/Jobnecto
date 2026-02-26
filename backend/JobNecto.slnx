@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/JobNecto.API/JobNecto.API.csproj" />
+    <Project Path="src/JobNecto.Application/JobNecto.Application.csproj" />
+    <Project Path="src/JobNecto.Domain/JobNecto.Domain.csproj" />
+    <Project Path="src/JobNecto.Infrastructure.JobSources/JobNecto.Infrastructure.JobSources.csproj" />
+    <Project Path="src/JobNecto.Infrastructure.LLM/JobNecto.Infrastructure.LLM.csproj" />
+    <Project Path="src/JobNecto.Infrastructure/JobNecto.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/JobNecto.Tests/JobNecto.Tests.csproj" />
+  </Folder>
+</Solution>

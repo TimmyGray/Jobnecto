@@ -1,0 +1,21 @@
+public enum Currency
+{
+    USD,
+    EUR,
+    GBP,
+    CAD,
+    AUD,
+    CHF,
+    JPY,
+    CNY,
+    INR,
+    RUB,
+    UAH,
+    PLN,
+    SEK,
+    NOK,
+    DKK,
+    NZD,
+    MXN,
+    BRL,
+}
