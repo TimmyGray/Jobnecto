@@ -2,11 +2,11 @@ public class Vacancy
 {
     public Guid Id;
     public Guid UserId;
-    public string Title;
-    public string Description;
-    public string Company;
+    public string? Title;
+    public string? Description;
+    public string? Company;
 
-    public string CompanyWebsite;
+    public string? CompanyWebsite;
 
     public Location Location;
 
@@ -14,9 +14,9 @@ public class Vacancy
 
     public WorkLocationType WorkLocationType;
 
-    public string[] JobCategories;
+    public string[]? JobCategories;
 
-    public string[] Skills;
+    public string[]? Skills;
 
     public decimal SalaryMin;
 
@@ -26,17 +26,14 @@ public class Vacancy
 
     public double MatchScore;
 
-    public string ExperienceLevel;
+    public string? ExperienceLevel;
 
-    public string JobSource;
-
-    public string JobSourceUrl;
-
-    public string JobSourceId;
-
+    public required JobSource JobSource;
     public DateTime CreatedAt;
 
     public DateTime UpdatedAt;
 
-    public bool isChosen;
+    public bool IsChosen;
+
+    public bool IsHidden;
 }
