@@ -1,10 +1,8 @@
-public class Education
+public sealed class Education : BaseEntity
 {
-    public Guid Id;
     public Guid UserId;
-    public string Title;
-    public string Specialization;
-    public Degree Degree;
-    public DateTime CreatedAt;
-    public DateTime UpdatedAt;
+    public required string Title;
+    public required string Specialization;
+    public required Degree Degree;
+    public ICollection<Resume>? Resumes;
 }

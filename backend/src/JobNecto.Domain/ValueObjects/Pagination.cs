@@ -1,14 +1,11 @@
 public record PagedQuery
 {
-    public int Page { get; init; } = 1;
-    public int PageSize {get; init; } = 20;
-    public int Offset => (Page - 1)*PageSize;
+    public Guid? LastSeenId { get; init; } = null;
+    public DateTime? LastSeenUpdatedAt { get; init; } = null;
+    public int PageSize { get; init; } = 20;
 }
 
-public record PagedResult<T>(IReadOnlyList<T> Items, int TotalCount, int Page, int PageSize)
+public record PagedResult<T>(IReadOnlyList<T> Items, int TotalCount, Guid? LastSeenId, DateTime? LastSeenUpdatedAt, int PageSize, bool HasNext)
 {
     public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
-    public bool HasNext => TotalPages > Page;
-    public bool HasPrev => Page > 1;
 }
-    

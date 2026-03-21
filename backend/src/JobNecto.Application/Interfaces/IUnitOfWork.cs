@@ -5,8 +5,6 @@ public interface IUnitOfWork : IAsyncDisposable
     IRepository<CoverLetter> CoverLetterRepository { get; }
     IRepository<Resume> ResumeRepository { get; }
     IRepository<Education> EducationRepository { get; }
-    IRepository<LlmProviderConfig> LlmProviderConfigRepository { get; }
-
     Task<int> SaveChangesAsync(CancellationToken ct);
     Task BeginTransactionAsync(CancellationToken ct);
     Task CommitTransactionAsync(CancellationToken ct);

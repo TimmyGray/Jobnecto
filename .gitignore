@@ -398,3 +398,5 @@ _ReSharper.Caches/
 secrets.json
 *.pfx
 *.snk
+
+appsettings.Development.json

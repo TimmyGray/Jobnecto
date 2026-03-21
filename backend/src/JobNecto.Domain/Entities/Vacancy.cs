@@ -1,6 +1,5 @@
-public class Vacancy
+public sealed class Vacancy : BaseEntity
 {
-    public Guid Id;
     public Guid UserId;
     public string? Title;
     public string? Description;
@@ -8,30 +7,27 @@ public class Vacancy
 
     public string? CompanyWebsite;
 
-    public Location Location;
+    public Location? Location;
 
-    public WorkTimeType WorkTimeType;
+    public WorkTimeType? WorkTimeType;
 
-    public WorkLocationType WorkLocationType;
+    public WorkLocationType? WorkLocationType;
 
     public string[]? JobCategories;
 
     public string[]? Skills;
 
-    public decimal SalaryMin;
+    public decimal? SalaryMin;
 
-    public decimal SalaryMax;
+    public decimal? SalaryMax;
 
-    public Currency Currency;
+    public Currency? Currency;
 
-    public double MatchScore;
+    public double? MatchScore;
 
     public string? ExperienceLevel;
 
     public required JobSource JobSource;
-    public DateTime CreatedAt;
-
-    public DateTime UpdatedAt;
 
     public bool IsChosen;
 
