@@ -1,21 +1,20 @@
-public class User
+public sealed class User : BaseEntity
 {
-    public Guid Id;
-    public string Name;
-    public string SecondName;
-    public int Age;
-    public string Login;
-    public string Password;
-    public string Email;
-    public string Phone;
-    public Location Location;
-    public string Avatar;
-    public string[] Skills;
-    public Education[] Educations;
-    public LanguageProficiency[] Languages;
-    public string AboutMe;
-    public string[] Certificates;
-    public string[] Projects;
-    public Resume[] Resumes;
-    public CoverLetter[] CoverLetters;
+    public string? Name;
+    public string? SecondName;
+    public int? Age;
+    public required string Login;
+    public required string Password;
+    public required string Email;
+    public string? Phone;
+    public Location? Location;
+    public string? Avatar;
+    public string[]? Skills;
+    public ICollection<Education>? Educations;
+    public LanguageProficiency[]? Languages;
+    public string? AboutMe;
+    public string[]? Certificates;
+    public string[]? Projects;
+    public ICollection<Resume>? Resumes;
+    public ICollection<CoverLetter>? CoverLetters;
 }
