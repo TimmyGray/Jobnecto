@@ -39,7 +39,7 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
         return new PagedResult<Vacancy>(items, totalCount, nextLastSeenId, nextLastSeenUpdatedAt, pagedQuery.PageSize, hasNext);
     }
 
-    private IQueryable<Vacancy> ApplyFilters(IQueryable<Vacancy> query, VacancyFilter filter)
+    private IQueryable<Vacancy> ApplyFilters(IQueryable<Vacancy> query, VacancyFilter? filter = null)
     {
         if (filter == null)
         {

@@ -14,8 +14,7 @@ public sealed class Resume : BaseEntity
     public string[]? Projects;
     public string[]? Certifications;
     public LanguageProficiency[]? Languages;
-    public ICollection<Education> Educations;
-
+    public ICollection<Education>? Educations;
     public Location[]? Locations;
     public string[]? ExcludedWords;
 }
