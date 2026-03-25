@@ -61,9 +61,9 @@ else
 fi
 
 CHANGED_FILES="$(git diff --name-only "${DIFF_RANGE}")"
-CHANGED_COUNT="$(printf "%s\n" "${CHANGED_FILES}" | awk 'NF' | wc -l | tr -d ' ')"
-SOURCE_COUNT="$(printf "%s\n" "${CHANGED_FILES}" | rg '^backend/src/' -c || true)"
-TEST_COUNT="$(printf "%s\n" "${CHANGED_FILES}" | rg '^backend/tests/' -c || true)"
+CHANGED_COUNT="$(printf "%s\n" "${CHANGED_FILES}" | awk 'NF { c++ } END { print c + 0 }')"
+SOURCE_COUNT="$(printf "%s\n" "${CHANGED_FILES}" | awk '/^backend\/src\// { c++ } END { print c + 0 }')"
+TEST_COUNT="$(printf "%s\n" "${CHANGED_FILES}" | awk '/^backend\/tests\// { c++ } END { print c + 0 }')"
 
 {
   echo "# Code Reviewer Report"

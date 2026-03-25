@@ -160,6 +160,33 @@ For agent-driven review, use:
 
 This skill requires running a separate subagent with description `Code reviewer` and producing severity-ranked findings with `risk_score`, impact, evidence, and recommended fixes.
 
+### IDE commands (manual trigger)
+
+If your IDE supports `.cursor/commands`, run:
+
+- `/code-reviewer`
+- `/create-subagent`
+
+Optional:
+
+- `/code-reviewer origin/master`
+- `/create-subagent origin/master`
+
+Command files:
+
+- `.cursor/commands/code-reviewer.md`
+- `.cursor/commands/create-subagent.md`
+
+Both commands instruct the agent to run the mechanical report script and execute a dedicated `Code reviewer` subagent workflow.
+
+### Dedicated subagent profile
+
+Repository subagent profile:
+
+- `.cursor/subagents/code-reviewer.md`
+
+This profile standardizes the dedicated reviewer behavior and required risk-scored output format.
+
 ## Future features
 
 The following are **directional** items implied by the solution structure and dependencies; timelines are not fixed here.
