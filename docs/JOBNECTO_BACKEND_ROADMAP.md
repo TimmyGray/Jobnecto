@@ -1,146 +1,119 @@
-# JobNecto — backend roadmap (adapted from Merlin “JobLens AI” plan)
+# JobNecto — backend roadmap
 
-The Merlin dashboard described **JobLens AI** with projects `JobLens.*`, entities like `UserProfile` and `VacancyAnalysis`, and a specific REST surface. **This repository is JobNecto** (`backend/JobNecto.slnx`, projects `JobNecto.*`). This document maps the Merlin plan to what exists today and defines **execution order from the start** (phases, not calendar estimates).
+**JobNecto** is a **.NET 10** backend for job vacancy aggregation, user profiles, matching, and LLM-assisted cover letters. Solution entry point: `backend/JobNecto.slnx`.
 
----
+## Vision
 
-## 1. Product and solution naming
+- Aggregate and store **vacancies** from multiple **job sources** (`JobSource` value object: `Name`, optional `Url`; stored as **jsonb** on vacancies).
+- Users maintain **profiles** (`User`), **education** (`Education`), **resume templates** (`Resume`), and **cover letters** (`CoverLetter`).
+- **Filter and paginate** vacancies (`VacancyFilter`, `PagedQuery`, `PagedResult`); support **matching** via `Vacancy.MatchScore` (and optional future persisted analysis if the team adds it).
+- **LLM** integration via `JobNecto.Infrastructure.LLM`, `LlmProvider` enum, and `LlmProviderConfig`.
 
-| Merlin (source) | This repository |
-|-----------------|-----------------|
-| JobLens AI | **JobNecto** |
-| `JobLens.sln` / `src/JobLens.*` | `backend/JobNecto.slnx` / `backend/src/JobNecto.*` |
-| `JobLens.API` | `JobNecto.API` |
-| `JobLens.Application` | `JobNecto.Application` |
-| `JobLens.Domain` | `JobNecto.Domain` |
-| `JobLens.Infrastructure` | `JobNecto.Infrastructure` |
-| `JobLens.Infrastructure.LLM` | `JobNecto.Infrastructure.LLM` |
-| `JobLens.Infrastructure.JobSources` | `JobNecto.Infrastructure.JobSources` |
+## Solution layout
 
----
+| Project | Path |
+|---------|------|
+| `JobNecto.API` | `backend/src/JobNecto.API` |
+| `JobNecto.Application` | `backend/src/JobNecto.Application` |
+| `JobNecto.Domain` | `backend/src/JobNecto.Domain` |
+| `JobNecto.Infrastructure` | `backend/src/JobNecto.Infrastructure` |
+| `JobNecto.Infrastructure.LLM` | `backend/src/JobNecto.Infrastructure.LLM` |
+| `JobNecto.Infrastructure.JobSources` | `backend/src/JobNecto.Infrastructure.JobSources` |
+| `JobNecto.Tests` | `backend/tests/JobNecto.Tests` |
 
-## 2. Architecture layers (concept unchanged)
+## Architecture
 
-Dependencies still flow **inward**: API → Application → Domain ← Infrastructure.
+Dependencies flow **inward**: API → Application → Domain ← Infrastructure.
 
-| Layer | Project | Today |
+| Layer | Project | Status |
 |-------|---------|--------|
-| API | `JobNecto.API` | OpenAPI/Swashbuckle, Serilog packages present; **no REST resources**; **`Program.cs` does not call `AddInfrastructure()`**. |
-| Application | `JobNecto.Application` | **MediatR** and **FluentValidation** referenced; **only repository interfaces** today — no `Commands/` / `Queries/` / `Behaviors/` folders yet. |
-| Domain | `JobNecto.Domain` | Entities, enums, value objects (`VacancyFilter`, `JobSource`, pagination types). **No `VacancyAnalysis` entity**; **no domain events** wired. |
-| Infrastructure | `JobNecto.Infrastructure` | EF Core + Npgsql, Redis + Quartz **packages**; `AppDbContext`, configurations, repositories; **`UnitOfWork` largely unimplemented**; **no committed migrations**. |
-| LLM | `JobNecto.Infrastructure.LLM` | Stub project. |
-| Job sources | `JobNecto.Infrastructure.JobSources` | Stub project (Merlin’s hh.ru / Arbeitnow clients not implemented). |
+| API | `JobNecto.API` | OpenAPI/Swashbuckle, Serilog; **no REST resources yet**; **`Program.cs` does not call `AddInfrastructure()`**. |
+| Application | `JobNecto.Application` | MediatR and FluentValidation **referenced**; **repository interfaces** only — no command/query handlers or pipeline behaviors yet. |
+| Domain | `JobNecto.Domain` | Entities, enums, value objects. No separate “vacancy analysis” aggregate today; **`Vacancy.MatchScore`** supports filtering/sorting. Domain events not wired. |
+| Infrastructure | `JobNecto.Infrastructure` | EF Core + Npgsql, Redis + Quartz **packages**; `AppDbContext`, configurations, repositories; **`UnitOfWork` incomplete**; **no committed migrations**. |
+| LLM | `JobNecto.Infrastructure.LLM` | Stub. |
+| Job sources | `JobNecto.Infrastructure.JobSources` | Stub (external API clients not implemented). |
 
----
+## Domain model
 
-## 3. Domain entities — Merlin vs JobNecto
+Shared: **`BaseEntity`** — `Id`, `CreatedAt`, `UpdatedAt`.
 
-Merlin showed five conceptual models. The codebase models **profile + resume + education** explicitly instead of a single `UserProfile` with `ResumeText`.
+| Entity | Role |
+|--------|------|
+| **`User`** | Identity and profile: login, password, email, phone, location, skills, languages, about, certificates, projects, avatar; navigations to educations, resumes, cover letters. |
+| **`Resume`** | Template for filtering, matching, and LLM context: salary, currency, skills, work location type, experience, projects, certifications, languages, locations, excluded words; M:N to **`Education`** via **`ResumeEducations`**. |
+| **`Education`** | Title, specialization, degree; belongs to user; linkable to resumes. |
+| **`Vacancy`** | Belongs to `UserId`; title, description, company, company website, location, work time/location types, categories, skills, salary range, currency, `MatchScore`, experience level, required **`JobSource`**, `IsChosen`, `IsHidden`. |
+| **`CoverLetter`** | `UserId`, `VacancyId`, `Content` (+ base audit fields). |
+| **`LlmProviderConfig`** | Not an EF entity today: `LlmProvider`, `ApiKey`, `BaseUrl`, `Model`, `Temperature?` — persistence strategy TBD when LLM config is stored per user. |
 
-| Merlin entity | JobNecto equivalent | Notes |
-|---------------|---------------------|--------|
-| **Vacancy** | `Vacancy` | Uses value object **`JobSource`** (`Name`, `Url?`) stored as **jsonb**, not separate `Source` / `SourceUrl` strings. Extra fields: `CompanyWebsite`, `WorkTimeType`, `WorkLocationType`, `JobCategories`, `Currency`, `IsChosen`, `IsHidden`, `UserId`. **No `SyncedAt`** — use `UpdatedAt` or add a field later. |
-| **UserProfile** | **`User`** + **`Resume`** + **`Education`** | `User` holds identity and profile (login, email, skills, languages, etc.). **`Resume`** is the template for filtering, matching, and LLM context (salary, locations, excluded words, M:N to educations via **`ResumeEducations`**). |
-| **LlmProviderConfig** | `LlmProviderConfig` (class, not `BaseEntity`) | Fields differ: we have `LlmProvider` enum, `ApiKey`, `BaseUrl`, `Model`, `Temperature?`. **No** `IsLocal`, `MaxTokens`, or separate `EndpointUrl` / `ModelName` — align naming when implementing config storage. |
-| **CoverLetter** | `CoverLetter` | Extends **`BaseEntity`**: `Id`, `CreatedAt`, `UpdatedAt` + `UserId`, `VacancyId`, `Content`. **No** `ModelUsed`, `ProviderUsed`, `GeneratedAt` — add if product needs audit metadata. |
-| **VacancyAnalysis** | *Not present* | Merlin’s persisted analysis (strengths, weaknesses, recommendation) **does not exist** as an entity. Options: add `VacancyAnalysis` (or embed JSON on `Vacancy`), or treat analysis as ephemeral until schema is defined. `Vacancy.MatchScore` exists for sorting/filtering. |
+## Planned HTTP API
 
----
+Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 
-## 4. REST API — Merlin routes vs JobNecto target shape
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/api/v1/vacancies` | List with `VacancyFilter` + cursor pagination (`GetFilteredAsync`). |
+| GET | `/api/v1/vacancies/{id}` | Single vacancy. |
+| POST | `/api/v1/vacancies` / PUT / DELETE | Vacancy CRUD (ownership rules with auth). |
+| POST | `/api/v1/vacancies/sync` | Trigger ingestion from configured job sources. |
+| POST | `/api/v1/vacancies/{id}/analyze` | LLM analysis; update `MatchScore` and/or return analysis DTO (persist only if schema is added). |
+| POST | `/api/v1/vacancies/{id}/cover-letter` | Generate and persist `CoverLetter`. |
+| GET, PUT | `/api/v1/users/me` or `/api/v1/profile` | Current user profile; align with `User` + related `Resume`/`Education` (nested or separate resources). |
+| PUT | `/api/v1/users/me/llm-config` | Store LLM settings (design storage first). |
+| GET, POST | `/api/v1/sources` | List and register job sources / sync metadata (beyond `JobSource` on each vacancy). |
 
-Merlin listed authenticated JSON endpoints under `/api/...`. For JobNecto, pick a **version prefix** (e.g. `/api/v1/...`) and implement incrementally.
+## Tech stack
 
-| Merlin | JobNecto direction |
-|--------|-------------------|
-| `GET /api/vacancies` (filters, pagination, match score) | Back with **`IVacancyRepository.GetFilteredAsync`** + `PagedQuery` / `VacancyFilter`; add auth when JWT exists. |
-| `GET /api/vacancies/{id}` | Single vacancy by id (+ optional analysis payload if you add `VacancyAnalysis`). |
-| `POST /api/vacancies/sync` | Orchestrates **JobSources** adapters + persistence; depends on ingestion design. |
-| `POST /api/vacancies/{id}/analyze` | LLM pipeline; may create/update **`MatchScore`** and/or future **`VacancyAnalysis`**. |
-| `POST /api/vacancies/{id}/cover-letter` | LLM + **`CoverLetter`** persistence. |
-| `GET/PUT /api/profile` | Map to **`User`** (+ related **`Resume`** / **`Education`** — either nested resource or separate endpoints). |
-| `PUT /api/profile/llm-config` | Persist **`LlmProviderConfig`** per user (may require new entity/table or user JSON column — **design task**). |
-| `GET/POST /api/sources` | Job source registry + sync metadata (not in domain yet beyond `JobSource` on vacancy). |
+| Area | In repo | Notes |
+|------|---------|--------|
+| Runtime | .NET 10 | `net10.0` |
+| API | ASP.NET Core, OpenAPI, Swashbuckle | |
+| Data | EF Core 10, Npgsql | Migrations expected under Infrastructure |
+| Optional packages | Redis, Quartz | Present; not functionally wired |
+| App patterns | MediatR, FluentValidation | Add DI registration and handlers when adopting CQRS |
+| Logging | Serilog (API) | Console/file |
+| LLM | — | Add chosen packages when implementing router |
+| PDF upload | — | Optional later (e.g. PdfPig) |
+| Observability | — | Optional: OpenTelemetry, Seq, etc. |
+| Tests | xUnit | Expand with integration tests (e.g. Testcontainers) |
 
----
+`docker/` in the repo is currently placeholder.
 
-## 5. Tech stack — Merlin vs repo
+## Phased delivery
 
-| Area | Merlin | JobNecto today |
-|------|--------|----------------|
-| Runtime | .NET 10 | **net10.0** |
-| API docs | Swagger/OpenAPI | **Microsoft.AspNetCore.OpenApi** + **Swashbuckle** |
-| ORM | EF Core 10 | **EF Core 10** + **Npgsql** |
-| DB | PostgreSQL 17 | **PostgreSQL** (version is environment-specific) |
-| CQRS | MediatR v12 | **MediatR 14** — referenced; **handlers not added** |
-| Validation | FluentValidation | **FluentValidation 12** — referenced; **not wired in DI/pipeline** |
-| Mapping | Mapster | **Not referenced** (manual mapping or add later) |
-| AI | Semantic Kernel + MEAI | **Not in csproj** — add when implementing LLM router |
-| Redis | StackExchange.Redis | **Package present**; **no cache service** |
-| Quartz | Quartz.NET | **Packages present**; **no jobs** |
-| PDF | PdfPig | **Not referenced** |
-| Logging | Serilog (+ Seq in Merlin) | **Serilog** in API (console/file) |
-| Observability | OpenTelemetry, Prometheus | **Not referenced** |
-| Tests | xUnit, Moq, FluentAssertions, Testcontainers | **xUnit** project exists; **minimal tests** |
+### Phase A — Foundation (persistence)
 
-Docker: repo `docker/` files are **placeholders** — Merlin’s compose stack is **not** implemented.
-
----
-
-## 6. Execution order from the start (phased)
-
-Work through these in order; each phase unlocks the next.
-
-### Phase A — Foundation (persistence works)
-
-1. Register infrastructure: **`AddInfrastructure()`** in `Program.cs` (and connection string validation).
-2. **Initial EF Core migration** + `dotnet ef database update` documented in CI/agents.
+1. Call **`AddInfrastructure()`** from `Program.cs` (validate connection string).
+2. **Initial EF Core migration** and documented `database update` flow.
 3. Complete **`UnitOfWork`**: `SaveChangesAsync`, `DisposeAsync`, repository getters, transactions.
-4. Add missing **repositories** for `Resume`, `Education`, `CoverLetter` if not using generic access only.
+4. Repositories for **`Resume`**, **`Education`**, **`CoverLetter`** as needed.
 5. Implement **`VacancyRepository.UpdateMatchScoreAsync`**.
 
-### Phase B — HTTP core (read/write without LLM)
+### Phase B — HTTP core
 
-6. Introduce **API versioning** and first **Minimal APIs or controllers**.
-7. **Users** CRUD (validation aligned with EF constraints: email, phone E.164, age).
-8. **Vacancies** list (filters + cursor paging) and single-resource CRUD.
-9. **Resumes** + **Educations** + **Cover letters** CRUD and relationships.
+6. API versioning and first endpoints (minimal APIs or controllers).
+7. **Users** CRUD with validation (email, phone E.164, age per EF rules).
+8. **Vacancies** list + CRUD.
+9. **Resumes**, **educations**, **cover letters** CRUD and relationships.
 
 ### Phase C — Security
 
-10. **Password hashing** (no plaintext).
-11. **JWT** (or chosen auth) + protected routes.
-12. **Authorization** (user owns their rows).
+10. Password hashing.
+11. JWT (or chosen scheme) and protected routes.
+12. Authorization: users mutate only their data.
 
-### Phase D — Intelligence and ingestion
+### Phase D — Ingestion and LLM
 
-13. **Job source** abstraction + first adapter (Merlin: hh.ru; implement whichever API you license first).
-14. **Sync** endpoint or background trigger persisting vacancies with **`JobSource`**.
-15. **LLM**: add packages (Semantic Kernel / MEAI as chosen), **`ILlmRouterService`**, config from storage.
-16. **Analyze** endpoint (define whether to add **`VacancyAnalysis`** entity or return transient DTOs).
-17. **Cover letter** generation + persist **`CoverLetter`** (optionally extend with model/provider metadata).
+13. Job source **abstraction** + first **adapter** (start with manual/static feed or first external API you adopt).
+14. **Sync** endpoint or scheduled job writing vacancies with valid **`JobSource`**.
+15. LLM router + config storage; **analyze** and **cover letter** endpoints.
 
-### Phase E — Production hardening
+### Phase E — Hardening
 
-18. **Quartz** scheduled sync jobs.
-19. **Redis** caching where it helps (rate limiting, vacancy lists, etc.).
-20. **Rate limiting**, **CORS**, **health/ready**, **global exception → problem details**.
-21. **Integration tests** (Testcontainers.PostgreSql) + CI parity.
-22. **Optional**: PdfPig resume upload, OpenTelemetry, architecture tests (NetArchTest).
+16. Quartz jobs, Redis where useful, rate limiting, CORS, health/ready, problem details.
+17. Integration tests and CI parity; optional PDF pipeline, OpenTelemetry, architecture tests.
 
----
+## Tracking
 
-## 7. Tracking
-
-- GitHub issues **#16–#37** in this repository map to chunks of Phases A–E (small, testable).
-- This file is the **narrative** mapping from the Merlin **JobLens** document to **JobNecto** naming and schema.
-
----
-
-## 8. Vision (unchanged in intent)
-
-- Aggregate **vacancies** from multiple **sources** with structured **`JobSource`**.
-- Users maintain **profile**, **education**, **resume templates**, and **cover letters**.
-- **Filter and paginate** vacancies; compute or refresh **`MatchScore`** for matching.
-- **LLM** for analysis and cover letters, with configurable providers aligned to **`LlmProvider`** / **`LlmProviderConfig`**.
+Work is broken into small GitHub issues **#16–#37** (foundation through hardening).
