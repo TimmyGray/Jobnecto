@@ -22,8 +22,7 @@ JobNecto is a .NET 10 backend API for job vacancy aggregation and matching. Clea
 ### PostgreSQL
 
 - Required for the full application (EF Core + Npgsql).
-- Dev config (`appsettings.Development.json`) expects: `Host=localhost;Port=5432;Database=JobNecto;Username=admin;Password=admin`
-- **Known issue:** `appsettings.Development.json` has `Port:5432` (colon) instead of `Port=5432` (equals). This is an existing repo bug.
+- Dev config (`appsettings.Development.json`) expects: `Host=localhost;Port=5432;Database=JobNecto;Username=admin;Password=admin` (Npgsql requires `Key=Value` pairs, including `Port=5432`).
 - The `Program.cs` does not yet call `AddInfrastructure()`, so the DB connection is not used at startup. When it is wired up, PostgreSQL must be running with the above credentials.
 - To start PostgreSQL: `sudo pg_ctlcluster 16 main start`
 
