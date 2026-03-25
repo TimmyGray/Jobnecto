@@ -165,19 +165,16 @@ This skill requires running a separate subagent with description `Code reviewer`
 If your IDE supports `.cursor/commands`, run:
 
 - `/code-reviewer`
-- `/create-subagent`
 
 Optional:
 
 - `/code-reviewer origin/master`
-- `/create-subagent origin/master`
 
 Command files:
 
 - `.cursor/commands/code-reviewer.md`
-- `.cursor/commands/create-subagent.md`
 
-Both commands instruct the agent to run the mechanical report script and execute a dedicated `Code reviewer` subagent workflow.
+This command instruct the agent to run the mechanical report script and execute a dedicated `Code reviewer` subagent workflow.
 
 ### Dedicated subagent profile
 
