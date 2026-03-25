@@ -120,6 +120,46 @@ For more database workflows, see [AGENTS.md](AGENTS.md) and the project skill fo
 
 GitHub Actions (`.github/workflows/ci.yml`) runs **restore**, **build**, and **test** on pushes to `master` and on pull requests.
 
+## Comprehensive PR review workflow
+
+Use the mandatory comprehensive review process whenever a PR is opened or updated.
+
+### Manual command
+
+From repo root:
+
+```bash
+bash scripts/run_code_reviewer.sh
+```
+
+Optional arguments:
+
+```bash
+bash scripts/run_code_reviewer.sh <base-ref> <report-dir>
+```
+
+Examples:
+
+```bash
+bash scripts/run_code_reviewer.sh origin/master /tmp
+```
+
+Output:
+
+- Runs build/test checks in Debug and Release (warnings as errors in Release).
+- Generates a markdown report at `/tmp/code_review_report_<timestamp>.md` with:
+  - changed files
+  - check outputs
+  - heuristic `risk_score` (1-10) and risk notes
+
+### Dedicated reviewer skill
+
+For agent-driven review, use:
+
+- `.cursor/skills/code-reviewer/SKILL.md`
+
+This skill requires running a separate subagent with description `Code reviewer` and producing severity-ranked findings with `risk_score`, impact, evidence, and recommended fixes.
+
 ## Future features
 
 The following are **directional** items implied by the solution structure and dependencies; timelines are not fixed here.
