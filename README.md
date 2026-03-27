@@ -180,7 +180,7 @@ Command files:
 
 The `code-reviewer` command instructs the agent to run the mechanical report script and execute a dedicated `Code reviewer` subagent workflow.
 
-The `write-comments` command instructs the agent to add XML documentation only for non-trivial functions in the requested scope. With no arguments, it recursively inspects the repository and documents only functions where comments materially improve understanding; trivial CRUD, repository, mapping, and boilerplate methods should be skipped.
+The `write-comments` command instructs the agent to add XML documentation only for non-trivial functions in the requested scope. With no arguments, it recursively inspects C# source files under `backend/src` and documents only functions where comments materially improve understanding; trivial CRUD, repository, mapping, and boilerplate methods should be skipped.
 
 ### Dedicated subagent profile
 

@@ -13,7 +13,8 @@ Goal:
 Scope resolution:
 1. Parse arguments as optional targets.
 2. If arguments are provided, inspect only the requested files, folders, or function filters.
-3. If no arguments are provided, recursively inspect the repository file by file and function by function.
+3. If no arguments are provided, recursively inspect C# source files under `backend/src` file by file and function by function.
+4. Unless explicitly targeted by arguments, skip tests, generated files, migrations, build artifacts, and non-C# files.
 
 Accepted target styles:
 - File path: `backend/src/JobNecto.Domain/Entities/Resume.cs`
