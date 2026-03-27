@@ -1,6 +1,6 @@
 ---
 description: Add XML doc comments to functions that need them
-argument-hint: "[file-or-folder paths...]"
+argument-hint: [file-or-folder paths...]
 ---
 
 Add C# XML documentation comments (`/// <summary>`, `/// <param>`, `/// <returns>`) to functions and methods that benefit from documentation. Skip trivial, self-explanatory, or boilerplate code.

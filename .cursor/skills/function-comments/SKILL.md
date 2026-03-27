@@ -133,8 +133,8 @@ public static IServiceCollection AddInfrastructure(this IServiceCollection servi
 
 ```csharp
 /// <summary>
-/// Template resume used for filtering and matching vacancies,
-/// and for helping the LLM generate personalized cover letters.
+/// Captures a user's professional profile snapshot used as the primary input
+/// for vacancy matching algorithms and LLM-driven cover letter generation.
 /// </summary>
 public sealed class Resume : BaseEntity
 ```
