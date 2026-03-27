@@ -165,16 +165,22 @@ This skill requires running a separate subagent with description `Code reviewer`
 If your IDE supports `.cursor/commands`, run:
 
 - `/code-reviewer`
+- `/write-comments`
 
 Optional:
 
 - `/code-reviewer origin/master`
+- `/write-comments backend/src/JobNecto.Application`
+- `/write-comments backend/src/JobNecto.Domain/Entities/Resume.cs::BuildPrompt`
 
 Command files:
 
 - `.cursor/commands/code-reviewer.md`
+- `.cursor/commands/write-comments.md`
 
-This command instruct the agent to run the mechanical report script and execute a dedicated `Code reviewer` subagent workflow.
+The `code-reviewer` command instructs the agent to run the mechanical report script and execute a dedicated `Code reviewer` subagent workflow.
+
+The `write-comments` command instructs the agent to add XML documentation only for non-trivial functions in the requested scope. With no arguments, it recursively inspects the repository and documents only functions where comments materially improve understanding; trivial CRUD, repository, mapping, and boilerplate methods should be skipped.
 
 ### Dedicated subagent profile
 
