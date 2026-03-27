@@ -30,8 +30,9 @@ JobNecto is a .NET 10 backend API for job vacancy aggregation and matching. Clea
 
 - **Command:** `.cursor/commands/function-comments.md`
 - **Skill:** `.cursor/skills/function-comments/SKILL.md`
+- **Agent profile (optional):** `.cursor/agents/function-comments.md`
 - **Purpose:** Add C# XML docs (`///` with `<summary>`, `<param>`, `<returns>`) to functions that benefit from documentation; skip trivial code per the skill.
-- **Arguments:** Optional file paths, folders, or function names to limit scope; with no arguments, scan `backend/src/` in project order (see the command).
+- **Arguments:** Optional file paths, folders, or function names to limit scope; with no arguments, scan `backend/src/` in project order (see the command). If only a bare function or type name is given, search the solution for matches or ask for a file path when ambiguous.
 
 ### Gotchas
 

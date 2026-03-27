@@ -182,13 +182,12 @@ The `code-reviewer` command instructs the agent to run the mechanical report scr
 
 The `function-comments` command instructs the agent to add C# XML documentation for non-trivial functions in the requested scope. With no arguments, it scans `backend/src` in dependency order and skips boilerplate per `.cursor/skills/function-comments/SKILL.md`.
 
-### Dedicated subagent profile
+### Dedicated agent profiles
 
-Repository subagent profile:
+Repository agent profiles:
 
-- `.cursor/subagents/code-reviewer.md`
-
-This profile standardizes the dedicated reviewer behavior and required risk-scored output format.
+- `.cursor/agents/code-reviewer.md` — dedicated reviewer behavior and required risk-scored output format
+- `.cursor/agents/function-comments.md` — optional subagent for large `function-comments` runs (follows the skill)
 
 ## Future features
 

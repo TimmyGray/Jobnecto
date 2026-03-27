@@ -12,8 +12,9 @@ Requirements:
 
 Execution steps:
 
-1. **If arguments are provided** (file paths, folder paths, or function names):
+1. **If arguments are provided** (file paths, folder paths, or function/type names):
    - Scope the work to only the specified targets.
+   - For a bare symbol name with no path, search `backend/src` for definitions; if multiple matches exist, narrow scope (ask the user or process each match).
    - Read each file, identify qualifying functions, add XML doc comments.
 
 2. **If no arguments are provided** (full project scan):
