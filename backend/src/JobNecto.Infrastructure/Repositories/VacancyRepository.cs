@@ -1,11 +1,15 @@
-
 using Microsoft.EntityFrameworkCore;
 
 public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
 {
-    public VacancyRepository(AppDbContext context) : base(context) { }
+    public VacancyRepository(AppDbContext context)
+        : base(context) { }
 
-    public async Task<PagedResult<Vacancy>> GetFilteredAsync(PagedQuery pagedQuery, VacancyFilter? filter = null, CancellationToken ct = default)
+    public async Task<PagedResult<Vacancy>> GetFilteredAsync(
+        PagedQuery pagedQuery,
+        VacancyFilter? filter = null,
+        CancellationToken ct = default
+    )
     {
         var query = _dbSet.AsNoTracking();
         query = ApplyFilters(query, filter);
@@ -19,9 +23,10 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
 
         if (pagedQuery.LastSeenId is not null)
         {
-            query = query
-                .Where(v => v.UpdatedAt < pagedQuery.LastSeenUpdatedAt
-                || (v.UpdatedAt == pagedQuery.LastSeenUpdatedAt && v.Id < pagedQuery.LastSeenId));
+            query = query.Where(v =>
+                v.UpdatedAt < pagedQuery.LastSeenUpdatedAt
+                || (v.UpdatedAt == pagedQuery.LastSeenUpdatedAt && v.Id < pagedQuery.LastSeenId)
+            );
             ;
         }
 
@@ -36,10 +41,20 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
         Guid? nextLastSeenId = items.Count > 0 ? items[^1].Id : null;
         DateTime? nextLastSeenUpdatedAt = items.Count > 0 ? items[^1].UpdatedAt : null;
 
-        return new PagedResult<Vacancy>(items, totalCount, nextLastSeenId, nextLastSeenUpdatedAt, pagedQuery.PageSize, hasNext);
+        return new PagedResult<Vacancy>(
+            items,
+            totalCount,
+            nextLastSeenId,
+            nextLastSeenUpdatedAt,
+            pagedQuery.PageSize,
+            hasNext
+        );
     }
 
-    private IQueryable<Vacancy> ApplyFilters(IQueryable<Vacancy> query, VacancyFilter? filter = null)
+    private IQueryable<Vacancy> ApplyFilters(
+        IQueryable<Vacancy> query,
+        VacancyFilter? filter = null
+    )
     {
         if (filter == null)
         {
@@ -66,29 +81,41 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
 
         if (filter.Location != null && filter.Location.Length > 0)
         {
-            query = query.Where(v => v.Location.HasValue && filter.Location.Contains(v.Location.Value));
+            query = query.Where(v =>
+                v.Location.HasValue && filter.Location.Contains(v.Location.Value)
+            );
         }
 
         if (filter.WorkTimeType != null && filter.WorkTimeType.Length > 0)
         {
-            query = query.Where(v => v.WorkTimeType.HasValue && filter.WorkTimeType.Contains(v.WorkTimeType.Value));
+            query = query.Where(v =>
+                v.WorkTimeType.HasValue && filter.WorkTimeType.Contains(v.WorkTimeType.Value)
+            );
         }
 
         if (filter.WorkLocationType != null && filter.WorkLocationType.Length > 0)
         {
-            query = query.Where(v => v.WorkLocationType.HasValue && filter.WorkLocationType.Contains(v.WorkLocationType.Value));
+            query = query.Where(v =>
+                v.WorkLocationType.HasValue
+                && filter.WorkLocationType.Contains(v.WorkLocationType.Value)
+            );
         }
 
         if (filter.JobCategories != null && filter.JobCategories.Length > 0)
         {
             // Check if any of the job categories in the filter are in the vacancy's job categories
-            query = query.Where(v => v.JobCategories != null && filter.JobCategories.Any(c => v.JobCategories.Contains(c)));
+            query = query.Where(v =>
+                v.JobCategories != null
+                && filter.JobCategories.Any(c => v.JobCategories.Contains(c))
+            );
         }
 
         if (filter.Skills != null && filter.Skills.Length > 0)
         {
             // Check if any of the skills in the filter are in the vacancy's skills
-            query = query.Where(v => v.Skills != null && filter.Skills.Any(s => v.Skills.Contains(s)));
+            query = query.Where(v =>
+                v.Skills != null && filter.Skills.Any(s => v.Skills.Contains(s))
+            );
         }
 
         if (filter.SalaryMin != null)
@@ -103,7 +130,9 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
 
         if (filter.Currency != null && filter.Currency.Length > 0)
         {
-            query = query.Where(v => v.Currency.HasValue && filter.Currency.Contains(v.Currency.Value));
+            query = query.Where(v =>
+                v.Currency.HasValue && filter.Currency.Contains(v.Currency.Value)
+            );
         }
 
         if (filter.MatchScore != null)
@@ -113,7 +142,9 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
 
         if (filter.ExperienceLevel != null && filter.ExperienceLevel.Length > 0)
         {
-            query = query.Where(v => v.ExperienceLevel != null && filter.ExperienceLevel.Contains(v.ExperienceLevel));
+            query = query.Where(v =>
+                v.ExperienceLevel != null && filter.ExperienceLevel.Contains(v.ExperienceLevel)
+            );
         }
 
         if (filter.JobSource != null && filter.JobSource.Length > 0)
