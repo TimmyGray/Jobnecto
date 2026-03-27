@@ -26,6 +26,14 @@ JobNecto is a .NET 10 backend API for job vacancy aggregation and matching. Clea
 - The `Program.cs` does not yet call `AddInfrastructure()`, so the DB connection is not used at startup. When it is wired up, PostgreSQL must be running with the above credentials.
 - To start PostgreSQL: `sudo pg_ctlcluster 16 main start`
 
+### Cursor agent command: function comments
+
+- **Command:** `.cursor/commands/function-comments.md`
+- **Skill:** `.cursor/skills/function-comments/SKILL.md`
+- **Agent profile (optional):** `.cursor/agents/function-comments.md`
+- **Purpose:** Add C# XML docs (`///` with `<summary>`, `<param>`, `<returns>`) to functions that benefit from documentation; skip trivial code per the skill.
+- **Arguments:** Optional file paths, folders, or function names to limit scope; with no arguments, scan `backend/src/` in project order (see the command). If only a bare function or type name is given, search the solution for matches or ask for a file path when ambiguous.
+
 ### Gotchas
 
 - The root `.sln` (`Jobnecto.sln`) uses Windows-style backslash paths and does not include the test project. Always use `backend/JobNecto.slnx` for builds and tests.
