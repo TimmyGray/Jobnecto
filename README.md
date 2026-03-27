@@ -165,16 +165,22 @@ This skill requires running a separate subagent with description `Code reviewer`
 If your IDE supports `.cursor/commands`, run:
 
 - `/code-reviewer`
+- `/function-comments`
 
 Optional:
 
 - `/code-reviewer origin/master`
+- `/function-comments backend/src/JobNecto.Application`
+- `/function-comments backend/src/JobNecto.Domain/Entities/Resume.cs`
 
 Command files:
 
 - `.cursor/commands/code-reviewer.md`
+- `.cursor/commands/function-comments.md`
 
-This command instruct the agent to run the mechanical report script and execute a dedicated `Code reviewer` subagent workflow.
+The `code-reviewer` command instructs the agent to run the mechanical report script and execute a dedicated `Code reviewer` subagent workflow.
+
+The `function-comments` command instructs the agent to add C# XML documentation for non-trivial functions in the requested scope. With no arguments, it scans `backend/src` in dependency order and skips boilerplate per `.cursor/skills/function-comments/SKILL.md`.
 
 ### Dedicated subagent profile
 
