@@ -165,16 +165,21 @@ This skill requires running a separate subagent with description `Code reviewer`
 If your IDE supports `.cursor/commands`, run:
 
 - `/code-reviewer`
+- `/function-comments`
 
 Optional:
 
 - `/code-reviewer origin/master`
+- `/function-comments files=backend/src/**/*.cs`
+- `/function-comments files=backend/src/**/*.cs functions=CalculateMatchScore,NormalizeSkills`
 
 Command files:
 
 - `.cursor/commands/code-reviewer.md`
+- `.cursor/commands/function-comments.md`
 
 This command instruct the agent to run the mechanical report script and execute a dedicated `Code reviewer` subagent workflow.
+The function comments command instructs the agent to add structured comments only to non-trivial functions, with optional file/function scoping or full recursive inspection when no arguments are provided.
 
 ### Dedicated subagent profile
 
