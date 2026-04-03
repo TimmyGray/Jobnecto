@@ -471,4 +471,31 @@ public class BaseRepositoryTests
         context.TestEntities.Should().Contain(e => e.Id == entity.Id);
         context.TestEntities.Should().HaveCount(1);
     }
+
+    [Fact]
+    public async Task IsExistsAsync_ReturnsTrue_WhenEntityExists()
+    {
+        var context = CreateContext("IsExistsAsyncExists");
+        var repository = new TestRepository(context);
+        context.TestEntities.AddRange(TestData.Entities);
+
+        context.SaveChanges();
+
+        var result = await repository.IsExistsAsync(
+            TestData.Entities[0].Id,
+            CancellationToken.None
+        );
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsExistsAsync_ReturnsFalse_WhenEntityDoesNotExist()
+    {
+        var context = CreateContext("IsExistsAsyncDoesNotExist");
+        var repository = new TestRepository(context);
+        var randomId = Guid.NewGuid();
+
+        var result = await repository.IsExistsAsync(randomId, CancellationToken.None);
+        result.Should().BeFalse();
+    }
 }

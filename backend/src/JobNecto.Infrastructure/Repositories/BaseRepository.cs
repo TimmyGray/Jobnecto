@@ -96,6 +96,14 @@ public abstract class BaseRepository<T> : IRepository<T>
 
     public virtual async Task<bool> IsExistsAsync(Guid id, CancellationToken ct)
     {
-        return await GetByIdAsync(id, ct) is not null;
+        try
+        {
+            await GetByIdAsync(id, ct);
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 }
