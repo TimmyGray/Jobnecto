@@ -10,9 +10,15 @@ on:
       - ".gitignore"
       - ".cursor/**"
       - "docs/**"
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to review
+        required: true
+        type: number
 
 concurrency:
-  group: pr-review-llm-${{ github.event.pull_request.number }}
+  group: pr-review-llm-${{ github.event.pull_request.number || inputs.pr_number || github.run_id }}
   cancel-in-progress: true
 
 permissions:
@@ -22,28 +28,53 @@ permissions:
 jobs:
   llm-review:
     if: >-
-      github.event.pull_request.draft == false &&
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.draft == false &&
       !contains(github.event.pull_request.title, '[skip-review]') &&
-      !contains(github.event.pull_request.body || '', '[skip-review]')
+      !contains(github.event.pull_request.body || '', '[skip-review]'))
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve PR metadata
+        id: pr_meta
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.eventName === "workflow_dispatch"
+              ? Number(core.getInput("pr_number", { required: true }))
+              : context.payload.pull_request.number;
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            core.setOutput("number", String(pr.number));
+            core.setOutput("title", pr.title ?? "");
+            core.setOutput("body", pr.body ?? "");
+            core.setOutput("draft", String(Boolean(pr.draft)));
+            core.setOutput("base_sha", pr.base.sha);
+            core.setOutput("head_sha", pr.head.sha);
+            core.setOutput("head_repo", pr.head.repo.full_name);
+
       - name: Checkout PR head (full history)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ steps.pr_meta.outputs.head_repo }}
+          ref: ${{ steps.pr_meta.outputs.head_sha }}
 
       - name: Fetch base commit (supports forks)
         run: >-
           git fetch --no-tags
           "https://github.com/${{ github.repository }}.git"
-          ${{ github.event.pull_request.base.sha }}
+          ${{ steps.pr_meta.outputs.base_sha }}
 
       - name: Write unified diff
         run: |
           set -e
-          git diff ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} > pr.diff
+          git diff ${{ steps.pr_meta.outputs.base_sha }} ${{ steps.pr_meta.outputs.head_sha }} > pr.diff
           wc -c pr.diff || true
 
       - name: Setup Node.js
@@ -55,7 +86,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ steps.pr_meta.outputs.number }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'stepfun/step-3.5-flash:free' }}
         run: node .github/scripts/pr_review_llm.mjs pr.diff

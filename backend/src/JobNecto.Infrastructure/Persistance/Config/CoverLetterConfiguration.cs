@@ -9,24 +9,23 @@ public class CoverLetterConfiguration : IEntityTypeConfiguration<CoverLetter>
 
         builder.HasKey(cl => cl.Id);
 
-        builder.Property(cl => cl.Content)
-            .IsRequired()
-            .HasColumnType("text");
+        builder.Property(cl => cl.Content).IsRequired().HasColumnType("text");
 
-        builder.Property(cl => cl.CreatedAt)
-            .HasDefaultValueSql("Now()")
-            .ValueGeneratedOnAdd();
+        builder.Property(cl => cl.CreatedAt).HasDefaultValueSql("Now()").ValueGeneratedOnAdd();
 
-        builder.Property(cl => cl.UpdatedAt)
+        builder
+            .Property(cl => cl.UpdatedAt)
             .HasDefaultValueSql("Now()")
             .ValueGeneratedOnAddOrUpdate();
 
-        builder.HasOne<CoverLetter>()
+        builder
+            .HasOne<CoverLetter>()
             .WithMany()
             .HasForeignKey(cl => cl.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne<CoverLetter>()
+        builder
+            .HasOne<CoverLetter>()
             .WithMany()
             .HasForeignKey(cl => cl.VacancyId)
             .OnDelete(DeleteBehavior.Cascade);

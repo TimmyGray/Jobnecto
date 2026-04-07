@@ -5,7 +5,28 @@ public record PagedQuery
     public int PageSize { get; init; } = 20;
 }
 
-public record PagedResult<T>(IReadOnlyList<T> Items, int TotalCount, Guid? LastSeenId, DateTime? LastSeenUpdatedAt, int PageSize, bool HasNext)
+public record PagedResult<BaseEntity>(
+    IReadOnlyList<BaseEntity> Items,
+    int TotalCount,
+    Guid? LastSeenId,
+    DateTime? LastSeenUpdatedAt,
+    int PageSize,
+    bool HasNext
+)
 {
-    public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
+    public int TotalPages
+    {
+        get
+        {
+            if (PageSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(PageSize),
+                    "PageSize must be greater than 0."
+                );
+            }
+
+            return (int)Math.Ceiling(TotalCount / (double)PageSize);
+        }
+    }
 }

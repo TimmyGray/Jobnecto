@@ -1,12 +1,12 @@
-
 using Microsoft.EntityFrameworkCore;
 
-public abstract class BaseRepository<T> : IRepository<T> where T : BaseEntity
+public abstract class BaseRepository<T> : IRepository<T>
+    where T : BaseEntity
 {
-    protected readonly AppDbContext _context;
+    protected readonly DbContext _context;
     protected readonly DbSet<T> _dbSet;
 
-    public BaseRepository(AppDbContext context)
+    public BaseRepository(DbContext context)
     {
         _context = context;
         _dbSet = context.Set<T>();
@@ -32,19 +32,35 @@ public abstract class BaseRepository<T> : IRepository<T> where T : BaseEntity
 
     public virtual async Task<PagedResult<T>> GetAsync(PagedQuery pagedQuery, CancellationToken ct)
     {
+        if (pagedQuery.PageSize <= 0)
+        {
+            throw new ArgumentOutOfRangeException("PageSize must be greater than 0.");
+        }
+
         var query = _dbSet.AsNoTracking();
 
         var totalCount = await query.CountAsync(ct);
 
-        query = query
-            .OrderByDescending(e => e.UpdatedAt)
-            .ThenByDescending(e => e.Id);
+        query = query.OrderByDescending(e => e.UpdatedAt).ThenByDescending(e => e.Id);
 
         if (pagedQuery.LastSeenId is not null)
         {
-            query = query
-            .Where(e => e.UpdatedAt < pagedQuery.LastSeenUpdatedAt
-                || (e.UpdatedAt == pagedQuery.LastSeenUpdatedAt && e.Id < pagedQuery.LastSeenId));
+            var cursorExists = await _dbSet
+                .AsNoTracking()
+                .AnyAsync(
+                    e =>
+                        e.Id == pagedQuery.LastSeenId
+                        || e.UpdatedAt == pagedQuery.LastSeenUpdatedAt,
+                    ct
+                );
+
+            if (cursorExists)
+            {
+                query = query.Where(e =>
+                    e.UpdatedAt < pagedQuery.LastSeenUpdatedAt
+                    || (e.UpdatedAt == pagedQuery.LastSeenUpdatedAt && e.Id < pagedQuery.LastSeenId)
+                );
+            }
         }
 
         var take = Math.Max(1, pagedQuery.PageSize);
@@ -66,17 +82,28 @@ public abstract class BaseRepository<T> : IRepository<T> where T : BaseEntity
             pagedQuery.PageSize,
             hasNext
         );
-
-
     }
 
-    public virtual async Task<T?> GetByIdAsync(Guid id, CancellationToken ct)
+    public virtual async Task<T> GetByIdAsync(Guid id, CancellationToken ct)
     {
-        return await _dbSet.FindAsync([id], ct);
+        var entity = await _dbSet.FindAsync([id], ct);
+        if (entity == null)
+        {
+            throw new Exception($"Entity with id {id} not found");
+        }
+        return entity;
     }
 
     public virtual async Task<bool> IsExistsAsync(Guid id, CancellationToken ct)
     {
-        return await GetByIdAsync(id, ct) is not null;
+        try
+        {
+            await GetByIdAsync(id, ct);
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 }
