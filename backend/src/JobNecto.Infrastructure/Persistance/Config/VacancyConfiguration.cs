@@ -33,6 +33,14 @@ public class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
 
         builder.Property(v => v.Company).HasMaxLength(100);
 
+        builder.Property(v => v.CompanyWebsite).HasMaxLength(500);
+
+        builder.Property(v => v.ExperienceLevel).HasMaxLength(100);
+
+        builder.Property(v => v.IsChosen);
+
+        builder.Property(v => v.IsHidden);
+
         builder.Property(v => v.Location).HasConversion<string>();
 
         builder.Property(v => v.WorkLocationType).HasConversion<string>();

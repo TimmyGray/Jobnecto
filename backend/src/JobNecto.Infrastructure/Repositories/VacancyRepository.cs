@@ -27,7 +27,6 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
                 v.UpdatedAt < pagedQuery.LastSeenUpdatedAt
                 || (v.UpdatedAt == pagedQuery.LastSeenUpdatedAt && v.Id < pagedQuery.LastSeenId)
             );
-            ;
         }
 
         var take = Math.Max(1, pagedQuery.PageSize);
@@ -103,7 +102,6 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
 
         if (filter.JobCategories != null && filter.JobCategories.Length > 0)
         {
-            // Check if any of the job categories in the filter are in the vacancy's job categories
             query = query.Where(v =>
                 v.JobCategories != null
                 && filter.JobCategories.Any(c => v.JobCategories.Contains(c))
@@ -112,7 +110,6 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
 
         if (filter.Skills != null && filter.Skills.Length > 0)
         {
-            // Check if any of the skills in the filter are in the vacancy's skills
             query = query.Where(v =>
                 v.Skills != null && filter.Skills.Any(s => v.Skills.Contains(s))
             );
