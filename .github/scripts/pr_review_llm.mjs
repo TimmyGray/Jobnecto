@@ -29,7 +29,7 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MAX_DIFF_CHARS = 900_000;
 
 /** Used when OPENROUTER_MODEL is unset or empty. */
-const DEFAULT_MODEL = "stepfun/step-3.5-flash:free";
+const DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
 
 /**
  * Paths whose entire diff hunks we drop before calling the LLM.
