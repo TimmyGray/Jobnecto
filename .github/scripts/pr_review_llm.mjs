@@ -36,10 +36,11 @@ const DEFAULT_MODEL = "stepfun/step-3.5-flash:free";
  * Matches paths from `diff --git a/... b/...` (normalized to forward slashes).
  */
 const SKIP_PATH_RE = new RegExp(
-  "(?i)(^|/)(node_modules|bin|obj|\\.git)(/|$)|" +
+  "(^|/)(node_modules|bin|obj|\\.git)(/|$)|" +
     "\\.(lock|dll|exe|pdb|png|jpe?g|gif|webp|ico|pdf|zip|ttf|woff2?|eot)$|" +
     "(packages\\.lock\\.json|package-lock\\.json|yarn\\.lock|pnpm-lock\\.yaml|\\.min\\.js)$|" +
     "\\.Designer\\.cs$|\\.g\\.cs$|\\.generated\\.|/Generated/",
+  "i",
 );
 
 function shouldSkipFile(path) {
