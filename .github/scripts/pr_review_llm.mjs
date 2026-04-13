@@ -29,17 +29,18 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MAX_DIFF_CHARS = 900_000;
 
 /** Used when OPENROUTER_MODEL is unset or empty. */
-const DEFAULT_MODEL = "stepfun/step-3.5-flash:free";
+const DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
 
 /**
  * Paths whose entire diff hunks we drop before calling the LLM.
  * Matches paths from `diff --git a/... b/...` (normalized to forward slashes).
  */
 const SKIP_PATH_RE = new RegExp(
-  "(?i)(^|/)(node_modules|bin|obj|\\.git)(/|$)|" +
+  "(^|/)(node_modules|bin|obj|\\.git)(/|$)|" +
     "\\.(lock|dll|exe|pdb|png|jpe?g|gif|webp|ico|pdf|zip|ttf|woff2?|eot)$|" +
     "(packages\\.lock\\.json|package-lock\\.json|yarn\\.lock|pnpm-lock\\.yaml|\\.min\\.js)$|" +
     "\\.Designer\\.cs$|\\.g\\.cs$|\\.generated\\.|/Generated/",
+  "i",
 );
 
 function shouldSkipFile(path) {
