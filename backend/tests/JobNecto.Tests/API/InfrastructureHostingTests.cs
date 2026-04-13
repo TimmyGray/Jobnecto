@@ -99,4 +99,73 @@ public sealed class InfrastructureHostingTests
                 && d.Lifetime == ServiceLifetime.Scoped
             );
     }
+
+    /// <summary>
+    /// Purpose: guard <c>EnsureValidPostgresConnectionString</c> when the key is absent.
+    /// Contract: <see cref="InvalidOperationException"/> mentions Postgres configuration.
+    /// </summary>
+    [Fact]
+    public void AddInfrastructure_throws_when_Postgres_connection_string_is_missing()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>())
+            .Build();
+
+        var services = new ServiceCollection();
+
+        var act = () => services.AddInfrastructure(configuration);
+
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .Which.Message.Should()
+            .Contain("Postgres")
+            .And.Contain("missing")
+            .And.Contain("empty");
+    }
+
+    /// <summary>
+    /// Purpose: reject blank connection string values (whitespace only).
+    /// Contract: <see cref="InvalidOperationException"/>.
+    /// </summary>
+    [Fact]
+    public void AddInfrastructure_throws_when_Postgres_connection_string_is_whitespace()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:Postgres"] = "   " })
+            .Build();
+
+        var services = new ServiceCollection();
+
+        var act = () => services.AddInfrastructure(configuration);
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    /// <summary>
+    /// Purpose: catch template appsettings where <c>Host=;</c> leaves host empty after parse.
+    /// Contract: message explains host requirement.
+    /// </summary>
+    [Fact]
+    public void AddInfrastructure_throws_when_Postgres_host_is_empty()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["ConnectionStrings:Postgres"] =
+                        "Host=;Port=5432;Database=JobNecto;Username=x;Password=y;Pooling=true;",
+                }
+            )
+            .Build();
+
+        var services = new ServiceCollection();
+
+        var act = () => services.AddInfrastructure(configuration);
+
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .Which.Message.Should()
+            .Contain("Host")
+            .And.Contain("non-empty");
+    }
 }
