@@ -400,3 +400,10 @@ secrets.json
 *.snk
 
 appsettings.Development.json
+
+_bmad/
+.agent/
+.agents/
+.cursor/
+.github/skills
+.roo
