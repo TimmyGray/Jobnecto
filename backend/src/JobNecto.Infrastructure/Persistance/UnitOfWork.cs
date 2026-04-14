@@ -10,13 +10,13 @@ public class UnitOfWork : IUnitOfWork
 
     public IRepository<User> UserRepository => new UserRepository(_context);
 
-    public IVacancyRepository VacancyRepository => throw new NotImplementedException();
+    public IVacancyRepository VacancyRepository => new VacancyRepository(_context);
 
-    public IRepository<CoverLetter> CoverLetterRepository => throw new NotImplementedException();
+    public IRepository<CoverLetter> CoverLetterRepository => new CoverLetterRepository(_context);
 
-    public IRepository<Resume> ResumeRepository => throw new NotImplementedException();
+    public IRepository<Resume> ResumeRepository => new ResumeRepository(_context);
 
-    public IRepository<Education> EducationRepository => throw new NotImplementedException();
+    public IRepository<Education> EducationRepository => new EducationRepository(_context);
 
     public Task BeginTransactionAsync(CancellationToken ct)
     {
