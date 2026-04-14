@@ -10,7 +10,7 @@ public class ResumeConfiguration : IEntityTypeConfiguration<Resume>
             "Resumes",
             r =>
             {
-                r.HasCheckConstraint("CK_Resumes_Salary", "Salary >= 0");
+                r.HasCheckConstraint("CK_Resumes_Salary", "\"Salary\" >= 0");
             }
         );
 

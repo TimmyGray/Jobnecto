@@ -10,11 +10,11 @@ public class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
             "Vacancies",
             t =>
             {
-                t.HasCheckConstraint("CK_Vacancies_SalaryMin", "SalaryMin >= 0");
-                t.HasCheckConstraint("CK_Vacancies_SalaryMax", "SalaryMax >= 0");
+                t.HasCheckConstraint("CK_Vacancies_SalaryMin", "\"SalaryMin\" >= 0");
+                t.HasCheckConstraint("CK_Vacancies_SalaryMax", "\"SalaryMax\" >= 0");
                 t.HasCheckConstraint(
                     "CK_Vacancies_MatchScore",
-                    "MatchScore >= 0 AND MatchScore <= 1"
+                    "\"MatchScore\" >= 0 AND \"MatchScore\" <= 1"
                 );
             }
         );
