@@ -7,20 +7,31 @@ public class UnitOfWork : IUnitOfWork
     private readonly AppDbContext _context;
     private IDbContextTransaction? _transaction;
 
+    private IRepository<User>? _userRepository;
+    private IVacancyRepository? _vacancyRepository;
+    private IRepository<CoverLetter>? _coverLetterRepository;
+    private IRepository<Resume>? _resumeRepository;
+    private IRepository<Education>? _educationRepository;
+
     public UnitOfWork(AppDbContext context)
     {
         _context = context;
     }
 
-    public IRepository<User> UserRepository => new UserRepository(_context);
+    public IRepository<User> UserRepository => 
+        _userRepository ??= new UserRepository(_context);
 
-    public IVacancyRepository VacancyRepository => new VacancyRepository(_context);
+    public IVacancyRepository VacancyRepository => 
+        _vacancyRepository ??= new VacancyRepository(_context);
 
-    public IRepository<CoverLetter> CoverLetterRepository => new CoverLetterRepository(_context);
+    public IRepository<CoverLetter> CoverLetterRepository => 
+        _coverLetterRepository ??= new CoverLetterRepository(_context);
 
-    public IRepository<Resume> ResumeRepository => new ResumeRepository(_context);
+    public IRepository<Resume> ResumeRepository => 
+        _resumeRepository ??= new ResumeRepository(_context);
 
-    public IRepository<Education> EducationRepository => new EducationRepository(_context);
+    public IRepository<Education> EducationRepository => 
+        _educationRepository ??= new EducationRepository(_context);
 
     public async Task BeginTransactionAsync(CancellationToken ct)
     {
