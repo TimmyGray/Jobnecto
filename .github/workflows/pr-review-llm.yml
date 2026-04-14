@@ -16,6 +16,11 @@ on:
         description: Pull request number to review
         required: true
         type: number
+      model:
+        description: OpenRouter model to use (optional)
+        required: false
+        type: string
+        default: 'nvidia/nemotron-3-super-120b-a12b:free'
 
 concurrency:
   group: pr-review-llm-${{ github.event.pull_request.number || inputs.pr_number || github.run_id }}
@@ -88,5 +93,5 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr_meta.outputs.number }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'stepfun/step-3.5-flash:free' }}
+          OPENROUTER_MODEL: ${{ inputs.model || vars.OPENROUTER_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free' }}
         run: node .github/scripts/pr_review_llm.mjs pr.diff
