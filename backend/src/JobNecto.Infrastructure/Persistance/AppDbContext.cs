@@ -9,6 +9,7 @@ public class AppDbContext : DbContext
     public DbSet<Resume> Resumes { get; set; }
     public DbSet<Education> Educations { get; set; }
     public DbSet<CoverLetter> CoverLetters { get; set; }
+    public DbSet<CoverLetterTemplate> CoverLetterTemplates { get; set; }
     public DbSet<Vacancy> Vacancies { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
