@@ -401,9 +401,9 @@ secrets.json
 
 appsettings.Development.json
 
-_bmad/
-.agent/
-.agents/
-.cursor/
-.github/skills
-.roo
+/_bmad/
+/.agent/
+/.agents/
+/.cursor/
+/.github/skills/
+/.roo/
