@@ -1,3 +1,5 @@
+using JobNecto.API.Infrastructure.ExceptionHandling;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Use local configs if appsettings.Local.json exists
@@ -8,9 +10,15 @@ builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, relo
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Add Exception Handling
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
