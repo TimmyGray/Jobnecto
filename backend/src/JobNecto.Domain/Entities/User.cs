@@ -17,4 +17,5 @@ public sealed class User : BaseEntity
     public string[]? Projects;
     public ICollection<Resume>? Resumes;
     public ICollection<CoverLetter>? CoverLetters;
+    public ICollection<CoverLetterTemplate>? coverLetterTemplates;
 }

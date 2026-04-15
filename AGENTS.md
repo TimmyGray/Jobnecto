@@ -34,7 +34,13 @@ JobNecto is a .NET 10 backend API for job vacancy aggregation and matching. Clea
 - **Purpose:** Add C# XML docs (`///` with `<summary>`, `<param>`, `<returns>`) to functions that benefit from documentation; skip trivial code per the skill.
 - **Arguments:** Optional file paths, folders, or function names to limit scope; with no arguments, scan `backend/src/` in project order (see the command). If only a bare function or type name is given, search the solution for matches or ask for a file path when ambiguous.
 
+### Code documentation requirements
+
+- **Functions & Methods:** Every valuable or non-trivial function/method must be covered with XML documentation comments (`/// <summary>`, `<param>`, `<returns>`) or standard block comments to explain its purpose, context, and expected behaviors.
+- **Why:** This is strictly required to ensure better code readability, maintainability, and context understanding for both human developers and AI coding assistants. Obvious or boilerplate code (like simple getters/setters) can be skipped, but prefer adding context when the logic or business rule isn't immediately obvious from the name.
+
 ### Gotchas
+
 
 - The root `.sln` (`Jobnecto.sln`) uses Windows-style backslash paths and does not include the test project. Always use `backend/JobNecto.slnx` for builds and tests.
 - Docker files (`docker/Dockerfile`, `docker/docker-compose.yml`) are empty placeholders.

@@ -1,0 +1,29 @@
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore;
+
+public class CoverLetterTemplateConfiguration : IEntityTypeConfiguration<CoverLetterTemplate>
+{
+    public void Configure(EntityTypeBuilder<CoverLetterTemplate> builder)
+    {
+        builder.ToTable("CoverLetterTemplates");
+
+        builder.HasKey(clt => clt.Id);
+
+        builder.Property(clt => clt.Name).IsRequired();
+
+        builder.Property(clt => clt.Content).IsRequired();
+
+        builder.Property(clt => clt.CreatedAt).HasDefaultValueSql("Now()").ValueGeneratedOnAdd();
+
+        builder
+            .Property(clt => clt.UpdatedAt)
+            .HasDefaultValueSql("Now()")
+            .ValueGeneratedOnAddOrUpdate();
+
+        builder
+            .HasOne<CoverLetterTemplate>()
+            .WithMany()
+            .HasForeignKey(clt => clt.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}

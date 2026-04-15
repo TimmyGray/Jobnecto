@@ -1,45 +1,94 @@
 
+using Microsoft.EntityFrameworkCore.Storage;
+
 public class UnitOfWork : IUnitOfWork
 {
     private readonly AppDbContext _context;
+    private IDbContextTransaction? _transaction;
+
+    private IRepository<User>? _userRepository;
+    private IVacancyRepository? _vacancyRepository;
+    private IRepository<CoverLetter>? _coverLetterRepository;
+    private IRepository<Resume>? _resumeRepository;
+    private IRepository<Education>? _educationRepository;
 
     public UnitOfWork(AppDbContext context)
     {
         _context = context;
     }
 
-    public IRepository<User> UserRepository => new UserRepository(_context);
+    public IRepository<User> UserRepository => 
+        _userRepository ??= new UserRepository(_context);
 
-    public IVacancyRepository VacancyRepository => throw new NotImplementedException();
+    public IVacancyRepository VacancyRepository => 
+        _vacancyRepository ??= new VacancyRepository(_context);
 
-    public IRepository<CoverLetter> CoverLetterRepository => throw new NotImplementedException();
+    public IRepository<CoverLetter> CoverLetterRepository => 
+        _coverLetterRepository ??= new CoverLetterRepository(_context);
 
-    public IRepository<Resume> ResumeRepository => throw new NotImplementedException();
+    public IRepository<Resume> ResumeRepository => 
+        _resumeRepository ??= new ResumeRepository(_context);
 
-    public IRepository<Education> EducationRepository => throw new NotImplementedException();
+    public IRepository<Education> EducationRepository => 
+        _educationRepository ??= new EducationRepository(_context);
 
-    public Task BeginTransactionAsync(CancellationToken ct)
+    public async Task BeginTransactionAsync(CancellationToken ct)
     {
-        throw new NotImplementedException();
+        if (_transaction != null)
+        {
+            throw new InvalidOperationException("Transaction already started");
+        }
+        _transaction = await _context.Database.BeginTransactionAsync(ct);
     }
 
-    public Task CommitTransactionAsync(CancellationToken ct)
+    public async Task CommitTransactionAsync(CancellationToken ct)
     {
-        throw new NotImplementedException();
+        if (_transaction == null)
+        {
+            throw new InvalidOperationException("Transaction not started");
+        }
+
+        try
+        {
+            await SaveChangesAsync(ct);
+            await _transaction.CommitAsync(ct);
+        }
+        catch (System.Exception)
+        {
+            await _transaction.RollbackAsync(ct);
+            throw;
+        }
+        finally
+        {
+            await DisposeTransactionAsync();
+        }
     }
 
-    public ValueTask DisposeAsync()
+    private async Task DisposeTransactionAsync()
     {
-        throw new NotImplementedException();
+        if (_transaction != null)
+        {
+            await _transaction.DisposeAsync();
+        }
     }
 
-    public Task RollbackTransactionAsync(CancellationToken ct)
+    public async ValueTask DisposeAsync()
     {
-        throw new NotImplementedException();
+        await DisposeTransactionAsync();
+        await _context.DisposeAsync();
     }
 
-    public Task<int> SaveChangesAsync(CancellationToken ct)
+    public async Task RollbackTransactionAsync(CancellationToken ct)
     {
-        throw new NotImplementedException();
+        if (_transaction != null)
+        {
+            await _transaction.RollbackAsync(ct);
+            await DisposeTransactionAsync();
+        }
+    }
+
+    public async Task<int> SaveChangesAsync(CancellationToken ct)
+    {
+        return await _context.SaveChangesAsync(ct);
     }
 }

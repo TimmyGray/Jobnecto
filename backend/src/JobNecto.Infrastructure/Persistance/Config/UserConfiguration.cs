@@ -10,9 +10,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             "Users",
             t =>
             {
-                t.HasCheckConstraint("CK_Users_Age", "Age > 0 AND Age < 100");
-                t.HasCheckConstraint("CK_Users_Email", "Email ~* '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'");
-                t.HasCheckConstraint("CK_Users_Phone", "Phone ~* '^\\+[1-9]\\d{1,14}$'");
+                t.HasCheckConstraint("CK_Users_Age", "\"Age\" > 0 AND \"Age\" < 100");
+                t.HasCheckConstraint("CK_Users_Email", "\"Email\" ~* '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'");
+                t.HasCheckConstraint("CK_Users_Phone", "\"Phone\" ~* '^\\+[1-9]\\d{1,14}$'");
             }
         );
 

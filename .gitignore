@@ -407,3 +407,5 @@ appsettings.Development.json
 /.cursor/
 /.github/skills/
 /.roo/
+
+/backend/src/JobNecto.API/appsettings.Local.json
