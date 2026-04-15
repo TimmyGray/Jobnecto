@@ -211,7 +211,7 @@ and approve.`;
       temperature: 0.3,
     }),
     // Avoid hanging the Actions runner indefinitely on a stuck connection.
-    signal: AbortSignal.timeout(120_000),
+    signal: AbortSignal.timeout(300_000), // 5 minutes
   });
 
   const raw = await res.text();
