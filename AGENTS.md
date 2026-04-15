@@ -1,6 +1,6 @@
 # AGENTS.md
 
-## Cursor Cloud specific instructions
+## AI AGENTS specific instructions
 
 ### Project overview
 
@@ -19,25 +19,25 @@ JobNecto is a .NET 10 backend API for job vacancy aggregation and matching. Clea
 - The API serves OpenAPI spec at `GET /openapi/v1.json`.
 - No user-facing routes exist yet; 404 on root is expected.
 
-### PostgreSQL
 
-- Required for the full application (EF Core + Npgsql).
-- Dev config (`appsettings.Development.json`) expects: `Host=localhost;Port=5432;Database=JobNecto;Username=admin;Password=admin` (Npgsql requires `Key=Value` pairs, including `Port=5432`).
-- The `Program.cs` does not yet call `AddInfrastructure()`, so the DB connection is not used at startup. When it is wired up, PostgreSQL must be running with the above credentials.
-- To start PostgreSQL: `sudo pg_ctlcluster 16 main start`
+### Custom Agent Skills
 
-### Cursor agent command: function comments
+- **Function Comments**: Use the `@[/function-comments]` skill from `.agents/skills/function-comments/SKILL.md` to add C# XML docs (`/// <summary>`, `<param>`, `<returns>`) to functions that benefit from documentation. Skip trivial code per the skill.
+- **PostgreSQL**: Use the `@[/jobnecto-postgresql]` skill from `.agents/skills/jobnecto-postgresql/SKILL.md` when querying the DB, running migrations, or working with local Postgres databases.
 
-- **Command:** `.cursor/commands/function-comments.md`
-- **Skill:** `.cursor/skills/function-comments/SKILL.md`
-- **Agent profile (optional):** `.cursor/agents/function-comments.md`
-- **Purpose:** Add C# XML docs (`///` with `<summary>`, `<param>`, `<returns>`) to functions that benefit from documentation; skip trivial code per the skill.
-- **Arguments:** Optional file paths, folders, or function names to limit scope; with no arguments, scan `backend/src/` in project order (see the command). If only a bare function or type name is given, search the solution for matches or ask for a file path when ambiguous.
+### Agent Routing Instructions
+
+When a user request requires specific workflows, code generation, or role-playing, you must determine the intent and call or recommend the appropriate BMad agent skill:
+- **Code Generation & Development**: If the user asks to write code, build, fix, tweak, refactor, add or modify any code/component, you must call the `@[/bmad-quick-dev]` skill (or `@[/bmad-agent-dev]` for story execution).
+- **Product Management & Requirements**: If the user requests a product manager, PRD creation, or requirements discovery, you must call the `@[/bmad-agent-pm]` skill.
+- **Architecture & System Design**: If the user requests an architect, technical design guidance, or a solution design, you must call the `@[/bmad-agent-architect]` skill.
+- **Sprint Management & Scrum**: If the user needs sprint planning or sprint status checking (acting as a Scrum Master), you must call `@[/bmad-sprint-planning]` or `@[/bmad-sprint-status]`.
+- **UX Design**: For UX patterns and design specifications, call the `@[/bmad-agent-ux-designer]` skill.
+- **Testing & QA**: For test architecture, design, and QA guidance, call the `@[/bmad-tea]` skill.
 
 ### Code documentation requirements
 
-- **Functions & Methods:** Every valuable or non-trivial function/method must be covered with XML documentation comments (`/// <summary>`, `<param>`, `<returns>`) or standard block comments to explain its purpose, context, and expected behaviors.
-- **Why:** This is strictly required to ensure better code readability, maintainability, and context understanding for both human developers and AI coding assistants. Obvious or boilerplate code (like simple getters/setters) can be skipped, but prefer adding context when the logic or business rule isn't immediately obvious from the name.
+- **Functions & Methods:** All new valuable or non-trivial functions/methods MUST include C# XML documentation comments (`/// <summary>`, `<param>`, `<returns>`). Trivial or boilerplate code can be skipped. See the `@[/function-comments]` skill for detailed guidelines.
 
 ### Gotchas
 
@@ -57,7 +57,7 @@ Run this workflow every time a PR is created or updated.
 
 ### Required execution model
 
-- Use a separate subagent dedicated to review, with description `Code reviewer`.
+- Instead of using a generic subagent, you must invoke the BMad Code Review skill `@[/bmad-code-review]` to run adversarial code review.
 - Do not skip this review even when implementation appears small.
 
 ### Review scope (must include all)
