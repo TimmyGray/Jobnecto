@@ -39,6 +39,12 @@ When a user request requires specific workflows, code generation, or role-playin
 
 - **Functions & Methods:** All new valuable or non-trivial functions/methods MUST include C# XML documentation comments (`/// <summary>`, `<param>`, `<returns>`). Trivial or boilerplate code can be skipped. See the `@[/function-comments]` skill for detailed guidelines.
 
+### Security — secrets and credentials
+
+- **NEVER** write secrets, passwords, API keys, or database connection strings (containing credentials) into any documentation, markdown files, architecture docs, stories, or any other text artifacts.
+- When documentation needs to reference a connection string or secret, instruct the reader to **see the local config file** instead (e.g. `appsettings.local.json`, `.env.local`). Example: _"Set the connection string in `appsettings.local.json` under `ConnectionStrings:Default`."_
+- This rule applies to all agent outputs: PRDs, architecture docs, stories, code comments, README files, and any generated content.
+
 ### Gotchas
 
 
