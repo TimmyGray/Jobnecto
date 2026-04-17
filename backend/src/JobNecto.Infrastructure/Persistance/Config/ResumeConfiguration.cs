@@ -81,8 +81,12 @@ public class ResumeConfiguration : IEntityTypeConfiguration<Resume>
             .HasDefaultValueSql("Now()")
             .ValueGeneratedOnAddOrUpdate();
 
+        builder.Property(r => r.IsDeleted).HasDefaultValue(false);
+
+        builder.Property(r => r.DeletedAt);
+
         builder
-            .HasOne<Resume>()
+            .HasOne<User>()
             .WithMany()
             .HasForeignKey(r => r.UserId)
             .OnDelete(DeleteBehavior.Cascade);

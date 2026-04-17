@@ -1,4 +1,4 @@
-public sealed class User : BaseEntity
+public sealed class User : SoftDeletableEntity
 {
     public string? Name;
     public string? SecondName;

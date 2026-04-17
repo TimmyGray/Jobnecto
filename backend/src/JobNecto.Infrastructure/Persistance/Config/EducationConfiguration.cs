@@ -21,6 +21,10 @@ public class EducationConfiguration : IEntityTypeConfiguration<Education>
             .Property(e => e.UpdatedAt)
             .HasDefaultValueSql("Now()")
             .ValueGeneratedOnAddOrUpdate();
+        
+        builder.Property(e => e.IsDeleted).HasDefaultValue(false);
+
+        builder.Property(e => e.DeletedAt);
 
         builder
             .HasOne<User>()

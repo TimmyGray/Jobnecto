@@ -2,7 +2,7 @@
 /// We will use this resume as template for filtering and matching vacancies.
 /// And for helping LLM to generate a Cover Letter.
 /// </summary>
-public sealed class Resume : BaseEntity
+public sealed class Resume : SoftDeletableEntity
 {
     public Guid UserId;
     public string? Title;

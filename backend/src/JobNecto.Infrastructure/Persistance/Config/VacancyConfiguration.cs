@@ -86,5 +86,9 @@ public class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
             .Property(v => v.UpdatedAt)
             .HasDefaultValueSql("Now()")
             .ValueGeneratedOnAddOrUpdate();
+
+        builder.Property(v => v.IsDeleted).HasDefaultValue(false);
+
+        builder.Property(v => v.DeletedAt);
     }
 }
