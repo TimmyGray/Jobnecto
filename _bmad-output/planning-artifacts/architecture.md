@@ -67,7 +67,7 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 **Phase A Assumptions (Must Be Complete):**
 - UnitOfWork pattern implemented with `SaveChangesAsync()` and `DisposeAsync()`
 - All repository interfaces defined in Application layer
-- PostgreSQL connection available: `Host=localhost;Port=5432;Database=JobNecto;Username=admin;Password=admin`
+- PostgreSQL connection available — see `appsettings.local.json` under `ConnectionStrings:Default` for the local connection string
 - EF Core migrations system functional
 - `AddInfrastructure()` DI registration wired in `Program.cs`
 
