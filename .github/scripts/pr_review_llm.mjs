@@ -114,12 +114,114 @@ async function githubPostComment(body) {
   }
 }
 
-async function openrouterReview(diffText, model) {
+/**
+ * Fetch previous LLM reviews from the PR to provide context for new reviews.
+ * @returns {Promise<string|null>} Summary of previous reviews or null if none found.
+ */
+async function getPreviousReviewContext() {
+  const token = process.env.GITHUB_TOKEN ?? "";
+  const repo = process.env.GITHUB_REPOSITORY ?? "";
+  const pr = process.env.PR_NUMBER ?? "";
+  if (!token || !repo || !pr) return null;
+
+  try {
+    const url = `https://api.github.com/repos/${repo}/issues/${pr}/comments`;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+    if (!res.ok) return null;
+
+    const comments = await res.json();
+    if (!Array.isArray(comments)) return null;
+
+    // Extract previous review comments from github-actions
+    const previousReviews = comments
+      .filter(
+        (c) =>
+          c.user?.login === "github-actions" &&
+          c.body &&
+          c.body.includes("### LLM PR review")
+      )
+      .map((c) => {
+        // Remove the header "### LLM PR review (OpenRouter)" and fold into context
+        const lines = c.body.split("\n");
+        const contentStart = lines.findIndex((l) =>
+          l.includes("## Summary of changes")
+        );
+        return contentStart >= 0 ? lines.slice(contentStart).join("\n") : c.body;
+      });
+
+    if (previousReviews.length === 0) return null;
+
+    // Summarize for the new review prompt
+    return `
+## Previous Review Context
+
+The following findings were identified in previous reviews; use this context when reviewing new changes:
+
+${previousReviews.map((r, i) => `### Review ${i + 1}\n${r}`).join("\n\n---\n\n")}
+
+When reviewing new changes, consider:
+- Do the fixes from previous review findings still apply or have they been addressed?
+- Are there new instances of previously-flagged issues?
+- Are the recommendations from earlier reviews being followed?
+`;
+  } catch (err) {
+    stderr.write(`Failed to fetch previous reviews: ${err.message}\n`);
+    return null;
+  }
+}
+
+/**
+ * Retry with exponential backoff for transient failures.
+ * @param {Function} fn - Async function to retry
+ * @param {number} maxAttempts - Max retry attempts (default 3)
+ * @param {number} initialDelayMs - Initial delay in ms (default 1000)
+ */
+async function retryWithBackoff(fn, maxAttempts = 3, initialDelayMs = 1000) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      // Determine if error is retryable:
+      // - Network/fetch errors: bubbled from fetch API
+      // - Timeout errors: explicit timeout or network delay (ETIMEDOUT, EHOSTUNREACH)
+      // - HTTP status codes in message: 429 (rate limit), 502/503/504 (server errors)
+      const isRetryable =
+        err.message?.includes("fetch") ||
+        err.message?.includes("timeout") ||
+        err.message?.includes("ETIMEDOUT") ||
+        err.message?.includes("EHOSTUNREACH") ||
+        /\b(429|502|503|504)\b/.test(err.message); // HTTP status codes
+
+      if (attempt < maxAttempts && isRetryable) {
+        const delay = initialDelayMs * Math.pow(2, attempt - 1);
+        stderr.write(
+          `Retryable error (attempt ${attempt}/${maxAttempts}): ${err.message}\n` +
+            `Waiting ${delay}ms before retry...\n`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw lastError;
+}
+
+async function openrouterReview(diffText, model, previousReviewContext = null) {
   const apiKey = (process.env.OPENROUTER_API_KEY ?? "").trim();
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
 
   // Fixed section headings keep PR comments predictable for humans and automation.
-  const system = `You are a principal-level software engineer performing a thorough pull request review.
+  let system = `You are a principal-level software engineer performing a thorough pull request review.
 Your audience is the PR author and other maintainers. Be specific: reference file paths and
 line ranges from the diff when pointing out issues.
 
@@ -127,7 +229,16 @@ Output valid GitHub-flavoured Markdown. Use exactly these sections in order:
 
 ## Summary of changes
 Describe WHAT changed and WHY (infer intent from the diff). List affected components, layers,
-or modules. Call out new files vs modified files.
+or modules. Call out new files vs modified files.`;
+
+  // Include previous review context if available
+  if (previousReviewContext) {
+    system += `
+
+${previousReviewContext}`;
+  }
+
+  system += `
 
 ## Correctness
 Analyse whether the implementation is logically correct. Look for:
@@ -218,19 +329,42 @@ and approve.`;
   if (!res.ok) {
     throw new Error(`OpenRouter HTTP ${res.status}: ${raw.slice(0, 2000)}`);
   }
+
+  // Log raw response for debugging (first 1000 chars, visible in Actions logs)
+  if (raw.length > 0) {
+    stderr.write(`OpenRouter response (first 1000 chars): ${raw.slice(0, 1000)}\n`);
+  } else {
+    stderr.write("OpenRouter returned empty response body\n");
+  }
+
   let parsed;
   try {
     parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`OpenRouter invalid JSON: ${raw.slice(0, 500)}`);
+  } catch (err) {
+    throw new Error(
+      `OpenRouter invalid JSON: ${raw.slice(0, 500)} (parse error: ${err.message})`
+    );
   }
+
+  // Check for error message in response (common when model unavailable, rate limited, etc.)
+  if (parsed.error) {
+    throw new Error(
+      `OpenRouter API error: ${JSON.stringify(parsed.error)} (status: ${res.status})`
+    );
+  }
+
   const choices = parsed.choices ?? [];
   if (!choices.length) {
-    throw new Error(`OpenRouter returned no choices: ${raw.slice(0, 500)}`);
+    throw new Error(
+      `OpenRouter returned no choices. Full response: ${JSON.stringify(parsed).slice(0, 1500)}`
+    );
   }
+
   const content = choices[0]?.message?.content;
   if (content == null || String(content).trim() === "") {
-    throw new Error("OpenRouter returned empty content");
+    throw new Error(
+      `OpenRouter returned empty content. Full response: ${JSON.stringify(parsed).slice(0, 1500)}`
+    );
   }
   return String(content).trim();
 }
@@ -274,7 +408,17 @@ async function main() {
   }
 
   try {
-    const review = await openrouterReview(truncated, model);
+    // Fetch previous review context for continuity across commits
+    const previousReviewContext = await getPreviousReviewContext();
+    if (previousReviewContext) {
+      stderr.write("Found previous reviews; including context for new analysis...\n");
+    }
+
+    const review = await retryWithBackoff(
+      () => openrouterReview(truncated, model, previousReviewContext),
+      3, // maxAttempts
+      1000 // initialDelayMs
+    );
     await githubPostComment(header + review);
   } catch (e) {
     stderr.write(`${e}\n`);

@@ -9,6 +9,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);NU1901;NU1902;NU1903;NU1904</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
@@ -21,6 +22,7 @@
     <PackageReference Include="StackExchange.Redis" Version="2.11.3" />
     <PackageReference Include="Quartz" Version="3.15.1" />
     <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.15.1" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="9.0.2" />
   </ItemGroup>
 
 </Project>

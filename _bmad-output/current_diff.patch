@@ -1,0 +1,517 @@
+﻿diff --git a/AGENTS.md b/AGENTS.md
+index 8c70d5a..5070717 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1,6 +1,6 @@
+ # AGENTS.md
+ 
+-## Cursor Cloud specific instructions
++## AI AGENTS specific instructions
+ 
+ ### Project overview
+ 
+@@ -19,25 +19,25 @@ JobNecto is a .NET 10 backend API for job vacancy aggregation and matching. Clea
+ - The API serves OpenAPI spec at `GET /openapi/v1.json`.
+ - No user-facing routes exist yet; 404 on root is expected.
+ 
+-### PostgreSQL
+ 
+-- Required for the full application (EF Core + Npgsql).
+-- Dev config (`appsettings.Development.json`) expects: `Host=localhost;Port=5432;Database=JobNecto;Username=admin;Password=admin` (Npgsql requires `Key=Value` pairs, including `Port=5432`).
+-- The `Program.cs` does not yet call `AddInfrastructure()`, so the DB connection is not used at startup. When it is wired up, PostgreSQL must be running with the above credentials.
+-- To start PostgreSQL: `sudo pg_ctlcluster 16 main start`
++### Custom Agent Skills
+ 
+-### Cursor agent command: function comments
++- **Function Comments**: Use the `@[/function-comments]` skill from `.agents/skills/function-comments/SKILL.md` to add C# XML docs (`/// <summary>`, `<param>`, `<returns>`) to functions that benefit from documentation. Skip trivial code per the skill.
++- **PostgreSQL**: Use the `@[/jobnecto-postgresql]` skill from `.agents/skills/jobnecto-postgresql/SKILL.md` when querying the DB, running migrations, or working with local Postgres databases.
+ 
+-- **Command:** `.cursor/commands/function-comments.md`
+-- **Skill:** `.cursor/skills/function-comments/SKILL.md`
+-- **Agent profile (optional):** `.cursor/agents/function-comments.md`
+-- **Purpose:** Add C# XML docs (`///` with `<summary>`, `<param>`, `<returns>`) to functions that benefit from documentation; skip trivial code per the skill.
+-- **Arguments:** Optional file paths, folders, or function names to limit scope; with no arguments, scan `backend/src/` in project order (see the command). If only a bare function or type name is given, search the solution for matches or ask for a file path when ambiguous.
++### Agent Routing Instructions
++
++When a user request requires specific workflows, code generation, or role-playing, you must determine the intent and call or recommend the appropriate BMad agent skill:
++- **Code Generation & Development**: If the user asks to write code, build, fix, tweak, refactor, add or modify any code/component, you must call the `@[/bmad-quick-dev]` skill (or `@[/bmad-agent-dev]` for story execution).
++- **Product Management & Requirements**: If the user requests a product manager, PRD creation, or requirements discovery, you must call the `@[/bmad-agent-pm]` skill.
++- **Architecture & System Design**: If the user requests an architect, technical design guidance, or a solution design, you must call the `@[/bmad-agent-architect]` skill.
++- **Sprint Management & Scrum**: If the user needs sprint planning or sprint status checking (acting as a Scrum Master), you must call `@[/bmad-sprint-planning]` or `@[/bmad-sprint-status]`.
++- **UX Design**: For UX patterns and design specifications, call the `@[/bmad-agent-ux-designer]` skill.
++- **Testing & QA**: For test architecture, design, and QA guidance, call the `@[/bmad-tea]` skill.
+ 
+ ### Code documentation requirements
+ 
+-- **Functions & Methods:** Every valuable or non-trivial function/method must be covered with XML documentation comments (`/// <summary>`, `<param>`, `<returns>`) or standard block comments to explain its purpose, context, and expected behaviors.
+-- **Why:** This is strictly required to ensure better code readability, maintainability, and context understanding for both human developers and AI coding assistants. Obvious or boilerplate code (like simple getters/setters) can be skipped, but prefer adding context when the logic or business rule isn't immediately obvious from the name.
++- **Functions & Methods:** All new valuable or non-trivial functions/methods MUST include C# XML documentation comments (`/// <summary>`, `<param>`, `<returns>`). Trivial or boilerplate code can be skipped. See the `@[/function-comments]` skill for detailed guidelines.
+ 
+ ### Gotchas
+ 
+@@ -57,7 +57,7 @@ Run this workflow every time a PR is created or updated.
+ 
+ ### Required execution model
+ 
+-- Use a separate subagent dedicated to review, with description `Code reviewer`.
++- Instead of using a generic subagent, you must invoke the BMad Code Review skill `@[/bmad-code-review]` to run adversarial code review.
+ - Do not skip this review even when implementation appears small.
+ 
+ ### Review scope (must include all)
+diff --git a/_bmad-output/implementation-artifacts/1-1-global-exception-handling.md b/_bmad-output/implementation-artifacts/1-1-global-exception-handling.md
+new file mode 100644
+index 0000000..fecda23
+--- /dev/null
++++ b/_bmad-output/implementation-artifacts/1-1-global-exception-handling.md
+@@ -0,0 +1,82 @@
++# Story 1.1: Global exception handling and problem details
++
++Status: done
++
++<!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
++
++## Story
++
++As an API Consumer (Frontend or Partner App),
++I want all API responses for errors and invalid data to follow a consistent RFC 7807 Problem Details structure,
++so that my application can gracefully handle and display errors to users without breaking due to inconsistent error shapes or leaking stack traces in production.
++
++## Acceptance Criteria
++
++1. [x] A global exception handler is registered in the API pipeline using `IExceptionHandler` to catch all unhandled exceptions.
++2. [x] Unhandled exceptions return an RFC 7807 Problem Details response (`application/problem+json`) with a `500 Internal Server Error` status.
++3. [x] Stack traces must **never** be included in the response body when the application is running in the Production environment.
++4. [x] Validation failures (FluentValidation) must return a `400 Bad Request` Problem Details response.
++5. [x] Validation errors must be formatted as a dictionary of field names to arrays of error messages (`Dictionary<string, string[]>`) in the `errors` extension field.
++6. [x] Custom domain exceptions in the Application layer (`NotFoundException`, `ForbiddenException`, `UnauthorizedException`) must be mapped to their corresponding HTTP status codes (404, 403, 401).
++7. [x] Every error response must include a `traceId` extension field (mapped from `HttpContext.TraceIdentifier`) for log correlation.
++8. [x] The response types are consistent across all endpoints so that frontend clients can rely on `title`, `status`, and `traceId`.
++9. [x] Tests must assert that invalid JSON, validation failures, and domain exceptions return the expected `application/problem+json` shape.
++
++## Tasks
++
++- [x] Task 1: Define Application Exceptions (AC: 6)
++  - [x] Create `Exceptions` folder in `JobNecto.Application`.
++  - [x] Implement `NotFoundException`, `ForbiddenException`, and `UnauthorizedException` base classes.
++- [x] Task 2: Setup Global Exception Handling (AC: 1, 2, 3, 7, 8)
++  - [x] Implement `GlobalExceptionHandler` using `IExceptionHandler` in `JobNecto.API/Infrastructure/ExceptionHandling`.
++  - [x] Register `AddExceptionHandler<GlobalExceptionHandler>()` and `AddProblemDetails()` in `Program.cs`.
++  - [x] Ensure Production environment strips stack traces.
++  - [x] Ensure exceptions and `traceId` are logged to Serilog.
++- [x] Task 3: Implement Exception Mapping (AC: 4, 5, 6)
++  - [x] Map `ValidationException` (FluentValidation) to `400 Bad Request` with structured errors.
++  - [x] Map `NotFoundException` to `404 Not Found`.
++  - [x] Map `ForbiddenException` to `403 Forbidden`.
++  - [x] Map `UnauthorizedException` to `401 Unauthorized`.
++- [x] Task 4: Integration Testing (AC: 9)
++  - [x] Create `JobNecto.Tests.Integration` project if missing, or use existing `JobNecto.Tests`.
++  - [x] Implement `ExceptionHandlingTests` using `WebApplicationFactory`.
++  - [x] Verify 400 for validation, 404 for missing resources (mocked), and 500 for unhandled throws.
++
++## Dev Notes
++
++- **Clean Architecture Constraint:** The exception handler resides in the API layer, but maps exceptions from the Application layer.
++- **ASP.NET Core 10:** Use `IExceptionHandler` and `AddProblemDetails()`.
++- **References:** Review `project-context.md` for Serilog configuration.
++
++### Project Structure Notes
++
++- New folder: `JobNecto.API/Infrastructure/ExceptionHandling`
++- New folder: `JobNecto.Application/Exceptions`
++
++### References
++
++- [Source: GitHub Issue #36] - "Global exception handling and problem details"
++
++## Dev Agent Record
++
++### Agent Model Used
++Gemini 3.1 Pro (High)
++
++### Debug Log References
++- Extracted and tested exception mapping logic via `WebApplicationFactory`.
++- Fixed `ContentType` manually in `GlobalExceptionHandler` to ensure `WriteAsJsonAsync` output maps correctly to RFC 7807 problem details specification.
++
++### Completion Notes List
++- Created `NotFoundException`, `ForbiddenException`, and `UnauthorizedException` in `JobNecto.Application.Exceptions`.
++- Programmed `GlobalExceptionHandler` and registered it in `Program.cs`.
++- Wrote integration tests covering 400, 401, 403, 404, and 500 error outputs matching `application/problem+json` shape.
++- Validation format matches standard `{ errors: { Field: [] } }` format.
++- `traceId` injected mapped from `HttpContext.TraceIdentifier`.
++
++### File List
++- `backend/src/JobNecto.Application/Exceptions/NotFoundException.cs`
++- `backend/src/JobNecto.Application/Exceptions/ForbiddenException.cs`
++- `backend/src/JobNecto.Application/Exceptions/UnauthorizedException.cs`
++- `backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs`
++- `backend/src/JobNecto.API/Program.cs`
++- `backend/tests/JobNecto.Tests/API/ExceptionHandlingTests.cs`
+diff --git a/backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs b/backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs
+new file mode 100644
+index 0000000..d879a8c
+--- /dev/null
++++ b/backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs
+@@ -0,0 +1,100 @@
++using System.Diagnostics;
++using FluentValidation;
++using JobNecto.Application.Exceptions;
++using Microsoft.AspNetCore.Diagnostics;
++using Microsoft.AspNetCore.Mvc;
++
++namespace JobNecto.API.Infrastructure.ExceptionHandling;
++
++/// <summary>
++/// Global exception handler that catches all unhandled exceptions and maps them to an RFC 7807 Problem Details response.
++/// </summary>
++public class GlobalExceptionHandler : IExceptionHandler
++{
++    private readonly ILogger<GlobalExceptionHandler> _logger;
++    private readonly IHostEnvironment _env;
++
++    /// <summary>
++    /// Initializes a new instance of the <see cref="GlobalExceptionHandler"/> class.
++    /// </summary>
++    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IHostEnvironment env)
++    {
++        _logger = logger;
++        _env = env;
++    }
++
++    /// <summary>
++    /// Attempts to handle the exception by writing a Problem Details response.
++    /// </summary>
++    public async ValueTask<bool> TryHandleAsync(
++        HttpContext httpContext,
++        Exception exception,
++        CancellationToken cancellationToken)
++    {
++        _logger.LogError(
++            exception, "Exception occurred: {Message}", exception.Message);
++
++        var problemDetails = new ProblemDetails
++        {
++            Instance = httpContext.Request.Path
++        };
++
++        switch (exception)
++        {
++            case ValidationException validationException:
++                problemDetails.Status = StatusCodes.Status400BadRequest;
++                problemDetails.Title = "Validation failed";
++                problemDetails.Detail = "One or more validation errors occurred.";
++
++                var errors = validationException.Errors
++                    .GroupBy(x => x.PropertyName)
++                    .ToDictionary(
++                        g => g.Key,
++                        g => g.Select(x => x.ErrorMessage).ToArray()
++                    );
++                problemDetails.Extensions["errors"] = errors;
++                break;
++
++            case NotFoundException notFoundException:
++                problemDetails.Status = StatusCodes.Status404NotFound;
++                problemDetails.Title = "Resource not found";
++                problemDetails.Detail = notFoundException.Message;
++                break;
++
++            case ForbiddenException forbiddenException:
++                problemDetails.Status = StatusCodes.Status403Forbidden;
++                problemDetails.Title = "Forbidden";
++                problemDetails.Detail = "You do not have permission to access this resource.";
++                break;
++
++            case UnauthorizedException unauthorizedException:
++                problemDetails.Status = StatusCodes.Status401Unauthorized;
++                problemDetails.Title = "Unauthorized";
++                problemDetails.Detail = "Authentication is required to access this resource.";
++                break;
++
++            default:
++                problemDetails.Status = StatusCodes.Status500InternalServerError;
++                problemDetails.Title = "Internal Server Error";
++                problemDetails.Detail = "An unexpected error occurred.";
++                
++                if (!_env.IsProduction())
++                {
++                    problemDetails.Extensions["exception"] = exception.ToString();
++                }
++                break;
++        }
++
++        var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
++        problemDetails.Extensions["traceId"] = traceId;
++
++        httpContext.Response.StatusCode = problemDetails.Status.Value;
++
++        await httpContext.Response.WriteAsJsonAsync(
++            problemDetails, 
++            options: null, 
++            contentType: "application/problem+json", 
++            cancellationToken);
++        return true;
++    }
++}
+diff --git a/backend/src/JobNecto.API/Program.cs b/backend/src/JobNecto.API/Program.cs
+index c86b060..44a2426 100644
+--- a/backend/src/JobNecto.API/Program.cs
++++ b/backend/src/JobNecto.API/Program.cs
+@@ -1,3 +1,5 @@
++using JobNecto.API.Infrastructure.ExceptionHandling;
++
+ var builder = WebApplication.CreateBuilder(args);
+ 
+ // Use local configs if appsettings.Local.json exists
+@@ -8,9 +10,15 @@ builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, relo
+ builder.Services.AddOpenApi();
+ builder.Services.AddInfrastructure(builder.Configuration);
+ 
++// Add Exception Handling
++builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
++builder.Services.AddProblemDetails();
++
+ var app = builder.Build();
+ 
+ // Configure the HTTP request pipeline.
++app.UseExceptionHandler();
++
+ if (app.Environment.IsDevelopment())
+ {
+     app.MapOpenApi();
+diff --git a/backend/src/JobNecto.Application/Exceptions/ForbiddenException.cs b/backend/src/JobNecto.Application/Exceptions/ForbiddenException.cs
+new file mode 100644
+index 0000000..1185930
+--- /dev/null
++++ b/backend/src/JobNecto.Application/Exceptions/ForbiddenException.cs
+@@ -0,0 +1,17 @@
++using System;
++
++namespace JobNecto.Application.Exceptions;
++
++/// <summary>
++/// Exception thrown when an action is forbidden for the current user.
++/// </summary>
++public class ForbiddenException : Exception
++{
++    public ForbiddenException() : base()
++    {
++    }
++    
++    public ForbiddenException(string message) : base(message)
++    {
++    }
++}
+diff --git a/backend/src/JobNecto.Application/Exceptions/NotFoundException.cs b/backend/src/JobNecto.Application/Exceptions/NotFoundException.cs
+new file mode 100644
+index 0000000..91712e8
+--- /dev/null
++++ b/backend/src/JobNecto.Application/Exceptions/NotFoundException.cs
+@@ -0,0 +1,17 @@
++using System;
++
++namespace JobNecto.Application.Exceptions;
++
++/// <summary>
++/// Exception thrown when a requested resource is not found.
++/// </summary>
++public class NotFoundException : Exception
++{
++    public NotFoundException(string message) : base(message)
++    {
++    }
++
++    public NotFoundException(string name, object key) : base($"Entity \"{name}\" ({key}) was not found.")
++    {
++    }
++}
+diff --git a/backend/src/JobNecto.Application/Exceptions/UnauthorizedException.cs b/backend/src/JobNecto.Application/Exceptions/UnauthorizedException.cs
+new file mode 100644
+index 0000000..d19537c
+--- /dev/null
++++ b/backend/src/JobNecto.Application/Exceptions/UnauthorizedException.cs
+@@ -0,0 +1,17 @@
++using System;
++
++namespace JobNecto.Application.Exceptions;
++
++/// <summary>
++/// Exception thrown when a user is not authorized to access a resource.
++/// </summary>
++public class UnauthorizedException : Exception
++{
++    public UnauthorizedException() : base()
++    {
++    }
++    
++    public UnauthorizedException(string message) : base(message)
++    {
++    }
++}
+diff --git a/backend/tests/JobNecto.Tests/API/ExceptionHandlingTests.cs b/backend/tests/JobNecto.Tests/API/ExceptionHandlingTests.cs
+new file mode 100644
+index 0000000..4c575ef
+--- /dev/null
++++ b/backend/tests/JobNecto.Tests/API/ExceptionHandlingTests.cs
+@@ -0,0 +1,162 @@
++using System.Net;
++using System.Text.Json;
++using System.Text.Json.Nodes;
++using FluentAssertions;
++using FluentValidation;
++using FluentValidation.Results;
++using JobNecto.API;
++using JobNecto.Application.Exceptions;
++using Microsoft.AspNetCore.Builder;
++using Microsoft.AspNetCore.Hosting;
++using Microsoft.AspNetCore.Mvc.Testing;
++using Microsoft.Extensions.DependencyInjection;
++using Xunit;
++
++namespace JobNecto.Tests.API;
++
++public class TestEndpointsStartupFilter : IStartupFilter
++{
++    public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
++    {
++        return app =>
++        {
++            next(app); // Sets up the pipeline from Program.cs
++
++            app.UseRouting();
++            app.UseEndpoints(endpoints =>
++            {
++                endpoints.MapGet("/test-validation", () =>
++                {
++                    throw new ValidationException(new[] {
++                        new ValidationFailure("FieldName", "Mock error message.")
++                    });
++                });
++
++                endpoints.MapGet("/test-notfound", () =>
++                {
++                    throw new NotFoundException("This is a not found exception.");
++                });
++
++                endpoints.MapGet("/test-forbidden", () =>
++                {
++                    throw new ForbiddenException();
++                });
++
++                endpoints.MapGet("/test-unauthorized", () =>
++                {
++                    throw new UnauthorizedException();
++                });
++
++                endpoints.MapGet("/test-generic", () =>
++                {
++                    throw new InvalidOperationException("Generic failure");
++                });
++            });
++        };
++    }
++}
++
++public class ExceptionHandlingFactory : WebApplicationFactory<ApiAssemblyMarker>
++{
++    protected override void ConfigureWebHost(IWebHostBuilder builder)
++    {
++        builder.ConfigureServices(services =>
++        {
++            services.AddTransient<IStartupFilter, TestEndpointsStartupFilter>();
++        });
++        builder.UseEnvironment("Production");
++    }
++}
++
++public class ExceptionHandlingTests : IClassFixture<ExceptionHandlingFactory>
++{
++    private readonly HttpClient _client;
++
++    public ExceptionHandlingTests(ExceptionHandlingFactory factory)
++    {
++        _client = factory.CreateClient();
++    }
++
++    [Fact]
++    public async Task Get_TestValidation_Returns400WithErrorsDictionary()
++    {
++        var response = await _client.GetAsync("/test-validation");
++        
++        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
++        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
++
++        var json = await response.Content.ReadAsStringAsync();
++        var document = JsonNode.Parse(json);
++
++        document.Should().NotBeNull();
++        document!["status"]!.GetValue<int>().Should().Be(400);
++        document["title"]!.GetValue<string>().Should().Be("Validation failed");
++        document["traceId"]!.GetValue<string>().Should().NotBeNullOrEmpty();
++
++        var errors = document["errors"];
++        errors.Should().NotBeNull();
++        errors!["FieldName"]!.AsArray().Count.Should().Be(1);
++        errors["FieldName"][0]!.GetValue<string>().Should().Be("Mock error message.");
++    }
++
++    [Fact]
++    public async Task Get_TestNotFound_Returns404()
++    {
++        var response = await _client.GetAsync("/test-notfound");
++        
++        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
++        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
++
++        var json = await response.Content.ReadAsStringAsync();
++        var document = JsonNode.Parse(json);
++
++        document!["status"]!.GetValue<int>().Should().Be(404);
++        document["traceId"]!.GetValue<string>().Should().NotBeNullOrEmpty();
++    }
++
++    [Fact]
++    public async Task Get_TestForbidden_Returns403()
++    {
++        var response = await _client.GetAsync("/test-forbidden");
++        
++        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
++        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
++
++        var json = await response.Content.ReadAsStringAsync();
++        var document = JsonNode.Parse(json);
++
++        document!["status"]!.GetValue<int>().Should().Be(403);
++        document["traceId"]!.GetValue<string>().Should().NotBeNullOrEmpty();
++    }
++
++    [Fact]
++    public async Task Get_TestUnauthorized_Returns401()
++    {
++        var response = await _client.GetAsync("/test-unauthorized");
++        
++        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
++        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
++
++        var json = await response.Content.ReadAsStringAsync();
++        var document = JsonNode.Parse(json);
++
++        document!["status"]!.GetValue<int>().Should().Be(401);
++        document["traceId"]!.GetValue<string>().Should().NotBeNullOrEmpty();
++    }
++
++    [Fact]
++    public async Task Get_TestGeneric_Returns500AndNoDetailsInProduction()
++    {
++        var response = await _client.GetAsync("/test-generic");
++        
++        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
++        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
++
++        var json = await response.Content.ReadAsStringAsync();
++        var document = JsonNode.Parse(json);
++
++        document!["status"]!.GetValue<int>().Should().Be(500);
++        document["traceId"]!.GetValue<string>().Should().NotBeNullOrEmpty();
++        document["exception"].Should().BeNull("stack trace should not be leaked in Production");
++    }
++}
