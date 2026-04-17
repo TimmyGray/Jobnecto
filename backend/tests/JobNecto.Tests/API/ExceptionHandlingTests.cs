@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace JobNecto.Tests.API;
@@ -64,6 +65,21 @@ public class ExceptionHandlingFactory : WebApplicationFactory<ApiAssemblyMarker>
         {
             services.AddTransient<IStartupFilter, TestEndpointsStartupFilter>();
         });
+        
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            // Clear all existing sources to prevent appsettings.json from loading template values
+            config.Sources.Clear();
+            
+            // Add only in-memory test configuration with valid connection string
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "ConnectionStrings:Postgres", "Host=localhost;Database=testing;Username=test;Password=test" },
+                { "Logging:LogLevel:Default", "Information" },
+                { "AllowedHosts", "*" }
+            });
+        });
+
         builder.UseEnvironment("Production");
     }
 }
