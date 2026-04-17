@@ -31,6 +31,10 @@ public class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
+        // Don't handle client disconnections; let them abort naturally
+        if (exception is OperationCanceledException)
+            return false;
+
         _logger.LogError(
             exception, "Exception occurred: {Message}", exception.Message);
 
