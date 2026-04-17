@@ -96,7 +96,7 @@ public class ExceptionHandlingTests : IClassFixture<ExceptionHandlingFactory>
         var errors = document["errors"];
         errors.Should().NotBeNull();
         errors!["FieldName"]!.AsArray().Count.Should().Be(1);
-        errors["FieldName"][0]!.GetValue<string>().Should().Be("Mock error message.");
+        errors!["FieldName"]![0]!.GetValue<string>().Should().Be("Mock error message.");
     }
 
     [Fact]
