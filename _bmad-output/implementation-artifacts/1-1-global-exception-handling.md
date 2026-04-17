@@ -80,3 +80,7 @@ Gemini 3.1 Pro (High)
 - `backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs`
 - `backend/src/JobNecto.API/Program.cs`
 - `backend/tests/JobNecto.Tests/API/ExceptionHandlingTests.cs`
+
+### Review Findings
+
+- [x] [Review][Patch] Potential NullReferenceException on problemDetails.Status if switch case fails [GlobalExceptionHandler.cs:245]
