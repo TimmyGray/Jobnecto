@@ -114,6 +114,41 @@ async function githubPostComment(body) {
   }
 }
 
+/**
+ * Retry with exponential backoff for transient failures.
+ * @param {Function} fn - Async function to retry
+ * @param {number} maxAttempts - Max retry attempts (default 3)
+ * @param {number} initialDelayMs - Initial delay in ms (default 1000)
+ */
+async function retryWithBackoff(fn, maxAttempts = 3, initialDelayMs = 1000) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      const isRetryable =
+        err.message?.includes("fetch") ||
+        err.message?.includes("timeout") ||
+        err.message?.includes("429") || // Rate limit
+        err.message?.includes("503") || // Service unavailable
+        err.message?.includes("502"); // Bad gateway
+
+      if (attempt < maxAttempts && isRetryable) {
+        const delay = initialDelayMs * Math.pow(2, attempt - 1);
+        stderr.write(
+          `Retryable error (attempt ${attempt}/${maxAttempts}): ${err.message}\n` +
+            `Waiting ${delay}ms before retry...\n`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw lastError;
+}
+
 async function openrouterReview(diffText, model) {
   const apiKey = (process.env.OPENROUTER_API_KEY ?? "").trim();
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
@@ -218,19 +253,42 @@ and approve.`;
   if (!res.ok) {
     throw new Error(`OpenRouter HTTP ${res.status}: ${raw.slice(0, 2000)}`);
   }
+
+  // Log raw response for debugging (first 1000 chars, visible in Actions logs)
+  if (raw.length > 0) {
+    stderr.write(`OpenRouter response (first 1000 chars): ${raw.slice(0, 1000)}\n`);
+  } else {
+    stderr.write("OpenRouter returned empty response body\n");
+  }
+
   let parsed;
   try {
     parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`OpenRouter invalid JSON: ${raw.slice(0, 500)}`);
+  } catch (err) {
+    throw new Error(
+      `OpenRouter invalid JSON: ${raw.slice(0, 500)} (parse error: ${err.message})`
+    );
   }
+
+  // Check for error message in response (common when model unavailable, rate limited, etc.)
+  if (parsed.error) {
+    throw new Error(
+      `OpenRouter API error: ${JSON.stringify(parsed.error)} (status: ${res.status})`
+    );
+  }
+
   const choices = parsed.choices ?? [];
   if (!choices.length) {
-    throw new Error(`OpenRouter returned no choices: ${raw.slice(0, 500)}`);
+    throw new Error(
+      `OpenRouter returned no choices. Full response: ${JSON.stringify(parsed).slice(0, 1500)}`
+    );
   }
+
   const content = choices[0]?.message?.content;
   if (content == null || String(content).trim() === "") {
-    throw new Error("OpenRouter returned empty content");
+    throw new Error(
+      `OpenRouter returned empty content. Full response: ${JSON.stringify(parsed).slice(0, 1500)}`
+    );
   }
   return String(content).trim();
 }
@@ -274,7 +332,11 @@ async function main() {
   }
 
   try {
-    const review = await openrouterReview(truncated, model);
+    const review = await retryWithBackoff(
+      () => openrouterReview(truncated, model),
+      3, // maxAttempts
+      1000 // initialDelayMs
+    );
     await githubPostComment(header + review);
   } catch (e) {
     stderr.write(`${e}\n`);
