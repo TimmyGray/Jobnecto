@@ -68,11 +68,17 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             )
             .HasColumnType("jsonb");
 
-        builder.Property(u => u.CreatedAt).HasDefaultValueSql("Now()").ValueGeneratedOnAdd();
+        builder.Property(u => u.CreatedAt)
+        .HasDefaultValueSql("Now()")
+        .ValueGeneratedOnAdd();
 
         builder
             .Property(u => u.UpdatedAt)
             .HasDefaultValueSql("Now()")
             .ValueGeneratedOnAddOrUpdate();
+        
+        builder.Property(u => u.IsDeleted).HasDefaultValue(false);
+
+        builder.Property(u => u.DeletedAt);
     }
 }

@@ -1,4 +1,4 @@
-public sealed class CoverLetter : BaseEntity
+public sealed class CoverLetter : SoftDeletableEntity
 {
     public Guid UserId;
     public Guid VacancyId;

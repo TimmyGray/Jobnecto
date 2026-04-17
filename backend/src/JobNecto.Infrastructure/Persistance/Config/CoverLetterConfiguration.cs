@@ -18,14 +18,18 @@ public class CoverLetterConfiguration : IEntityTypeConfiguration<CoverLetter>
             .HasDefaultValueSql("Now()")
             .ValueGeneratedOnAddOrUpdate();
 
+        builder.Property(cl => cl.IsDeleted).HasDefaultValue(false);
+
+        builder.Property(cl => cl.DeletedAt);
+
         builder
-            .HasOne<CoverLetter>()
+            .HasOne<User>()
             .WithMany()
             .HasForeignKey(cl => cl.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder
-            .HasOne<CoverLetter>()
+            .HasOne<Vacancy>()
             .WithMany()
             .HasForeignKey(cl => cl.VacancyId)
             .OnDelete(DeleteBehavior.Cascade);

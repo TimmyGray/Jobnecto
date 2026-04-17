@@ -1,4 +1,4 @@
-public sealed class Education : BaseEntity
+public sealed class Education : SoftDeletableEntity
 {
     public Guid UserId;
     public required string Title;
