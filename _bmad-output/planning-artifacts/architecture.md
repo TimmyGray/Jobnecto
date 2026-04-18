@@ -85,7 +85,7 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 - All list queries automatically filter by current user (via query handlers or repository layer)
 - Architecture must support Phase C JWT integration without refactoring core patterns
 - Design pattern: ownership check delegated to handler, not API layer
-- **UserId source:** Generated during user registration (profile creation); Phase B passes via `X-UserId` header for testing; Phase C uses JWT
+- **UserId source:** Generated during user registration (profile creation); Phase B uses JWT bearer token with `UserId` stored as a claim; extracted in controllers from `HttpContext.User`
 
 **2. Soft Delete Consistency**
 - Entities marked for soft delete: Resume, Education, CoverLetter, CoverLetterTemplate, Vacancy
@@ -698,10 +698,9 @@ public async Task<PagedResult<ResumeDto>> Handle(ListResumesQuery request, Cance
 
 **Pattern: How UserId Gets Into Query**
 
-In Phase B (without auth), UserId comes from request. In Phase C (with JWT), UserId extracted from token:
+UserId is extracted from the JWT bearer token claim in both Phase B and onwards:
 
 ```csharp
-// Phase B: Test with hardcoded or header-based user
 public async Task<ActionResult<PagedResult<ResumeDto>>> ListResumes(
     [FromQuery] int page = 1,
     IMediator mediator,
@@ -709,7 +708,7 @@ public async Task<ActionResult<PagedResult<ResumeDto>>> ListResumes(
 {
     var query = new ListResumesQuery 
     { 
-        UserId = GetCurrentUserId(), // Phase B: from header, Phase C: from JWT
+        UserId = GetCurrentUserId(),
         Page = page,
         PageSize = 20
     };
@@ -720,19 +719,17 @@ public async Task<ActionResult<PagedResult<ResumeDto>>> ListResumes(
 
 private Guid GetCurrentUserId()
 {
-    // Phase B: For testing, extract from header or use hardcoded value
-    var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
-    return Guid.TryParse(userIdHeader, out var id) ? id : Guid.Empty;
-    
-    // Phase C: Will extract from JWT token instead
+    // Extract UserId from JWT claim (set during login/token issue)
+    var claim = HttpContext.User.FindFirst("sub") ?? HttpContext.User.FindFirst("userId");
+    return claim != null && Guid.TryParse(claim.Value, out var id) ? id : Guid.Empty;
 }
 ```
 
-**Design Readiness for Phase C:**
+**JWT in Phase B:**
+- JWT bearer token issued on login; `UserId` stored as `sub` or `userId` claim
 - Every mutation handler already verifies ownership
-- Every query handler already receives UserId in request
-- Add JWT middleware in Phase C without changing handler logic
-- Authorization filter will simply extract UserId from token and pass to handler
+- Every query handler already receives `UserId` as a parameter from the controller
+- Phase C (if applicable) can extend claims or rotate tokens without changing handler logic
 
 ---
 
