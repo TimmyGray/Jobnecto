@@ -7,7 +7,7 @@ namespace JobNecto.Application.Exceptions;
 /// </summary>
 public class ConflictException : Exception
 {
-    public ConflictException() : base()
+    public ConflictException() : base("A conflict occurred with the current state of the resource.")
     {
     }
 
