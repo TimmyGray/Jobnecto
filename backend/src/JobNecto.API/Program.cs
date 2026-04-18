@@ -1,3 +1,4 @@
+using JobNecto.API.Infrastructure;
 using JobNecto.API.Infrastructure.ExceptionHandling;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +10,7 @@ builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, relo
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // Add Exception Handling
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -25,5 +27,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Wire authentication and authorization in the middleware pipeline
+// Routing must come first, then authentication/authorization, then endpoints
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.Run();

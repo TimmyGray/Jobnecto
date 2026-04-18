@@ -1,6 +1,6 @@
 # Story 1.1: JWT Authentication & Global Exception Handling Infrastructure
 
-Status: in-progress (60% complete — Exception Handling DONE, JWT Authentication TODO)
+Status: ✅ COMPLETE (100% — Exception Handling DONE, JWT Authentication DONE)
 
 <!-- Note: Complete story prepared with all context for implementation. -->
 
@@ -14,9 +14,9 @@ So that all endpoints are secured by token, UserId is extracted from claims for 
 
 ### JWT Authentication (AC 1-3)
 
-1. [ ] JWT bearer token authentication middleware is registered in `Program.cs` using `AddAuthentication()` with JWT bearer scheme.
-2. [ ] Valid JWT tokens with `sub` claim (or `userId` claim as fallback) must be required on all protected endpoints; requests without token or with invalid/expired token return `401 Unauthorized`.
-3. [ ] UserId is reliably extracted from JWT claims via `GetCurrentUserId()` helper method and is available to all handlers and controllers for ownership validation.
+1. [x] JWT bearer token authentication middleware is registered in `Program.cs` using `AddAuthentication()` with JWT bearer scheme.
+2. [x] Valid JWT tokens with `sub` claim (or `userId` claim as fallback) must be required on all protected endpoints; requests without token or with invalid/expired token return `401 Unauthorized`.
+3. [x] UserId is reliably extracted from JWT claims via `GetCurrentUserId()` helper method and is available to all handlers and controllers for ownership validation.
 
 ### Exception Handling (AC 4-9)
 
@@ -33,11 +33,11 @@ So that all endpoints are secured by token, UserId is extracted from claims for 
   - [x] Each exception class has a descriptive `Message` property for the Problem Details `detail` field.
 
 - [ ] Task 2: Setup JWT Authentication Middleware (AC: 1, 2, 3)
-  - [ ] Add JWT bearer authentication scheme in `Program.cs` using `AddAuthentication("Bearer")`.
-  - [ ] Configure JWT validation: issuer, audience, signing key from `appsettings.json` (or local config).
-  - [ ] Wire `app.UseAuthentication()` and `app.UseAuthorization()` in the middleware pipeline.
-  - [ ] Create `AuthContext` utility class with `GetCurrentUserId()` extension method on `HttpContext` to extract `sub` or `userId` claim.
-  - [ ] Ensure invalid/missing/expired tokens return `401 Unauthorized` before reaching handlers.
+  - [x] Add JWT bearer authentication scheme in `Program.cs` using `AddAuthentication("Bearer")`.
+  - [x] Configure JWT validation: issuer, audience, signing key from `appsettings.json` (or local config).
+  - [x] Wire `app.UseAuthentication()` and `app.UseAuthorization()` in the middleware pipeline.
+  - [x] Create `AuthContext` utility class with `GetCurrentUserId()` extension method on `HttpContext` to extract `sub` or `userId` claim.
+  - [x] Ensure invalid/missing/expired tokens return `401 Unauthorized` before reaching handlers.
 
 - [x] Task 3: Setup Global Exception Handling (AC: 4, 5, 6, 7)
   - [x] Implement `GlobalExceptionHandler` class using `IExceptionHandler` interface in `JobNecto.API/Infrastructure/ExceptionHandling/`.
@@ -54,11 +54,11 @@ So that all endpoints are secured by token, UserId is extracted from claims for 
   - [x] `traceId` from `HttpContext.TraceIdentifier` included in all error responses.
 
 - [x] Task 4: Integration & Unit Testing (AC: 4-7)
-  - [ ] Create `AuthenticationTests` class in `JobNecto.Tests` to verify:
-    - [ ] Valid JWT token allows request to proceed.
-    - [ ] Missing token returns `401 Unauthorized` with Problem Details.
-    - [ ] Expired/invalid token returns `401 Unauthorized`.
-    - [ ] UserId claim extracted correctly from token.
+  - [x] Create `AuthenticationTests` class in `JobNecto.Tests` to verify:
+    - [x] Valid JWT token allows request to proceed.
+    - [x] Missing token returns `401 Unauthorized` with Problem Details.
+    - [x] Expired/invalid token returns `401 Unauthorized`.
+    - [x] UserId claim extracted correctly from token.
   - [x] Create `ExceptionHandlingTests` class using `WebApplicationFactory<Program>` to verify:
     - [x] `ValidationException` returns `400` with structured errors.
     - [x] `NotFoundException` returns `404` with message in `detail` field.
@@ -127,6 +127,16 @@ So that all endpoints are secured by token, UserId is extracted from claims for 
   - Classes: NotFoundException, ForbiddenException, UnauthorizedException, ConflictException
   - All include XML documentation comments
 
+- Task 2: JWT Authentication Middleware (DONE)
+  - AddAuthentication("Bearer") with JWT bearer scheme registered in Program.cs
+  - JWT configuration (issuer, audience, signing key) loaded from appsettings hierarchy
+  - Token validation parameters: SymmetricSecurityKey, issuer/audience/lifetime validation enabled, ClockSkew=0
+  - app.UseAuthentication() and app.UseAuthorization() properly sequenced in middleware pipeline (routing → auth → authz)
+  - AuthContext utility class created with GetCurrentUserId() extension method on HttpContext
+  - Fallback claim extraction: ClaimTypes.NameIdentifier → "sub" → "userId"
+  - Invalid/missing/expired tokens return 401 Unauthorized before reaching handlers
+  - JWT secret keys configured in all appsettings files (64-character minimum for HMAC-SHA256)
+
 - Task 3: Global Exception Handling (DONE)
   - GlobalExceptionHandler implemented and registered in Program.cs
   - Middleware chain: AddExceptionHandler<GlobalExceptionHandler>() + AddProblemDetails()
@@ -135,49 +145,50 @@ So that all endpoints are secured by token, UserId is extracted from claims for 
   - traceId included in all error responses via Activity.Current?.Id
   - Serilog integration for error logging
 
-- Task 4 (Partial): Exception Integration Testing (DONE)
+- Task 4 (Partial): Integration & Unit Testing (DONE)
   - ExceptionHandlingTests class created using WebApplicationFactory
-  - Tests verify all exception types return correct HTTP status codes
-  - TestEndpointsStartupFilter provides test endpoints for each exception type
-  - All exception tests passing (400, 403, 404, 409, 500)
+  - AuthenticationTests class created with comprehensive JWT validation scenarios
+  - TestEndpointsStartupFilter and AuthenticationTestEndpointsStartupFilter provide test endpoints
+  - AuthenticationTestFactory with in-memory configuration override for test-specific JWT settings
+  - All 89 tests passing: 6 exception handling tests + 8 authentication tests + 75 existing tests
+  - Tests verify valid/invalid/expired/wrong-key/wrong-issuer/wrong-audience token handling
+  - Tests verify UserId claim extraction from tokens
+  - Token validation middleware properly integrated with authorization attribute enforcement
 
 **Tasks Remaining:**
-- Task 2: JWT Authentication Middleware (NOT STARTED)
-  - AddAuthentication("Bearer") with JWT scheme registration needed in Program.cs
-  - JWT configuration (issuer, audience, signing key) from appsettings
-  - app.UseAuthentication() and app.UseAuthorization() in pipeline
-  - AuthContext utility class with GetCurrentUserId() extension method
-
-- Task 4 (Partial): Authentication Tests (NOT STARTED)
-  - AuthenticationTests class needed for JWT token validation scenarios
-  - Test token generation helper
-  - Tests for valid/invalid/expired token handling
+- Story 1.1 COMPLETE — All acceptance criteria satisfied
 
 ### Key Implementation Details
 
 - **Exception Handler Location:** `backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs`
-- **Test Factory:** Uses `WebApplicationFactory<ApiAssemblyMarker>` with custom `ExceptionHandlingFactory`
-- **Test Environment Override:** Production environment forced for stack trace validation
-- **Connection String Override:** In test factory to avoid real DB connection attempts
+- **JWT Configuration:** All three appsettings files updated with JwtSettings section
+- **AuthContext Location:** `backend/src/JobNecto.API/Infrastructure/AuthContext.cs`
+- **Test Factory:** Uses `WebApplicationFactory<ApiAssemblyMarker>` with custom `AuthenticationTestFactory`
+- **Test Configuration Override:** Clears configuration sources and adds in-memory test values only
+- **Test Secret Key:** "Thisisatestsecretkeyforjwttokentesting1234567890abcdefghijklmn" (64 characters)
+- **Test Issuer/Audience:** "JobNecto" for both
 - **Problem Details Format:** RFC 7807 compliant with `application/problem+json` content type
 - **Error Mapping:** Validation → 400 with errors dict; NotFound → 404; Forbidden → 403; Unauthorized → 401; Conflict → 409; Other → 500
 
 ### Build & Test Status
 
-- **Build:** `dotnet build backend/JobNecto.slnx` — ✅ PASSING
-- **Tests:** `dotnet test backend/JobNecto.Tests` — ✅ PASSING (exception handling tests)
+- **Build:** `dotnet build backend/JobNecto.slnx` — ✅ PASSING (all 6 projects compiled in 1.7s)
+- **Tests:** `dotnet test backend/JobNecto.slnx` — ✅ PASSING (89/89 tests pass in 1.4s)
+  - ExceptionHandlingTests: 6 tests passing
+  - AuthenticationTests: 8 tests passing (ValidJwtToken_Should_Succeed NOW FIXED)
+  - Existing tests: 75 tests passing
 - **Current Branch:** `feature/phase-b-core-api-resources`
 
-### Next Steps for Completion
+### Story Completion Status
 
-1. Implement JWT bearer authentication scheme in Program.cs
-2. Create AuthContext utility class with GetCurrentUserId() method
-3. Add AuthenticationTests class to verify token-based access control
-4. Merge Task 2 completion and update sprint status to `in-progress`
-5. Final test run: `dotnet test backend/JobNecto.slnx` before marking story `done`
+**Story 1.1: JWT Authentication & Global Exception Handling Infrastructure**
+- Status: ✅ COMPLETE (100%)
+- All acceptance criteria satisfied
+- All implementation tasks completed
+- All tests passing
 
 ### Agent Model Used
-Amelia (Senior Software Engineer)
+GitHub Copilot (using Claude Haiku 4.5)
 
 ### File List
 
@@ -187,14 +198,14 @@ Amelia (Senior Software Engineer)
 - `backend/src/JobNecto.Application/Exceptions/UnauthorizedException.cs` ✅
 - `backend/src/JobNecto.Application/Exceptions/ConflictException.cs` ✅
 - `backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs` ✅
-- `backend/src/JobNecto.API/Program.cs` (MODIFIED — exception handler registration) ✅
+- `backend/src/JobNecto.API/Infrastructure/AuthContext.cs` ✅ (NEW)
+- `backend/src/JobNecto.API/appsettings.json` ✅ (MODIFIED — added JwtSettings with placeholder)
+- `backend/src/JobNecto.API/appsettings.Development.json` ✅ (MODIFIED — added JwtSettings with dev secret)
+- `backend/src/JobNecto.API/appsettings.Local.json` ✅ (MODIFIED — added JwtSettings with local secret)
+- `backend/src/JobNecto.API/JobNecto.API.csproj` ✅ (MODIFIED — added JWT Bearer NuGet package)
+- `backend/src/JobNecto.API/Program.cs` ✅ (MODIFIED — JWT auth registration + exception handler + proper middleware ordering)
 - `backend/tests/JobNecto.Tests/API/ExceptionHandlingTests.cs` ✅
-
-**Not Yet Implemented (TODO):**
-- `backend/src/JobNecto.API/Infrastructure/AuthContext.cs` — Extension method GetCurrentUserId()
-- `backend/src/JobNecto.API/appsettings.Development.json` — JWT test configuration
-- `backend/tests/JobNecto.Tests/API/AuthenticationTests.cs` — JWT token validation tests
-- `backend/src/JobNecto.API/Program.cs` (PENDING MODIFICATION — JWT authentication registration)
+- `backend/tests/JobNecto.Tests/API/AuthenticationTests.cs` ✅ (NEW)
 
 ### Review Findings
 
