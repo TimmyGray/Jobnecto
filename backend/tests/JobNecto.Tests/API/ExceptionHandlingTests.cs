@@ -48,6 +48,11 @@ public class TestEndpointsStartupFilter : IStartupFilter
                     throw new UnauthorizedException();
                 });
 
+                endpoints.MapGet("/test-conflict", () =>
+                {
+                    throw new ConflictException("Resource already exists.");
+                });
+
                 endpoints.MapGet("/test-generic", () =>
                 {
                     throw new InvalidOperationException("Generic failure");
@@ -146,6 +151,23 @@ public class ExceptionHandlingTests : IClassFixture<ExceptionHandlingFactory>
         var document = JsonNode.Parse(json);
 
         document!["status"]!.GetValue<int>().Should().Be(401);
+        document["traceId"]!.GetValue<string>().Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task Get_TestConflict_Returns409()
+    {
+        var response = await _client.GetAsync("/test-conflict");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+
+        var json = await response.Content.ReadAsStringAsync();
+        var document = JsonNode.Parse(json);
+
+        document!["status"]!.GetValue<int>().Should().Be(409);
+        document["title"]!.GetValue<string>().Should().Be("Conflict");
+        document["detail"]!.GetValue<string>().Should().Be("Resource already exists.");
         document["traceId"]!.GetValue<string>().Should().NotBeNullOrEmpty();
     }
 

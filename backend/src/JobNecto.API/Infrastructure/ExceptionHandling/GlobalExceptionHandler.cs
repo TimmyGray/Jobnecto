@@ -77,6 +77,12 @@ public class GlobalExceptionHandler : IExceptionHandler
                 problemDetails.Detail = "Authentication is required to access this resource.";
                 break;
 
+            case ConflictException conflictException:
+                problemDetails.Status = StatusCodes.Status409Conflict;
+                problemDetails.Title = "Conflict";
+                problemDetails.Detail = conflictException.Message;
+                break;
+
             default:
                 problemDetails.Status = StatusCodes.Status500InternalServerError;
                 problemDetails.Title = "Internal Server Error";
