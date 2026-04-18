@@ -321,7 +321,7 @@ A job seeker can:
 
 **Acceptance Criteria:**
 - Update any profile field: `email`, `phone`, `location`, `about`, `avatar`
-- Cannot change `loginName` (immutable once created)
+- Can change `loginName`; must remain unique system-wide; return `409 Conflict` if new value already taken
 - Cannot change `id`, `createdAt` (immutable system fields)
 - Email uniqueness validation if email is being changed
 - Phone E.164 validation if phone is being changed
@@ -480,7 +480,7 @@ A job seeker can:
 **Acceptance Criteria:**
 - Create with: `name` (template name), `content` (template text, may contain placeholders like {{companyName}}, {{role}})
 - Name: required, 1-100 characters, unique per user (two templates can't have same name for same user)
-- Content: required, minimum 50 characters, maximum 5000 characters
+- Content: required, minimum 50 characters, maximum 10000 characters
 - Return `201 Created` with template object including `id`, `name`, `content`, `createdAt`, `updatedAt`
 
 ---
@@ -540,7 +540,7 @@ A job seeker can:
 **Acceptance Criteria:**
 - Create with: `vacancyId` (required), `content` (required), `templateId` (optional, for tracking which template was the source)
 - VacancyId: must reference valid vacancy
-- Content: required, minimum 50 characters, maximum 5000 characters
+- Content: required, minimum 50 characters, maximum 10000 characters
 - TemplateId: optional, if provided must be valid template belonging to user
 - One cover letter per vacancy per user (cannot create duplicate for same vacancy)
 - Return `201 Created` with cover letter object including `id`, `vacancyId`, `content`, `templateId`, `createdAt`, `updatedAt`
@@ -714,7 +714,7 @@ User (1)
 
 ## Ownership & Authorization Model
 
-**Principle:** Every resource has a clear owner. In Phase B (no authentication yet), the API should be architectured to support future authorization in Phase C.
+**Principle:** Every resource has a clear owner. Phase B includes JWT bearer token authentication; `UserId` is extracted from the token claim and used for all ownership checks.
 
 **Ownership Rules:**
 
@@ -732,12 +732,12 @@ User (1)
 - **Query Filtering:** All list endpoints MUST filter by `userId` automatically
   - Example: `GET /api/v1/resumes` returns only resumes where `Resume.UserId == CurrentUserId`
   - This must be enforced at the repository or query handler level, not just API level
-  - In Phase B (no auth), may use a test header or hardcoded user for development
+  - In Phase B, `UserId` is extracted from the JWT bearer token claim (`sub` or `userId`)
 
 - **Validation:** Write operations MUST verify ownership before allowing mutation
   - Example: `PUT /api/v1/resumes/{id}` verifies the resume's `UserId` matches the current user
 
-- **Authorization Layer:** Phase C will add JWT token validation; Phase B architecture should accommodate this without major refactoring
+- **Authorization Layer:** Phase B uses JWT bearer tokens; `UserId` claim drives all ownership checks; Phase C adds role-based authorization and token refresh
 
 ---
 
@@ -816,9 +816,9 @@ Phase B development assumes Phase A is **complete**:
 
 - **No external job sources yet** — Vacancies are assumed to exist in the database (manually seeded or Phase D will sync them)
 - **No LLM integration** — LLM endpoints NOT included in Phase B; Phase D adds `/analyze` and cover letter generation
-- **No authentication** — Phase B has no auth; Phase C adds JWT and protected routes
+- **Authentication** — Phase B includes JWT bearer token authentication; `UserId` stored as a claim; Phase C adds role-based authorization and token refresh
 - **No third-party OAuth** — Phase B cannot connect to HeadHunter/LinkedIn; Phase D adds OAuth
-- **PostgreSQL connection string** — Assumed available; format: `Host=localhost;Port=5432;Database=JobNecto;Username=admin;Password=admin`
+- **PostgreSQL connection string** — Assumed available; see `appsettings.local.json` under `ConnectionStrings:Default` for the local connection string
 
 ---
 
