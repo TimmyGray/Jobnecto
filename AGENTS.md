@@ -39,6 +39,19 @@ When a user request requires specific workflows, code generation, or role-playin
 
 - **Functions & Methods:** All new valuable or non-trivial functions/methods MUST include C# XML documentation comments (`/// <summary>`, `<param>`, `<returns>`). Trivial or boilerplate code can be skipped. See the `@[/function-comments]` skill for detailed guidelines.
 
+### Version Control & Commit Practices
+
+- **Commit Workflow:** Every time the agent makes substantive changes that should be committed, follow this workflow:
+  1. **Inspect the diff:** Use `get_changed_files` to review all modified files and their changes.
+  2. **Create summary:** Analyze the diff to understand what was changed, why, and the impact.
+  3. **Comprehensive commit message:** Write a detailed commit message that includes:
+     - Type and scope (feat, fix, docs, refactor, etc.)
+     - Clear description of what was changed
+     - Bullet points detailing specific changes by file/area
+     - Context about why the changes were made
+     - Any breaking changes or important notes
+- **Commit Message Format:** Use conventional commits format with detailed body explaining the changes comprehensively.
+
 ### Security — secrets and credentials
 
 - **NEVER** write secrets, passwords, API keys, or database connection strings (containing credentials) into any documentation, markdown files, architecture docs, stories, or any other text artifacts.
