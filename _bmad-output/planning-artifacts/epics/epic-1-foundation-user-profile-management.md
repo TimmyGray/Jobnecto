@@ -50,7 +50,8 @@ So that I can receive a JWT token and start managing my profile.
 
 **Given** a `POST /api/v1/users` request with valid `loginName`, `email`, `password`
 **When** the request is processed
-**Then** a new user is created, `201 Created` returned with user object (password excluded) and a signed JWT token
+**Then** a new user is created, `201 Created` returned with user object (password excluded)
+**And** a signed JWT token is set in an HTTP-Only secure cookie (SameSite=Strict, Secure flag set in Production)
 **And** `Location` header set to `/api/v1/users/me`
 
 **Given** `loginName` is shorter than 3 or longer than 20 characters, or contains chars other than alphanumeric/underscore
@@ -134,4 +135,4 @@ So that I can keep my professional identity and contact info current.
 **Then** they are silently ignored
 
 ---
-
+

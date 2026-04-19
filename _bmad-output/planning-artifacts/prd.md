@@ -259,7 +259,7 @@ A job seeker can:
 - Phone validation (if provided): must be valid E.164 format (e.g., `+1234567890`)
 - Password: minimum 8 characters (actual strength rules TBD in Phase C when hashing is implemented)
 - `loginName`: must be unique, alphanumeric + underscore, 3-20 characters
-- On success: return `201 Created` with user object (exclude password)
+- On success: return `201 Created` with user object (exclude password); set JWT token as HTTP-Only secure cookie (SameSite=Strict)
 - On validation error: return `400 Bad Request` with field-level error messages
 - On duplicate email/loginName: return `409 Conflict` with message
 
