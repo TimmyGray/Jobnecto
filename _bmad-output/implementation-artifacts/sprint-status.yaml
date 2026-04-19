@@ -1,5 +1,5 @@
 # generated: 2026-04-18T00:00:00.000Z
-# last_updated: 2026-04-18T20:31:50.8405502+03:00
+# last_updated: 2026-04-19T00:00:00.000Z
 # project: Jobnecto
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@ development_status:
   # --- Epic 1: Foundation & User Profile Management ---
   epic-1: in-progress
   1-1-global-exception-handling: done
-  1-2-create-user-account: ready-for-dev
+  1-2-create-user-account: in-progress
   1-3-retrieve-current-user-profile: backlog
   1-4-update-user-profile: backlog
   epic-1-retrospective: optional
