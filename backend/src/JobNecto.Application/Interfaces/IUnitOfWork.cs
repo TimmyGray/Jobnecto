@@ -1,10 +1,12 @@
+namespace JobNecto.Application.Interfaces;
+
 public interface IUnitOfWork : IAsyncDisposable
 {
-    IRepository<User> UserRepository { get; }
+    IUserRepository UserRepository { get; }
     IVacancyRepository VacancyRepository { get; }
-    IRepository<CoverLetter> CoverLetterRepository { get; }
-    IRepository<Resume> ResumeRepository { get; }
-    IRepository<Education> EducationRepository { get; }
+    IEditableRepository<CoverLetter> CoverLetterRepository { get; }
+    IEditableRepository<Resume> ResumeRepository { get; }
+    IEditableRepository<Education> EducationRepository { get; }
     Task<int> SaveChangesAsync(CancellationToken ct);
     Task BeginTransactionAsync(CancellationToken ct);
     Task CommitTransactionAsync(CancellationToken ct);
