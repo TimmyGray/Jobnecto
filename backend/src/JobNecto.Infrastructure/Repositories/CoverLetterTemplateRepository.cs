@@ -1,8 +1,10 @@
-using Microsoft.EntityFrameworkCore;
+using JobNecto.Infrastructure.Persistance;
+
+namespace JobNecto.Infrastructure.Repositories;
 
 public class CoverLetterTemplateRepository : EditableRepository<CoverLetterTemplate>
 {
-    public CoverLetterTemplateRepository(DbContext context) : base(context)
+    public CoverLetterTemplateRepository(AppDbContext context) : base(context)
     {
     }
 }

@@ -1,8 +1,10 @@
-using Microsoft.EntityFrameworkCore;
+using JobNecto.Application.Interfaces;
+using JobNecto.Infrastructure.Persistance;
+namespace JobNecto.Infrastructure.Repositories;
 
 public abstract class EditableRepository<T> : BaseRepository<T>, IEditableRepository<T> where T : BaseEntity
 {
-    public EditableRepository(DbContext context) : base(context)
+    public EditableRepository(AppDbContext context) : base(context)
     {
     }
 

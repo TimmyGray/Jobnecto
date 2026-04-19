@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
+namespace JobNecto.Infrastructure.Persistance.Config;
+
 public class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
 {
     public void Configure(EntityTypeBuilder<Vacancy> builder)

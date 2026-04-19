@@ -1,4 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using JobNecto.Application.Interfaces;
+using JobNecto.Infrastructure.Persistance;
+
+namespace JobNecto.Infrastructure.Repositories;
 
 public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
 {

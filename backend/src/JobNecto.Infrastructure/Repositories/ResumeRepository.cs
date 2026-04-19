@@ -1,8 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+using JobNecto.Infrastructure.Persistance;
+namespace JobNecto.Infrastructure.Repositories;
 
 public class ResumeRepository : EditableRepository<Resume>
 {
-    public ResumeRepository(DbContext context) : base(context)
+    public ResumeRepository(AppDbContext context) : base(context)
     {
     }
 }

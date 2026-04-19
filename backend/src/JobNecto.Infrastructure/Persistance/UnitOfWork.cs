@@ -1,35 +1,39 @@
 
+using JobNecto.Application.Interfaces;
 using Microsoft.EntityFrameworkCore.Storage;
+using JobNecto.Infrastructure.Repositories;
+
+namespace JobNecto.Infrastructure.Persistance;
 
 public class UnitOfWork : IUnitOfWork
 {
     private readonly AppDbContext _context;
     private IDbContextTransaction? _transaction;
 
-    private IRepository<User>? _userRepository;
+    private IUserRepository? _userRepository;
     private IVacancyRepository? _vacancyRepository;
-    private IRepository<CoverLetter>? _coverLetterRepository;
-    private IRepository<Resume>? _resumeRepository;
-    private IRepository<Education>? _educationRepository;
+    private IEditableRepository<CoverLetter>? _coverLetterRepository;
+    private IEditableRepository<Resume>? _resumeRepository;
+    private IEditableRepository<Education>? _educationRepository;
 
     public UnitOfWork(AppDbContext context)
     {
         _context = context;
     }
 
-    public IRepository<User> UserRepository => 
+    public IUserRepository UserRepository => 
         _userRepository ??= new UserRepository(_context);
 
     public IVacancyRepository VacancyRepository => 
         _vacancyRepository ??= new VacancyRepository(_context);
 
-    public IRepository<CoverLetter> CoverLetterRepository => 
+    public IEditableRepository<CoverLetter> CoverLetterRepository => 
         _coverLetterRepository ??= new CoverLetterRepository(_context);
 
-    public IRepository<Resume> ResumeRepository => 
+    public IEditableRepository<Resume> ResumeRepository => 
         _resumeRepository ??= new ResumeRepository(_context);
 
-    public IRepository<Education> EducationRepository => 
+    public IEditableRepository<Education> EducationRepository => 
         _educationRepository ??= new EducationRepository(_context);
 
     public async Task BeginTransactionAsync(CancellationToken ct)

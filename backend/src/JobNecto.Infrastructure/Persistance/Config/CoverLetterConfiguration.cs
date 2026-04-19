@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
+namespace JobNecto.Infrastructure.Persistance.Config;
+
 public class CoverLetterConfiguration : IEntityTypeConfiguration<CoverLetter>
 {
     public void Configure(EntityTypeBuilder<CoverLetter> builder)
