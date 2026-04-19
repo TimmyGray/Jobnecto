@@ -1,5 +1,7 @@
 using FluentAssertions;
 using JobNecto.API;
+using JobNecto.Application.Interfaces;
+using JobNecto.Infrastructure.Persistance;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

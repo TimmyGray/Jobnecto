@@ -1,5 +1,8 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using JobNecto.Application.Interfaces;
+using JobNecto.Infrastructure.Persistance;
+using JobNecto.Infrastructure.Repositories;
 
 namespace JobNecto.Tests.Infrastructure;
 

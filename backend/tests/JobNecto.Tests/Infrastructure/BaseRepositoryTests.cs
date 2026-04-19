@@ -1,17 +1,20 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using JobNecto.Infrastructure.Persistance;
+using JobNecto.Infrastructure.Repositories;
 
 public class TestEntity : BaseEntity { }
 
-public class TestDbContext : DbContext
+public class TestAppDbContext : AppDbContext
 {
-    public TestDbContext(DbContextOptions<TestDbContext> options)
+    public TestAppDbContext(DbContextOptions<AppDbContext> options)
         : base(options) { }
 
-    public DbSet<TestEntity> TestEntities { get; set; }
+    public DbSet<TestEntity> TestEntities { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<TestEntity>(b =>
         {
             b.HasKey(e => e.Id);
@@ -25,7 +28,7 @@ public class TestDbContext : DbContext
 
 public class TestRepository : BaseRepository<TestEntity>
 {
-    public TestRepository(DbContext context)
+    public TestRepository(AppDbContext context)
         : base(context) { }
 }
 
@@ -269,13 +272,13 @@ public class BaseRepositoryTests
         }
     }
 
-    private TestDbContext CreateContext(string dbName)
+    private TestAppDbContext CreateContext(string dbName)
     {
-        var options = new DbContextOptionsBuilder<TestDbContext>()
+        var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(dbName)
             .Options;
 
-        return new TestDbContext(options);
+        return new TestAppDbContext(options);
     }
 
     [Fact]

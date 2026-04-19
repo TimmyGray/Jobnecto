@@ -1,5 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using JobNecto.Infrastructure.Persistance;
+using JobNecto.Infrastructure.Repositories;
 
 /// <summary>
 /// Use <see cref="VacancyTestData"/> for seeds. InMemory does not translate <see cref="VacancyFilter.Skills"/> /
