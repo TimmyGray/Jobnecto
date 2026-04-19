@@ -1,12 +1,16 @@
 using Microsoft.EntityFrameworkCore;
+using JobNecto.Application.Interfaces;
+using JobNecto.Infrastructure.Persistance;
+
+namespace JobNecto.Infrastructure.Repositories;
 
 public abstract class BaseRepository<T> : IRepository<T>
     where T : BaseEntity
 {
-    protected readonly DbContext _context;
+    protected readonly AppDbContext _context;
     protected readonly DbSet<T> _dbSet;
 
-    public BaseRepository(DbContext context)
+    public BaseRepository(AppDbContext context)
     {
         _context = context;
         _dbSet = context.Set<T>();

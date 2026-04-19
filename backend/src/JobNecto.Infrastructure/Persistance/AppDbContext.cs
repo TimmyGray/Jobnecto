@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
+namespace JobNecto.Infrastructure.Persistance;
+
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options)
