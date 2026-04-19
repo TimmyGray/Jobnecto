@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
+namespace JobNecto.Infrastructure.Persistance.Config;
+
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
@@ -26,9 +28,13 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.Login).IsRequired().HasMaxLength(50);
 
+        builder.HasIndex(u => u.Login).IsUnique();
+
         builder.Property(u => u.Password).IsRequired().HasMaxLength(50);
 
         builder.Property(u => u.Email).IsRequired().IsUnicode().HasMaxLength(50);
+
+        builder.HasIndex(u => u.Email).IsUnique();
 
         builder.Property(u => u.Phone).HasMaxLength(20);
 
