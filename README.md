@@ -96,6 +96,30 @@ curl -i http://localhost:5000/
 - **`GET /openapi/v1.json`** — should return **200** in Development.
 - **`GET /`** — **404** is expected until public routes exist.
 
+### CORS
+
+CORS is configured via the `Cors:AllowedOrigins` array in `appsettings.json`. The API registers a named policy called `Frontend` that allows `GET`, `POST`, `PUT`, `PATCH`, and `DELETE` with the `Authorization` and `Content-Type` headers.
+
+**Development** — `appsettings.Development.json` already includes the Vite dev-server origins:
+
+```json
+"Cors": {
+  "AllowedOrigins": [
+    "http://localhost:5173",
+    "https://localhost:5173"
+  ]
+}
+```
+
+**Production** — supply origins through environment variables using .NET's double-underscore convention (one origin per indexed entry):
+
+```bash
+Cors__AllowedOrigins__0=https://app.example.com
+Cors__AllowedOrigins__1=https://www.example.com
+```
+
+Or use `appsettings.Local.json` (git-ignored) for developer-specific overrides.
+
 ### PostgreSQL (development)
 
 `appsettings.Development.json` in the API project expects a connection similar to:
