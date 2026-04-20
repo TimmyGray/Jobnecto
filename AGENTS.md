@@ -45,6 +45,7 @@ When a user request requires specific workflows, code generation, or role-playin
 - The root `.sln` (`Jobnecto.sln`) uses Windows-style backslash paths and does not include the test project. Always use `backend/JobNecto.slnx` for builds and tests.
 - Docker files (`docker/Dockerfile`, `docker/docker-compose.yml`) are empty placeholders.
 - Redis and Quartz are referenced in `Infrastructure.csproj` but have no implementation yet.
+- **CORS config key:** `Cors:AllowedOrigins` (array). Development defaults (`http://localhost:5173`, `https://localhost:5173`) are in `appsettings.Development.json`. In Production, override with env vars using double-underscore notation: `Cors__AllowedOrigins__0=https://app.example.com`. Policy name: `"Frontend"`.
 
 ## Mandatory comprehensive PR review workflow
 
