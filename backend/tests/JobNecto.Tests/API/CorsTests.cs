@@ -13,7 +13,7 @@ namespace JobNecto.Tests.API;
 /// </summary>
 public class CorsFactory : WebApplicationFactory<ApiAssemblyMarker>
 {
-    private const string TestOrigin = "http://localhost:5173";
+    internal const string TestOrigin = "http://localhost:5173";
 
     /// <inheritdoc />
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -30,7 +30,7 @@ public class CorsFactory : WebApplicationFactory<ApiAssemblyMarker>
 /// </summary>
 public class CorsTests : IClassFixture<CorsFactory>
 {
-    private const string AllowedOrigin = "http://localhost:5173";
+    private const string AllowedOrigin = CorsFactory.TestOrigin;
     private const string DisallowedOrigin = "http://evil.example.com";
 
     private readonly HttpClient _client;

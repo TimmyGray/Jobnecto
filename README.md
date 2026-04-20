@@ -98,7 +98,7 @@ curl -i http://localhost:5000/
 
 ### CORS
 
-CORS is configured via the `Cors:AllowedOrigins` array in `appsettings.json`. The API registers a named policy called `Frontend` that allows `GET`, `POST`, `PUT`, `PATCH`, and `DELETE` with the `Authorization` and `Content-Type` headers.
+CORS is configured via the `Cors:AllowedOrigins` array in `appsettings.json`. The API registers a named policy called `Frontend` that allows `GET`, `POST`, `PUT`, `PATCH`, and `DELETE` with the `Authorization`, `Content-Type`, and `Accept` headers.
 
 **Development** — `appsettings.Development.json` already includes the Vite dev-server origins:
 

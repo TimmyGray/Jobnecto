@@ -29,15 +29,21 @@ public static class CorsServiceExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        var configuredOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        var allowedOrigins = Array.FindAll(configuredOrigins, origin => !string.IsNullOrWhiteSpace(origin));
 
         services.AddCors(options =>
             options.AddPolicy(FrontendPolicy, policy =>
+            {
+                if (allowedOrigins.Length > 0)
+                {
+                    policy.WithOrigins(allowedOrigins);
+                }
+
                 policy
-                    .WithOrigins(allowedOrigins)
                     .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
-                    .WithHeaders("Authorization", "Content-Type", "Accept")
-            )
+                    .WithHeaders("Authorization", "Content-Type", "Accept");
+            })
         );
 
         return services;
