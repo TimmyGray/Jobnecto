@@ -21,7 +21,8 @@ public class CorsFactory : WebApplicationFactory<ApiAssemblyMarker>
         // Override the allowed origins so the test is self-contained and reproducible.
         builder.UseSetting("Cors:AllowedOrigins:0", TestOrigin);
         builder.UseSetting("ConnectionStrings:Postgres", "Host=localhost;Database=testing;Username=test;Password=test");
-        builder.UseEnvironment("Production");
+        // These tests target /openapi/v1.json, which is only mapped in Development.
+        builder.UseEnvironment("Development");
     }
 }
 
@@ -73,6 +74,7 @@ public class CorsTests : IClassFixture<CorsFactory>
 
         var response = await _client.SendAsync(request);
 
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.Should().ContainKey("Access-Control-Allow-Origin");
         response.Headers.GetValues("Access-Control-Allow-Origin").Should().Contain(AllowedOrigin);
     }
@@ -89,6 +91,7 @@ public class CorsTests : IClassFixture<CorsFactory>
 
         var response = await _client.SendAsync(request);
 
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.Should().NotContainKey("Access-Control-Allow-Origin");
     }
 }
