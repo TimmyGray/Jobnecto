@@ -30,7 +30,9 @@ public static class CorsServiceExtensions
         IConfiguration configuration)
     {
         var configuredOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-        var allowedOrigins = Array.FindAll(configuredOrigins, origin => !string.IsNullOrWhiteSpace(origin));
+        var allowedOrigins = Array.FindAll(
+            Array.ConvertAll(configuredOrigins, origin => origin?.Trim() ?? string.Empty),
+            origin => !string.IsNullOrWhiteSpace(origin));
 
         services.AddCors(options =>
             options.AddPolicy(FrontendPolicy, policy =>
