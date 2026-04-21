@@ -45,7 +45,7 @@ public sealed class JwtTokenService : IJwtTokenService
             new Claim("userId", userIdString),
         };
 
-        var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_secretKey));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(

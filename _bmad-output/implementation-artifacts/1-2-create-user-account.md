@@ -29,12 +29,12 @@ so that I can receive a JWT token and start managing my profile.
   - [x] Treat `location` as the existing domain `Location` enum serialized as a string unless product requirements are explicitly changed first.
   - [x] Create mapping extension methods in `Users/Mappers/UserMappers.cs`: `CreateUserCommand.ToEntity()` and `User.ToCreateUserResult()` for DTO<->Entity conversion. This pattern should be replicated for all entities (Resume, Education, CoverLetter, etc.) as `<Entity>Mappers.cs` files.
 
-- [x] Task 2: Extend persistence and token issuance support without bypassing the existing architecture (AC: 1, 5)
-  - [x] Introduce a user-specific repository abstraction or extend the existing repository/unit-of-work contract so handlers can query by `email` and `loginName` without using `AppDbContext` directly.
-  - [x] Add database-level uniqueness protection for `Users.Email` and `Users.Login` via EF Core configuration and a migration.
-  - [x] Implement a JWT token service that uses the existing `JwtSettings` configuration and emits the created user ID as a GUID string claim compatible with `AuthContext.GetCurrentUserId()`.
-  - [x] Include at least `ClaimTypes.NameIdentifier` and `sub`; include `userId` as well if needed to keep compatibility with the current auth test pattern.
-  - [x] Keep password hashing out of scope for this story; use the current domain model as-is and leave password-hardening work to the later phase that introduces hashing.
+- [ ] Task 2: Extend persistence and token issuance support without bypassing the existing architecture (AC: 1, 5)
+  - [ ] Introduce a user-specific repository abstraction or extend the existing repository/unit-of-work contract so handlers can query by `email` and `loginName` without using `AppDbContext` directly.
+  - [ ] Add database-level uniqueness protection for `Users.Email` and `Users.Login` via EF Core configuration and a migration.
+  - [ ] Implement a JWT token service that uses the existing `JwtSettings` configuration and emits the created user ID as a GUID string claim compatible with `AuthContext.GetCurrentUserId()`.
+  - [ ] Include at least `ClaimTypes.NameIdentifier` and `sub`; include `userId` as well if needed to keep compatibility with the current auth test pattern.
+  - [ ] Keep password hashing out of scope for this story; use the current domain model as-is and leave password-hardening work to the later phase that introduces hashing.
 
 - [ ] Task 3: Implement the application handler and API endpoint for anonymous registration (AC: 1, 5)
   - [ ] Register controllers, MediatR, validators, and the JWT token service in the API composition root.
@@ -170,7 +170,6 @@ GitHub Copilot (GPT-5.4)
 - Story status set to `ready-for-dev`.
 - Sprint tracking updated so Story 1.2 is the next prepared item.
  - Task 1 implemented: added Application command/result, FluentValidation validator, and validator unit tests; local test run passed.
- - Task 2 implemented: `IUserRepository` interface with email/login lookup methods; `UserRepository` concrete implementation; unique indexes on `Users.Email` and `Users.Login` via EF Core config + migration (`AddUniqueIndexesToUsers`); `IJwtTokenService` interface in Application; `JwtTokenService` in Infrastructure (emits `ClaimTypes.NameIdentifier`, `sub`, `userId` claims); registered as singleton in `AddInfrastructure()`; fixed namespace `using` gaps across test files and migration files from namespace refactor; 100/100 tests passing.
 
 ### File List
 
@@ -180,28 +179,5 @@ GitHub Copilot (GPT-5.4)
 - `backend/src/JobNecto.Application/Users/CreateUserCommand.cs` — Command and Result DTOs
 - `backend/src/JobNecto.Application/Users/Mappers/UserMappers.cs` — Mapping extension methods (ToEntity, ToCreateUserResult)
 - `backend/src/JobNecto.Application/Users/Validators/CreateUserCommandValidator.cs` — FluentValidation rules
-- `backend/src/JobNecto.Application/Interfaces/IUnitOfWork.cs` — Changed UserRepository property to IUserRepository
-- `backend/src/JobNecto.Application/Interfaces/IUserRepository.cs` — New: email/login lookup methods
-- `backend/src/JobNecto.Application/Interfaces/IJwtTokenService.cs` — New: token generation contract
-- `backend/src/JobNecto.Infrastructure/Repositories/UserRepository.cs` — Implements IUserRepository with email/login queries
-- `backend/src/JobNecto.Infrastructure/Persistance/UnitOfWork.cs` — Updated UserRepository field type to IUserRepository
-- `backend/src/JobNecto.Infrastructure/Persistance/Config/UserConfiguration.cs` — Added unique indexes on Login and Email
-- `backend/src/JobNecto.Infrastructure/Services/JwtTokenService.cs` — New: JWT token generation implementation
-- `backend/src/JobNecto.Infrastructure/DI.cs` — Registered IJwtTokenService singleton
-- `backend/src/JobNecto.Infrastructure/JobNecto.Infrastructure.csproj` — Added JwtBearer package reference
-- `backend/src/JobNecto.Infrastructure/Migrations/AddUniqueIndexesToUsers.cs` — New migration
-- `backend/src/JobNecto.Infrastructure/Migrations/AddUniqueIndexesToUsers.Designer.cs` — New migration designer
-- `backend/src/JobNecto.Infrastructure/Migrations/AppDbContextModelSnapshot.cs` — Updated snapshot; added Persistance using
-- `backend/src/JobNecto.Infrastructure/Migrations/20260414221828_Init.Designer.cs` — Added Persistance using
 - `backend/tests/JobNecto.Tests/Application/Users/CreateUserCommandValidatorTests.cs` — Validator unit tests (11/11 passing)
-- `backend/tests/JobNecto.Tests/Infrastructure/BaseRepositoryTests.cs` — Fixed: TestRepository/TestDbContext updated for AppDbContext
-- `backend/tests/JobNecto.Tests/Infrastructure/EditableRepositoryTestsBase.cs` — Added namespace usings
-- `backend/tests/JobNecto.Tests/Infrastructure/UserRepositorytests.cs` — Added namespace usings
-- `backend/tests/JobNecto.Tests/Infrastructure/ResumeRepositoryTests.cs` — Added namespace usings
-- `backend/tests/JobNecto.Tests/Infrastructure/EducationRepositoryTests.cs` — Added namespace usings
-- `backend/tests/JobNecto.Tests/Infrastructure/CoverLetterRepositoryTests.cs` — Added namespace usings
-- `backend/tests/JobNecto.Tests/Infrastructure/CoverLetterTemplateRepositoryTests.cs` — Added namespace usings
-- `backend/tests/JobNecto.Tests/Infrastructure/VacancyRepositoryTests.cs` — Added namespace usings
-- `backend/tests/JobNecto.Tests/Infrastructure/UnitOfWorkTests.cs` — Added namespace usings
-- `backend/tests/JobNecto.Tests/API/InfrastructureHostingTests.cs` — Added namespace usings
 

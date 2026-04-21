@@ -57,7 +57,7 @@ public class UnitOfWork : IUnitOfWork
             await SaveChangesAsync(ct);
             await _transaction.CommitAsync(ct);
         }
-        catch (System.Exception)
+        catch (Exception)
         {
             await _transaction.RollbackAsync(ct);
             throw;
@@ -73,6 +73,7 @@ public class UnitOfWork : IUnitOfWork
         if (_transaction != null)
         {
             await _transaction.DisposeAsync();
+            _transaction = null;
         }
     }
 

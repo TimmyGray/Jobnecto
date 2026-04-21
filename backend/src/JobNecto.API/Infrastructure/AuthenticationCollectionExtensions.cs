@@ -28,7 +28,7 @@ public static class AuthenticationCollectionExtensions
 
         EnsureValidJwtConfiguration(secretKey, issuer, audience);
 
-        var key = Encoding.ASCII.GetBytes(secretKey!);
+        var key = Encoding.UTF8.GetBytes(secretKey!);
 
         services.AddAuthentication(options =>
             {

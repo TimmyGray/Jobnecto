@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using JobNecto.Application.Interfaces;
 using JobNecto.Infrastructure.Persistance;
+using JobNecto.Application.Exceptions;
 
 namespace JobNecto.Infrastructure.Repositories;
 
@@ -27,7 +28,7 @@ public abstract class BaseRepository<T> : IRepository<T>
         var entity = await GetByIdAsync(id, ct);
         if (entity == null)
         {
-            throw new Exception($"Entity with id {id} not found");
+            throw new NotFoundException($"Entity with id {id} not found");
         }
 
         _dbSet.Remove(entity);
@@ -93,7 +94,7 @@ public abstract class BaseRepository<T> : IRepository<T>
         var entity = await _dbSet.FindAsync([id], ct);
         if (entity == null)
         {
-            throw new Exception($"Entity with id {id} not found");
+            throw new NotFoundException($"Entity with id {id} not found");
         }
         return entity;
     }
@@ -102,8 +103,7 @@ public abstract class BaseRepository<T> : IRepository<T>
     {
         try
         {
-            await GetByIdAsync(id, ct);
-            return true;
+            return await _dbSet.AnyAsync(e => e.Id == id, ct);
         }
         catch (Exception)
         {
