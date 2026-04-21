@@ -35,6 +35,12 @@ so that I can receive a JWT token and start managing my profile.
   - [ ] Implement a JWT token service that uses the existing `JwtSettings` configuration and emits the created user ID as a GUID string claim compatible with `AuthContext.GetCurrentUserId()`.
   - [ ] Include at least `ClaimTypes.NameIdentifier` and `sub`; include `userId` as well if needed to keep compatibility with the current auth test pattern.
   - [ ] Keep password hashing out of scope for this story; use the current domain model as-is and leave password-hardening work to the later phase that introduces hashing.
+ - [x] Task 2: Extend persistence and token issuance support without bypassing the existing architecture (AC: 1, 5)
+ - [x] Introduce a user-specific repository abstraction or extend the existing repository/unit-of-work contract so handlers can query by `email` and `loginName` without using `AppDbContext` directly.
+ - [x] Add database-level uniqueness protection for `Users.Email` and `Users.Login` via EF Core configuration and a migration.
+ - [x] Implement a JWT token service that uses the existing `JwtSettings` configuration and emits the created user ID as a GUID string claim compatible with `AuthContext.GetCurrentUserId()`.
+ - [x] Include at least `ClaimTypes.NameIdentifier` and `sub`; include `userId` as well if needed to keep compatibility with the current auth test pattern.
+ - [x] Keep password hashing out of scope for this story; use the current domain model as-is and leave password-hardening work to the later phase that introduces hashing.
 
 - [ ] Task 3: Implement the application handler and API endpoint for anonymous registration (AC: 1, 5)
   - [ ] Register controllers, MediatR, validators, and the JWT token service in the API composition root.
