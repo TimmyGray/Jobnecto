@@ -63,6 +63,12 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Test project references **API + Application + Domain + Infrastructure** (+ JobSources/LLM) as needed — follow existing **`JobNecto.Tests.csproj`** pattern.
 - After substantive changes, run **`dotnet test backend/JobNecto.slnx`**; for CI parity on risky edits use **Release** + **`--warnaserror`** (see workflow rules).
 
+### Namespace conventions
+
+- **Namespaces must mirror the folder structure.** Every C# file's `namespace` declaration must start with the project root namespace (e.g. `JobNecto.API`, `JobNecto.Application`, `JobNecto.Domain`, `JobNecto.Infrastructure`) and append each subfolder as a segment separated by `.`.
+- **Example:** `backend/src/JobNecto.API/Infrastructure/Cors/CorsServiceExtensions.cs` → `namespace JobNecto.API.Infrastructure.Cors;`
+- This rule is **mandatory** — all agents must strictly follow it and never use a flat or mismatched namespace.
+
 ### Code quality and style
 
 - No repo **`.editorconfig`** found — follow **IDE defaults** and match **existing file naming** in each folder (note: **`UserRepositorytests.cs`** exists; prefer consistent `*Tests.cs` for **new** files unless matching a local convention).
