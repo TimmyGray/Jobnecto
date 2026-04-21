@@ -1,7 +1,6 @@
-namespace JobNecto.Application.Users;
-
 using MediatR;
-using System;
+
+namespace JobNecto.Application.Users;
 
 /// <summary>
 /// Command to create a new user account.

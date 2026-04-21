@@ -1,6 +1,7 @@
-namespace JobNecto.Application.Users.Mappers;
+using JobNecto.Domain.Entities;
+using JobNecto.Domain.Enums;
 
-using System;
+namespace JobNecto.Application.Users.Mappers;
 
 /// <summary>
 /// Mapping extension methods for User entity and related DTOs.
@@ -59,10 +60,4 @@ public static class UserMappers
             Avatar = user.Avatar
         };
     }
-
-    /// <summary>
-    /// Generic mapping pattern for other entities. Example:
-    /// Resume.ToEntity(command) -> maps CreateResumeCommand to Resume entity
-    /// Resume.ToResult(resume) -> maps Resume entity to ResumeResult DTO
-    /// </summary>
 }

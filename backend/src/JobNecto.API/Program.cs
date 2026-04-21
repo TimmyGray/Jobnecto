@@ -13,9 +13,8 @@ builder.Services.AddApplication();
 builder.Services.AddControllers();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
-// `ICookieAuthService` registration deferred to users feature commit to
-// keep application registration isolated. Cookie service will be added
-// together with the UsersController and its implementation.
+// Register cookie auth service (sets HTTP-only auth cookie on successful login/registration)
+builder.Services.AddScoped<ICookieAuthService, CookieAuthService>();
 
 var app = builder.Build();
 

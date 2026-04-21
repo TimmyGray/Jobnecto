@@ -34,15 +34,13 @@ public sealed class JwtTokenService : IJwtTokenService
     }
 
     /// <inheritdoc />
-    public string GenerateToken(User user)
+    public Task<string> GenerateTokenAsync(string userId)
     {
-        var userIdString = user.Id.ToString();
-
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, userIdString),
-            new Claim(JwtRegisteredClaimNames.Sub, userIdString),
-            new Claim("userId", userIdString),
+            new Claim(ClaimTypes.NameIdentifier, userId),
+            new Claim(JwtRegisteredClaimNames.Sub, userId),
+            new Claim("userId", userId),
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
@@ -56,6 +54,6 @@ public sealed class JwtTokenService : IJwtTokenService
             signingCredentials: credentials
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return Task.FromResult(new JwtSecurityTokenHandler().WriteToken(token));
     }
 }
