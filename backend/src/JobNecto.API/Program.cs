@@ -1,20 +1,21 @@
 using JobNecto.API.Infrastructure;
 using JobNecto.API.Infrastructure.ExceptionHandling;
+using JobNecto.Application;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Use local configs if appsettings.Local.json exists
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
-
-// Add Exception Handling
+builder.Services.AddApplication();
+builder.Services.AddControllers();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+// `ICookieAuthService` registration deferred to users feature commit to
+// keep application registration isolated. Cookie service will be added
+// together with the UsersController and its implementation.
 
 var app = builder.Build();
 
@@ -33,5 +34,7 @@ app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapControllers();
 
 app.Run();
