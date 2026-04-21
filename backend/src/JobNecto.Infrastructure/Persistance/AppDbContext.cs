@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using JobNecto.Domain.Entities;
 
 namespace JobNecto.Infrastructure.Persistance;
 

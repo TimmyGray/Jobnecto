@@ -1,3 +1,8 @@
+using JobNecto.Domain.Enums;
+using JobNecto.Domain.ValueObjects;
+
+namespace JobNecto.Domain.Entities;
+
 /// <summary>
 /// We will use this resume as template for filtering and matching vacancies.
 /// And for helping LLM to generate a Cover Letter.

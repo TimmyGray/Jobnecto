@@ -1,3 +1,5 @@
+using JobNecto.Domain.Entities;
+
 namespace JobNecto.Application.Interfaces;
 
 public interface IEditableRepository<T> where T : BaseEntity

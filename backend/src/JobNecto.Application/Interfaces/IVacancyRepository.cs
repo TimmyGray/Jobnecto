@@ -1,3 +1,6 @@
+using JobNecto.Domain.Entities;
+using JobNecto.Domain.ValueObjects;
+
 namespace JobNecto.Application.Interfaces;
 
 public interface IVacancyRepository : IRepository<Vacancy>

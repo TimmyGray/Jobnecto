@@ -1,6 +1,9 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using JobNecto.Domain.Entities;
+using JobNecto.Domain.ValueObjects;
+using JobNecto.Domain.Enums;
 
 namespace JobNecto.Infrastructure.Persistance.Config;
 

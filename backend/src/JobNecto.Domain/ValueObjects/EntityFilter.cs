@@ -1,3 +1,7 @@
+using JobNecto.Domain.Enums;
+
+namespace JobNecto.Domain.ValueObjects;
+
 public record VacancyFilter
 {
     public string? Title { get; init; }

@@ -1,3 +1,5 @@
+using JobNecto.Domain.Entities;
+
 namespace JobNecto.Application.Interfaces;
 
 /// <summary>

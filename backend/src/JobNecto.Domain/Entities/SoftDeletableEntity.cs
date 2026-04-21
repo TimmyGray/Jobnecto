@@ -1,3 +1,5 @@
+namespace JobNecto.Domain.Entities;
+
 /// <summary>
 /// Base class for entities that support soft deletion.
 /// Soft-deleted records are excluded from queries via EF Core global query filters.

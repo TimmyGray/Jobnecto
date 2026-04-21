@@ -2,6 +2,7 @@
 using JobNecto.Application.Interfaces;
 using Microsoft.EntityFrameworkCore.Storage;
 using JobNecto.Infrastructure.Repositories;
+using JobNecto.Domain.Entities;
 
 namespace JobNecto.Infrastructure.Persistance;
 

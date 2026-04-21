@@ -1,3 +1,8 @@
+using JobNecto.Domain.Enums;
+using JobNecto.Domain.ValueObjects;
+
+namespace JobNecto.Domain.Entities;
+
 public sealed class Vacancy : SoftDeletableEntity
 {
     public Guid UserId;

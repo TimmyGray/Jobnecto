@@ -1,3 +1,5 @@
+namespace JobNecto.Domain.Entities;
+
 public class CoverLetterTemplate : SoftDeletableEntity
 {
     public Guid UserId;
