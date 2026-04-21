@@ -1,3 +1,8 @@
+using JobNecto.Domain.Entities;
+using JobNecto.Domain.Enums;
+using JobNecto.Domain.ValueObjects;
+
+
 /// <summary>
 /// Realistic <see cref="Vacancy"/> fixtures for repository and filter tests.
 /// Use <see cref="CreateOwnerUser"/> (or your own user) and pass <paramref name="userId"/> into each factory.

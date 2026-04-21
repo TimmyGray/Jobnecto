@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using FluentAssertions;
 using FluentValidation;
@@ -10,8 +9,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
-using Xunit;
 
 namespace JobNecto.Tests.API;
 

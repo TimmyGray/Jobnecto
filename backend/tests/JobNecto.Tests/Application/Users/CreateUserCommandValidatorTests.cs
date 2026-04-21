@@ -1,7 +1,6 @@
 using FluentAssertions;
 using JobNecto.Application.Users;
 using JobNecto.Application.Users.Validators;
-using Xunit;
 
 namespace JobNecto.Tests.Application.Users;
 

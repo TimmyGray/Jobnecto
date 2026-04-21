@@ -2,6 +2,8 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using JobNecto.Infrastructure.Persistance;
 using JobNecto.Infrastructure.Repositories;
+using JobNecto.Domain.Entities;
+using JobNecto.Domain.ValueObjects;
 
 public class TestEntity : BaseEntity { }
 
