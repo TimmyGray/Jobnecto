@@ -35,6 +35,12 @@ When a user request requires specific workflows, code generation, or role-playin
 - **UX Design**: For UX patterns and design specifications, call the `@[/bmad-agent-ux-designer]` skill.
 - **Testing & QA**: For test architecture, design, and QA guidance, call the `@[/bmad-tea]` skill.
 
+### Namespace conventions
+
+- **Namespaces must match the folder structure.** Every C# file's namespace must reflect its location: start with the project root namespace (e.g. `JobNecto.API`, `JobNecto.Application`, `JobNecto.Domain`, `JobNecto.Infrastructure`) and append each subfolder as a namespace segment.
+- **Example:** A file at `backend/src/JobNecto.API/Infrastructure/Cors/CorsServiceExtensions.cs` must declare `namespace JobNecto.API.Infrastructure.Cors;`.
+- **All agents must strictly follow this rule** — never use a flat or mismatched namespace regardless of convenience.
+
 ### Code documentation requirements
 
 - **Functions & Methods:** All new valuable or non-trivial functions/methods MUST include C# XML documentation comments (`/// <summary>`, `<param>`, `<returns>`). Trivial or boilerplate code can be skipped. See the `@[/function-comments]` skill for detailed guidelines.
