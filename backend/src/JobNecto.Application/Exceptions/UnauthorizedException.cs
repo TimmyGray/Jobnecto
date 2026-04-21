@@ -1,5 +1,3 @@
-using System;
-
 namespace JobNecto.Application.Exceptions;
 
 /// <summary>

@@ -1,8 +1,7 @@
-namespace JobNecto.Application.Users.Validators;
-
 using FluentValidation;
-using JobNecto.Application.Users;
-using System;
+using JobNecto.Domain.Enums;
+
+namespace JobNecto.Application.Users.Validators;
 
 /// <summary>
 /// FluentValidation validator for <see cref="CreateUserCommand"/>.
@@ -35,7 +34,7 @@ public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
         When(x => !string.IsNullOrWhiteSpace(x.Location), () =>
         {
             RuleFor(x => x.Location)
-                .Must(location => Enum.TryParse<global::Location>(location, true, out _))
+                .Must(location => Enum.TryParse<Location>(location, true, out _))
                 .WithMessage("location must be a valid Location enum value.");
         });
     }
