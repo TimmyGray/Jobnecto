@@ -30,13 +30,13 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.Login).IsRequired().HasMaxLength(50);
 
-        builder.HasIndex(u => u.Login).IsUnique();
+        builder.HasIndex(u => u.Login).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
 
         builder.Property(u => u.Password).IsRequired().HasMaxLength(50);
 
         builder.Property(u => u.Email).IsRequired().IsUnicode().HasMaxLength(50);
 
-        builder.HasIndex(u => u.Email).IsUnique();
+        builder.HasIndex(u => u.Email).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
 
         builder.Property(u => u.Phone).HasMaxLength(20);
 
