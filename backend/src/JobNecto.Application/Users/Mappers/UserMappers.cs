@@ -30,7 +30,7 @@ public static class UserMappers
         return new User
         {
             Login = command.LoginName,
-            Email = command.Email.Trim().ToLowerInvariant(), // Normalize email to lower case
+            Email = command.Email,
             Password = command.Password,
             Phone = command.Phone,
             Location = location,
