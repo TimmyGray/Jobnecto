@@ -1,4 +1,9 @@
-public sealed class User : BaseEntity
+using JobNecto.Domain.Enums;
+using JobNecto.Domain.ValueObjects;
+
+namespace JobNecto.Domain.Entities;
+
+public sealed class User : SoftDeletableEntity
 {
     public string? Name;
     public string? SecondName;
@@ -17,5 +22,5 @@ public sealed class User : BaseEntity
     public string[]? Projects;
     public ICollection<Resume>? Resumes;
     public ICollection<CoverLetter>? CoverLetters;
-    public ICollection<CoverLetterTemplate>? coverLetterTemplates;
+    public ICollection<CoverLetterTemplate>? CoverLetterTemplates;
 }

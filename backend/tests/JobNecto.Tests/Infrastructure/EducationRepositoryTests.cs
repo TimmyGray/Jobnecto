@@ -1,5 +1,8 @@
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
+using JobNecto.Infrastructure.Persistance;
+using JobNecto.Infrastructure.Repositories;
+using JobNecto.Domain.Entities;
+using JobNecto.Domain.Enums;
 
 public class EducationRepositoryTests : EditableRepositoryTestsBase<Education, EducationRepository>
 {

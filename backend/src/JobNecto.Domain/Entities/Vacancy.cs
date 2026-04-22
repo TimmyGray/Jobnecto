@@ -1,4 +1,9 @@
-public sealed class Vacancy : BaseEntity
+using JobNecto.Domain.Enums;
+using JobNecto.Domain.ValueObjects;
+
+namespace JobNecto.Domain.Entities;
+
+public sealed class Vacancy : SoftDeletableEntity
 {
     public Guid UserId;
     public string? Title;
@@ -28,6 +33,8 @@ public sealed class Vacancy : BaseEntity
     public string? ExperienceLevel;
 
     public required JobSource JobSource;
+
+    public bool IsViewed;
 
     public bool IsChosen;
 

@@ -1,3 +1,5 @@
+namespace JobNecto.Domain.ValueObjects;
+
 public record PagedQuery
 {
     public Guid? LastSeenId { get; init; } = null;

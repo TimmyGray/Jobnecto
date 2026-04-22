@@ -1,8 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+using JobNecto.Infrastructure.Persistance;
+using JobNecto.Domain.Entities;
+
+namespace JobNecto.Infrastructure.Repositories;
 
 public class EducationRepository : EditableRepository<Education>
 {
-    public EducationRepository(DbContext context) : base(context)
+    public EducationRepository(AppDbContext context) : base(context)
     {
     }
 }

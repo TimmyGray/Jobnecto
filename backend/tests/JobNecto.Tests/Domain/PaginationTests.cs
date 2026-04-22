@@ -1,4 +1,6 @@
 using FluentAssertions;
+using JobNecto.Domain.ValueObjects;
+using JobNecto.Domain.Entities;
 
 public class PaginationTests
 {

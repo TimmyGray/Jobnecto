@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using FluentAssertions;
 using FluentValidation;
@@ -10,8 +9,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
-using Xunit;
 
 namespace JobNecto.Tests.API;
 
@@ -71,9 +68,11 @@ public class ExceptionHandlingFactory : WebApplicationFactory<ApiAssemblyMarker>
             services.AddTransient<IStartupFilter, TestEndpointsStartupFilter>();
         });
         
-        // Use UseSetting to override the connection string at the builder level
-        // This takes precedence over appsettings.json
+        // Use UseSetting to override config at the builder level, taking precedence over appsettings.json
         builder.UseSetting("ConnectionStrings:Postgres", "Host=localhost;Database=testing;Username=test;Password=test");
+        builder.UseSetting("JwtSettings:SecretKey", "ThisIsATestOnlyJwtSecretKeyNotForProduction_1234567890abcdef");
+        builder.UseSetting("JwtSettings:Issuer", "JobNecto");
+        builder.UseSetting("JwtSettings:Audience", "JobNecto-API");
         builder.UseEnvironment("Production");
     }
 }

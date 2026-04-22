@@ -1,3 +1,5 @@
+namespace JobNecto.Domain.ValueObjects;
+
 public record JobSource
 {
     public required string Name { get; init; }

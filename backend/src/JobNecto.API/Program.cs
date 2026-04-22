@@ -1,22 +1,22 @@
+using JobNecto.API.Infrastructure;
 using JobNecto.API.Infrastructure.Cors;
 using JobNecto.API.Infrastructure.ExceptionHandling;
+using JobNecto.Application;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Use local configs if appsettings.Local.json exists
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
-
-// Add Exception Handling
+builder.Services.AddJwtAuthentication(builder.Configuration);
+builder.Services.AddApplication();
+builder.Services.AddControllers();
+builder.Services.AddCorsPolicies(builder.Configuration);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
-
-// Add CORS
-builder.Services.AddCorsPolicies(builder.Configuration);
+// Register cookie auth service (sets HTTP-only auth cookie on successful login/registration)
+builder.Services.AddScoped<ICookieAuthService, CookieAuthService>();
 
 var app = builder.Build();
 
@@ -28,7 +28,15 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseCors(CorsServiceExtensions.FrontendPolicy);
 app.UseHttpsRedirection();
+
+// Wire authentication and authorization in the middleware pipeline
+// Routing must come first, then authentication/authorization, then endpoints
+app.UseRouting();
+app.UseCors(CorsServiceExtensions.FrontendPolicy);
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
 
 app.Run();

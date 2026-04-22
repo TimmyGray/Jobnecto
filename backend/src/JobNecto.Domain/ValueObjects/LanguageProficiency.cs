@@ -1,3 +1,7 @@
+using JobNecto.Domain.Enums;
+
+namespace JobNecto.Domain.ValueObjects;
+
 public record LanguageProficiency
 {
     public Language Language { get; init; }

@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
+using JobNecto.Domain.Entities;
+
+namespace JobNecto.Infrastructure.Persistance.Config;
 
 public class CoverLetterTemplateConfiguration : IEntityTypeConfiguration<CoverLetterTemplate>
 {
@@ -20,8 +23,12 @@ public class CoverLetterTemplateConfiguration : IEntityTypeConfiguration<CoverLe
             .HasDefaultValueSql("Now()")
             .ValueGeneratedOnAddOrUpdate();
 
+        builder.Property(clt => clt.IsDeleted).HasDefaultValue(false);
+
+        builder.Property(clt => clt.DeletedAt);
+
         builder
-            .HasOne<CoverLetterTemplate>()
+            .HasOne<User>()
             .WithMany()
             .HasForeignKey(clt => clt.UserId)
             .OnDelete(DeleteBehavior.Cascade);

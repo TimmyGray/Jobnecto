@@ -1,6 +1,10 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using JobNecto.Domain.Entities;
+using JobNecto.Domain.ValueObjects;
+
+namespace JobNecto.Infrastructure.Persistance.Config;
 
 public class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
 {
@@ -86,5 +90,9 @@ public class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
             .Property(v => v.UpdatedAt)
             .HasDefaultValueSql("Now()")
             .ValueGeneratedOnAddOrUpdate();
+
+        builder.Property(v => v.IsDeleted).HasDefaultValue(false);
+
+        builder.Property(v => v.DeletedAt);
     }
 }

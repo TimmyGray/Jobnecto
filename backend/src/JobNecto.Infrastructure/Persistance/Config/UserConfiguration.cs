@@ -1,6 +1,10 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using JobNecto.Domain.Entities;
+using JobNecto.Domain.ValueObjects;
+
+namespace JobNecto.Infrastructure.Persistance.Config;
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
@@ -26,9 +30,13 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.Login).IsRequired().HasMaxLength(50);
 
+        builder.HasIndex(u => u.Login).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
+
         builder.Property(u => u.Password).IsRequired().HasMaxLength(50);
 
         builder.Property(u => u.Email).IsRequired().IsUnicode().HasMaxLength(50);
+
+        builder.HasIndex(u => u.Email).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
 
         builder.Property(u => u.Phone).HasMaxLength(20);
 
@@ -68,11 +76,17 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             )
             .HasColumnType("jsonb");
 
-        builder.Property(u => u.CreatedAt).HasDefaultValueSql("Now()").ValueGeneratedOnAdd();
+        builder.Property(u => u.CreatedAt)
+        .HasDefaultValueSql("Now()")
+        .ValueGeneratedOnAdd();
 
         builder
             .Property(u => u.UpdatedAt)
             .HasDefaultValueSql("Now()")
             .ValueGeneratedOnAddOrUpdate();
+        
+        builder.Property(u => u.IsDeleted).HasDefaultValue(false);
+
+        builder.Property(u => u.DeletedAt);
     }
 }

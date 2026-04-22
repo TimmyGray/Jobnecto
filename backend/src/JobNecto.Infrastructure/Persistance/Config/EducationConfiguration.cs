@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using JobNecto.Domain.Entities;
+
+namespace JobNecto.Infrastructure.Persistance.Config;
 
 public class EducationConfiguration : IEntityTypeConfiguration<Education>
 {
@@ -21,6 +24,10 @@ public class EducationConfiguration : IEntityTypeConfiguration<Education>
             .Property(e => e.UpdatedAt)
             .HasDefaultValueSql("Now()")
             .ValueGeneratedOnAddOrUpdate();
+        
+        builder.Property(e => e.IsDeleted).HasDefaultValue(false);
+
+        builder.Property(e => e.DeletedAt);
 
         builder
             .HasOne<User>()

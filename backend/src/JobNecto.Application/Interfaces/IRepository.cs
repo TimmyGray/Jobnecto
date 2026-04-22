@@ -1,3 +1,8 @@
+using JobNecto.Domain.Entities;
+using JobNecto.Domain.ValueObjects;
+
+namespace JobNecto.Application.Interfaces;
+
 public interface IRepository<T>
     where T : BaseEntity
 {

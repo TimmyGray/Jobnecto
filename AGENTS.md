@@ -45,6 +45,25 @@ When a user request requires specific workflows, code generation, or role-playin
 
 - **Functions & Methods:** All new valuable or non-trivial functions/methods MUST include C# XML documentation comments (`/// <summary>`, `<param>`, `<returns>`). Trivial or boilerplate code can be skipped. See the `@[/function-comments]` skill for detailed guidelines.
 
+### Version Control & Commit Practices
+
+- **Commit Workflow:** Every time the agent makes substantive changes that should be committed, follow this workflow:
+  1. **Inspect the diff:** Use `get_changed_files` to review all modified files and their changes.
+  2. **Create summary:** Analyze the diff to understand what was changed, why, and the impact.
+  3. **Comprehensive commit message:** Write a detailed commit message that includes:
+     - Type and scope (feat, fix, docs, refactor, etc.)
+     - Clear description of what was changed
+     - Bullet points detailing specific changes by file/area
+     - Context about why the changes were made
+     - Any breaking changes or important notes
+- **Commit Message Format:** Use conventional commits format with detailed body explaining the changes comprehensively.
+
+### Security — secrets and credentials
+
+- **NEVER** write secrets, passwords, API keys, or database connection strings (containing credentials) into any documentation, markdown files, architecture docs, stories, or any other text artifacts.
+- When documentation needs to reference a connection string or secret, instruct the reader to **see the local config file** instead (e.g. `appsettings.local.json`, `.env.local`). Example: _"Set the connection string in `appsettings.local.json` under `ConnectionStrings:Default`."_
+- This rule applies to all agent outputs: PRDs, architecture docs, stories, code comments, README files, and any generated content.
+
 ### Gotchas
 
 
@@ -98,3 +117,43 @@ Run this workflow every time a PR is created or updated.
   - `evidence`: file paths, symbols, commands, or test outputs
   - `recommended_fix`: concrete change suggestion
 - Explicitly state when no findings are detected.
+
+## Post-Merge / Post-Push Documentation Updates
+
+Run this workflow after a PR is merged or when committing directly to the master branch.
+
+### Trigger
+
+- PR successfully merged into master.
+- Commit(s) pushed directly to master branch (when master is the active branch).
+
+### Important Documents to Update
+
+After a feature is implemented and merged, the agent **MUST** update the following documents:
+
+1. **`JOBNECTO_BACKEND_ROADMAP.md`** — Update completed features, mark as done, adjust timeline for remaining items.
+2. **`_bmad-output/planning-artifacts/prd.md`** — Reflect completed features, update feature status, adjust scope if needed.
+3. **`_bmad-output/planning-artifacts/architecture.md`** — Update if implementation changed from design, document any architectural decisions made during implementation.
+4. **`_bmad-output/implementation-artifacts/sprint-status.yaml`** — Mark completed stories/epics as done, update sprint metrics, remove merged items.
+5. **`README.md`** — Update feature list, API capabilities, or usage examples if the new feature is user-facing.
+6. **Project context files** (`_bmad-output/project-context.md`, etc.) — Update project state, completed features, and current status.
+
+### Update Procedure
+
+1. **Verify the merge/push** — Confirm that the feature has been successfully merged into master or that commits are on master.
+2. **Identify affected documents** — Review which documents are impacted by the implemented feature.
+3. **Update each document** — Make changes to reflect:
+   - Completed features marked as done
+   - Updated timelines and roadmap
+   - Changed architecture (if applicable)
+   - Updated sprint/project status
+   - New capabilities or features listed
+4. **Verify consistency** — Ensure all documentation is consistent across files (e.g., same feature status in roadmap and sprint status).
+5. **Commit documentation updates** — If changes are made to documents, commit them with a clear message like `"docs: update after feature [name] merged to master"`.
+
+### Required Verification
+
+- [ ] All impacted documents have been reviewed.
+- [ ] Document updates reflect the implemented feature accurately.
+- [ ] Timeline and roadmap are synchronized.
+- [ ] No outdated information remains from previous versions.

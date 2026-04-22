@@ -1,8 +1,9 @@
 using FluentAssertions;
 using JobNecto.API;
+using JobNecto.Application.Interfaces;
+using JobNecto.Infrastructure.Persistance;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -25,7 +26,7 @@ public sealed class InfrastructureHostingTests
     public async Task WebApplicationFactory_in_Development_resolves_AppDbContext()
     {
         await using var factory = new WebApplicationFactory<ApiAssemblyMarker>().WithWebHostBuilder(
-            builder => builder.UseEnvironment(Environments.Development)
+            builder => builder.UseEnvironment("Test")
         );
 
         using var scope = factory.Services.CreateScope();

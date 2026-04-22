@@ -1,3 +1,5 @@
+namespace JobNecto.Domain.Entities;
+
 public class BaseEntity
 {
     public Guid Id;

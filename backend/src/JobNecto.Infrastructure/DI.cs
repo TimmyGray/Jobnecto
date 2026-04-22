@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using JobNecto.Application.Interfaces;
+using JobNecto.Infrastructure.Persistance;
+using JobNecto.Infrastructure.Services;
 using Npgsql;
 
 public static class InfrastructureCollectionExtensions
@@ -28,6 +31,7 @@ public static class InfrastructureCollectionExtensions
         );
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
         return services;
     }

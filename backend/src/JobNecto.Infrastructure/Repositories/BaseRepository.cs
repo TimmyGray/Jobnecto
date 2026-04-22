@@ -1,12 +1,19 @@
 using Microsoft.EntityFrameworkCore;
+using JobNecto.Application.Interfaces;
+using JobNecto.Infrastructure.Persistance;
+using JobNecto.Application.Exceptions;
+using JobNecto.Domain.Entities;
+using JobNecto.Domain.ValueObjects;
+
+namespace JobNecto.Infrastructure.Repositories;
 
 public abstract class BaseRepository<T> : IRepository<T>
     where T : BaseEntity
 {
-    protected readonly DbContext _context;
+    protected readonly AppDbContext _context;
     protected readonly DbSet<T> _dbSet;
 
-    public BaseRepository(DbContext context)
+    public BaseRepository(AppDbContext context)
     {
         _context = context;
         _dbSet = context.Set<T>();
@@ -21,10 +28,6 @@ public abstract class BaseRepository<T> : IRepository<T>
     public virtual async Task<Guid> DeleteAsync(Guid id, CancellationToken ct)
     {
         var entity = await GetByIdAsync(id, ct);
-        if (entity == null)
-        {
-            throw new Exception($"Entity with id {id} not found");
-        }
 
         _dbSet.Remove(entity);
         return id;
@@ -89,7 +92,7 @@ public abstract class BaseRepository<T> : IRepository<T>
         var entity = await _dbSet.FindAsync([id], ct);
         if (entity == null)
         {
-            throw new Exception($"Entity with id {id} not found");
+            throw new NotFoundException($"Entity with id {id} not found");
         }
         return entity;
     }
@@ -98,8 +101,7 @@ public abstract class BaseRepository<T> : IRepository<T>
     {
         try
         {
-            await GetByIdAsync(id, ct);
-            return true;
+            return await _dbSet.AnyAsync(e => e.Id == id, ct);
         }
         catch (Exception)
         {

@@ -1,5 +1,8 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using JobNecto.Application.Interfaces;
+using JobNecto.Infrastructure.Persistance;
+using JobNecto.Domain.Entities;
 
 /// <summary>
 /// A generic base class to standardize and enforce testing of <see cref="IEditableRepository{T}"/>.

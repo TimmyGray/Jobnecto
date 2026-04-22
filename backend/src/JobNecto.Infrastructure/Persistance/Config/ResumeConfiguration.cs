@@ -1,6 +1,11 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using JobNecto.Domain.Entities;
+using JobNecto.Domain.ValueObjects;
+using JobNecto.Domain.Enums;
+
+namespace JobNecto.Infrastructure.Persistance.Config;
 
 public class ResumeConfiguration : IEntityTypeConfiguration<Resume>
 {
@@ -81,8 +86,12 @@ public class ResumeConfiguration : IEntityTypeConfiguration<Resume>
             .HasDefaultValueSql("Now()")
             .ValueGeneratedOnAddOrUpdate();
 
+        builder.Property(r => r.IsDeleted).HasDefaultValue(false);
+
+        builder.Property(r => r.DeletedAt);
+
         builder
-            .HasOne<Resume>()
+            .HasOne<User>()
             .WithMany()
             .HasForeignKey(r => r.UserId)
             .OnDelete(DeleteBehavior.Cascade);
