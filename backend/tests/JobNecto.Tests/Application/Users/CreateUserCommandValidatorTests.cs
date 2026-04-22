@@ -28,7 +28,7 @@ public class CreateUserCommandValidatorTests
 
     [Theory]
     [InlineData("ab")]
-    [InlineData("this_login_name_is_way_too_long_for_the_limit")]
+    [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
     [InlineData("bad-char!")]
     public void InvalidLoginName_Fails(string login)
     {
@@ -36,6 +36,36 @@ public class CreateUserCommandValidatorTests
         var result = _validator.Validate(cmd);
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "LoginName");
+    }
+
+    [Fact]
+    public void TooLongEmail_Fails()
+    {
+        var longLocal = new string('a', 46) + "@e.com"; // >50 chars
+        var cmd = new CreateUserCommand { LoginName = "user123", Email = longLocal, Password = "strongpassword" };
+        var result = _validator.Validate(cmd);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "Email");
+    }
+
+    [Fact]
+    public void TooLongPassword_Fails()
+    {
+        var longPwd = new string('a', 51);
+        var cmd = new CreateUserCommand { LoginName = "user123", Email = "a@b.com", Password = longPwd };
+        var result = _validator.Validate(cmd);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "Password");
+    }
+
+    [Fact]
+    public void TooLongAbout_Fails()
+    {
+        var longAbout = new string('a', 5001);
+        var cmd = new CreateUserCommand { LoginName = "user123", Email = "a@b.com", Password = "strongpassword", About = longAbout };
+        var result = _validator.Validate(cmd);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "About");
     }
 
     [Theory]

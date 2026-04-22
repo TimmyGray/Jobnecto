@@ -1,4 +1,8 @@
-## .NET
+bin/
+obj/
+.vs/
+*.user
+.DS_Store## .NET
 bin/
 obj/
 *.user

@@ -28,10 +28,6 @@ public abstract class BaseRepository<T> : IRepository<T>
     public virtual async Task<Guid> DeleteAsync(Guid id, CancellationToken ct)
     {
         var entity = await GetByIdAsync(id, ct);
-        if (entity == null)
-        {
-            throw new NotFoundException($"Entity with id {id} not found");
-        }
 
         _dbSet.Remove(entity);
         return id;

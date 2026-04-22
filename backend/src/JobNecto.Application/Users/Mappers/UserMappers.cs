@@ -19,12 +19,14 @@ public static class UserMappers
         if (command == null)
             throw new ArgumentNullException(nameof(command));
 
-        // Parse location enum if provided; default to null if not provided or invalid.
+        // Parse location enum if provided; set only when parsing succeeds, otherwise keep null.
         Location? location = null;
         if (!string.IsNullOrWhiteSpace(command.Location))
         {
-            _ = Enum.TryParse<Location>(command.Location, ignoreCase: true, out var parsedLocation);
-            location = parsedLocation;
+            if (Enum.TryParse<Location>(command.Location, ignoreCase: true, out var parsedLocation))
+            {
+                location = parsedLocation;
+            }
         }
 
         return new User
