@@ -26,7 +26,7 @@ public sealed class InfrastructureHostingTests
     public async Task WebApplicationFactory_in_Development_resolves_AppDbContext()
     {
         await using var factory = new WebApplicationFactory<ApiAssemblyMarker>().WithWebHostBuilder(
-            builder => builder.UseEnvironment(Environments.Development)
+            builder => builder.UseEnvironment("Test")
         );
 
         using var scope = factory.Services.CreateScope();

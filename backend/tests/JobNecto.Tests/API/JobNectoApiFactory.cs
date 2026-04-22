@@ -16,7 +16,7 @@ public class JobNectoApiFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Development");
+        builder.UseEnvironment("Test");
 
         // ConfigureTestServices (from TestHost) runs after Program.cs, so our override wins over AddInfrastructure()
         builder.ConfigureTestServices(services =>

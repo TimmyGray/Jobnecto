@@ -21,6 +21,9 @@ public class CorsFactory : WebApplicationFactory<ApiAssemblyMarker>
         // Override the allowed origins so the test is self-contained and reproducible.
         builder.UseSetting("Cors:AllowedOrigins:0", TestOrigin);
         builder.UseSetting("ConnectionStrings:Postgres", "Host=localhost;Database=testing;Username=test;Password=test");
+        builder.UseSetting("JwtSettings:SecretKey", "ThisIsATestOnlyJwtSecretKeyNotForProduction_1234567890abcdef");
+        builder.UseSetting("JwtSettings:Issuer", "JobNecto");
+        builder.UseSetting("JwtSettings:Audience", "JobNecto-API");
         // These tests target /openapi/v1.json, which is only mapped in Development.
         builder.UseEnvironment("Development");
     }
