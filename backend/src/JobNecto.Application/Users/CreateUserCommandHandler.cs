@@ -25,6 +25,10 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Creat
     /// </summary>
     public async Task<CreateUserResult> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
+        // Normalize once so that uniqueness checks and entity creation use the same values.
+        request.Email = request.Email.Trim().ToLowerInvariant();
+        request.LoginName = request.LoginName.Trim();
+
         // Check for uniqueness
         var existingByEmail = await _unitOfWork.UserRepository.GetByEmailAsync(request.Email, cancellationToken);
         if (existingByEmail != null)

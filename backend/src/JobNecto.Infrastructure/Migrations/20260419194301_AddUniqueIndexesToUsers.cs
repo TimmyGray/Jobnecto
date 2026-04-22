@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -11,10 +10,6 @@ namespace JobNecto.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // This migration only adds unique indexes for Users.Email and Users.Login.
-            // Other schema changes (DeletedAt/IsDeleted columns and FK definitions)
-            // are already applied in the Init migration and must not be duplicated here.
-
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
                 table: "Users",
@@ -31,7 +26,6 @@ namespace JobNecto.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Only remove the indexes this migration created.
             migrationBuilder.DropIndex(
                 name: "IX_Users_Email",
                 table: "Users");

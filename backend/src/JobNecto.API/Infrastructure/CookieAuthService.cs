@@ -17,6 +17,9 @@ public interface ICookieAuthService
 /// <inheritdoc />
 public class CookieAuthService : ICookieAuthService
 {
+    /// <summary>The name of the HTTP-only cookie that carries the JWT.</summary>
+    public const string CookieName = "auth-token";
+
     private readonly IHostEnvironment _env;
     private readonly int _expirationMinutes;
 
@@ -29,7 +32,7 @@ public class CookieAuthService : ICookieAuthService
     /// <inheritdoc />
     public void SetAuthCookie(HttpResponse response, string token)
     {
-        response.Cookies.Append("auth-token", token, new CookieOptions
+        response.Cookies.Append(CookieName, token, new CookieOptions
         {
             HttpOnly = true,
             Secure = !_env.IsDevelopment(),

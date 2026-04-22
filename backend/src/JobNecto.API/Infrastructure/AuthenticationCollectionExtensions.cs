@@ -48,6 +48,18 @@ public static class AuthenticationCollectionExtensions
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero
                 };
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var token = context.Request.Cookies[CookieAuthService.CookieName];
+                        if (!string.IsNullOrEmpty(token))
+                        {
+                            context.Token = token;
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
         services.AddAuthorization();
