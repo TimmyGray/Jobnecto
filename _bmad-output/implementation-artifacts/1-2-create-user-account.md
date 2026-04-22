@@ -1,6 +1,6 @@
 # Story 1.2: Create User Account
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -29,12 +29,12 @@ so that I can receive a JWT token and start managing my profile.
   - [x] Treat `location` as the existing domain `Location` enum serialized as a string unless product requirements are explicitly changed first.
   - [x] Create mapping extension methods in `Users/Mappers/UserMappers.cs`: `CreateUserCommand.ToEntity()` and `User.ToCreateUserResult()` for DTO<->Entity conversion. This pattern should be replicated for all entities (Resume, Education, CoverLetter, etc.) as `<Entity>Mappers.cs` files.
 
- - [x] Task 2: Extend persistence and token issuance support without bypassing the existing architecture (AC: 1, 5)
- - [x] Introduce a user-specific repository abstraction or extend the existing repository/unit-of-work contract so handlers can query by `email` and `loginName` without using `AppDbContext` directly.
- - [x] Add database-level uniqueness protection for `Users.Email` and `Users.Login` via EF Core configuration and a migration.
- - [x] Implement a JWT token service that uses the existing `JwtSettings` configuration and emits the created user ID as a GUID string claim compatible with `AuthContext.GetCurrentUserId()`.
- - [x] Include at least `ClaimTypes.NameIdentifier` and `sub`; include `userId` as well if needed to keep compatibility with the current auth test pattern.
- - [x] Keep password hashing out of scope for this story; use the current domain model as-is and leave password-hardening work to the later phase that introduces hashing.
+- [x] Task 2: Extend persistence and token issuance support without bypassing the existing architecture (AC: 1, 5)
+  - [x] Introduce a user-specific repository abstraction or extend the existing repository/unit-of-work contract so handlers can query by `email` and `loginName` without using `AppDbContext` directly.
+  - [x] Add database-level uniqueness protection for `Users.Email` and `Users.Login` via EF Core configuration and a migration.
+  - [x] Implement a JWT token service that uses the existing `JwtSettings` configuration and emits the created user ID as a GUID string claim compatible with `AuthContext.GetCurrentUserId()`.
+  - [x] Include at least `ClaimTypes.NameIdentifier` and `sub`; include `userId` as well if needed to keep compatibility with the current auth test pattern.
+  - [x] Keep password hashing out of scope for this story; use the current domain model as-is and leave password-hardening work to the later phase that introduces hashing.
 
 - [x] Task 3: Implement the application handler and API endpoint for anonymous registration (AC: 1, 5)
   - [x] Register controllers, MediatR, validators, and the JWT token service in the API composition root.
@@ -43,16 +43,16 @@ so that I can receive a JWT token and start managing my profile.
   - [x] Set the `Location` header to `/api/v1/users/me` on success.
   - [x] Preserve the existing global exception handling flow so validation failures still surface as `400` Problem Details and duplicate values surface as `409 Conflict`.
 
-- [ ] Task 4: Add focused tests for validation, handler behavior, and end-to-end HTTP behavior (AC: 1, 2, 3, 4, 5, 6)
-  - [ ] Add validator tests for login name, email, password, and phone boundaries.
-  - [ ] Add handler tests for successful user creation, duplicate email rejection, duplicate login rejection, and JWT generation.
-  - [ ] Add API integration tests for `POST /api/v1/users` success, validation failures, duplicate conflicts, `Location` header, and password omission from the response body.
-  - [ ] Verify that a token returned by registration is structurally valid for the configured issuer/audience and contains claims compatible with `AuthContext.GetCurrentUserId()`.
-  - [ ] Use isolated in-memory databases or equivalent test-host overrides so tests do not depend on a real PostgreSQL instance.
+- [x] Task 4: Add focused tests for validation, handler behavior, and end-to-end HTTP behavior (AC: 1, 2, 3, 4, 5, 6)
+  - [x] Add validator tests for login name, email, password, and phone boundaries.
+  - [x] Add handler tests for successful user creation, duplicate email rejection, duplicate login rejection, and JWT generation.
+  - [x] Add API integration tests for `POST /api/v1/users` success, validation failures, duplicate conflicts, `Location` header, and password omission from the response body.
+  - [x] Verify that a token returned by registration is structurally valid for the configured issuer/audience and contains claims compatible with `AuthContext.GetCurrentUserId()`.
+  - [x] Use isolated in-memory databases or equivalent test-host overrides so tests do not depend on a real PostgreSQL instance.
 
-- [ ] Task 5: Run project validation before moving the story to development review (AC: 1, 2, 3, 4, 5, 6)
-  - [ ] Run `dotnet build backend/JobNecto.slnx`.
-  - [ ] Run `dotnet test backend/JobNecto.slnx`.
+- [x] Task 5: Run project validation before moving the story to development review (AC: 1, 2, 3, 4, 5, 6)
+  - [x] Run `dotnet build backend/JobNecto.slnx`.
+  - [x] Run `dotnet test backend/JobNecto.slnx`.
 
 ## Dev Notes
 
@@ -98,6 +98,7 @@ To maintain consistency across entities (User, Resume, Education, CoverLetter, e
 5. **Null handling:** Validate inputs and handle null/empty values gracefully (e.g., empty Location string -> null Location enum)
 
 Example from UserMappers.cs:
+
 ```csharp
 public static User ToEntity(this CreateUserCommand command) { ... }
 public static CreateUserResult ToCreateUserResult(this User user) { ... }
@@ -158,28 +159,34 @@ public static CreateUserResult ToCreateUserResult(this User user) { ... }
 
 ### Agent Model Used
 
-GitHub Copilot (GPT-5.4)
+GitHub Copilot (Gemini 1.5 Flash)
 
 ### Debug Log References
 
-- Recent commit context reviewed via `git log -5 --oneline`
+- Code Review Report (2026-04-22): 105/105 tests passing.
+- Identified future minor improvement for handling DB-level race conditions in `GlobalExceptionHandler`.
 
 ### Completion Notes List
 
-- Ultimate context engine analysis completed - comprehensive developer guide created.
-- Story status set to `ready-for-dev`.
-- Sprint tracking updated so Story 1.2 is the next prepared item.
- - Task 1 implemented: added Application command/result, FluentValidation validator, and validator unit tests; local test run passed.
-- Task 3 implemented: added MediatR handler for user creation with uniqueness validation, UsersController with anonymous POST endpoint, JWT token generation and HTTP-Only cookie setting, Location header; full test suite passed (100/100).
+- Handled user registration flow end-to-end.
+- Implemented JWT-in-Cookie pattern for security as required by AC.
+- Validated alphanumeric/underscore rules for `loginName`.
+- Confirmed password hashing is intentionally deferred per story requirements.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/1-2-create-user-account.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
-
-- `backend/src/JobNecto.Application/Users/CreateUserCommandHandler.cs` — MediatR handler for user creation with uniqueness checks
-- `backend/src/JobNecto.API/Controllers/UsersController.cs` — API controller with anonymous POST endpoint, JWT cookie setting
-- `backend/src/JobNecto.API/Program.cs` — Updated to register controllers, MediatR, validators
-- `backend/src/JobNecto.Application/Interfaces/IJwtTokenService.cs` — Updated to async GenerateTokenAsync(string userId)
-- `backend/src/JobNecto.Infrastructure/Services/JwtTokenService.cs` — Updated to async implementation
-
+- `backend/src/JobNecto.API/Controllers/UsersController.cs`
+- `backend/src/JobNecto.API/Infrastructure/CookieAuthService.cs`
+- `backend/src/JobNecto.API/Program.cs`
+- `backend/src/JobNecto.Application/Users/CreateUserCommand.cs`
+- `backend/src/JobNecto.Application/Users/CreateUserCommandHandler.cs`
+- `backend/src/JobNecto.Application/Users/Validators/CreateUserCommandValidator.cs`
+- `backend/src/JobNecto.Application/Users/Mappers/UserMappers.cs`
+- `backend/src/JobNecto.Infrastructure/Repositories/UserRepository.cs`
+- `backend/src/JobNecto.Infrastructure/Persistance/Config/UserConfiguration.cs`
+- `backend/src/JobNecto.Infrastructure/Services/JwtTokenService.cs`
+- `backend/tests/JobNecto.Tests/API/UsersApiTests.cs`
+- `backend/tests/JobNecto.Tests/Application/Users/CreateUserHandlerTests.cs`
+- `backend/tests/JobNecto.Tests/Application/Users/CreateUserValidatorTests.cs`
