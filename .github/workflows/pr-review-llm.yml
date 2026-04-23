@@ -13,14 +13,14 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: Pull request number to review
+        description: 'Pull request number to review (for example: 55 or #55)'
         required: true
-        type: number
+        type: string
       model:
         description: OpenRouter model to use (optional)
         required: false
         type: string
-        default: 'nvidia/nemotron-3-super-120b-a12b:free'
+        default: 'tencent/hy3-preview:free'
 
 concurrency:
   group: pr-review-llm-${{ github.event.pull_request.number || inputs.pr_number || github.run_id }}
@@ -46,9 +46,19 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const prNumber = context.eventName === "workflow_dispatch"
-              ? Number(core.getInput("pr_number", { required: true }))
-              : context.payload.pull_request.number;
+            const rawPrInput = context.eventName === "workflow_dispatch"
+              ? String(context.payload.inputs?.pr_number ?? "").trim()
+              : String(context.payload.pull_request?.number ?? "").trim();
+
+            const normalizedPrInput = rawPrInput.replace(/^#/, "");
+            const prNumber = Number(normalizedPrInput);
+
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+              core.setFailed(
+                `Invalid PR number: "${rawPrInput}". Provide values like "55" or "#55".`
+              );
+              return;
+            }
 
             const { data: pr } = await github.rest.pulls.get({
               owner: context.repo.owner,
@@ -94,5 +104,5 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr_meta.outputs.number }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          OPENROUTER_MODEL: ${{ inputs.model || vars.OPENROUTER_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free' }}
+          OPENROUTER_MODEL: ${{ inputs.model || 'tencent/hy3-preview:free' }}
         run: node .github/scripts/pr_review_llm.mjs pr.diff

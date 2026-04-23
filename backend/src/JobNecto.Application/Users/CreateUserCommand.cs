@@ -19,7 +19,7 @@ public class CreateUserCommand : IRequest<CreateUserResult>
     public string Email { get; set; } = null!;
 
     /// <summary>
-    /// Plain-text password. (Password hardening is out of scope for this story.)
+    /// Plain-text password supplied by the client; hashed before persistence and never returned in API responses.
     /// </summary>
     public string Password { get; set; } = null!;
 

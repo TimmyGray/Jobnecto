@@ -1,6 +1,11 @@
 # Epic 2: Resume & Education Management
 
-Users can build and maintain their professional credentials — resumes with skills and work preferences, plus education records. All data is user-scoped and isolated.
+Users can build and maintain their professional credentials - resumes with skills and work preferences, plus education records. All data is user-scoped and isolated.
+
+## Readiness Dependencies From Epic 1
+
+- Do not start Epic 2 delivery until Epic 1 password hashing and any required migration/backfill scope are planned; otherwise authenticated user data will be built on a security gap we already know about.
+- Protected endpoints in this epic follow the shared JWT session policy from Epic 1 instead of assuming bearer-only transport.
 
 ### Story 2.1: Create Resume
 
@@ -42,7 +47,7 @@ So that I can quickly navigate to the one I need.
 
 **Given** a valid JWT token
 **When** `GET /api/v1/resumes` is called with no query params
-**Then** `200 OK` with `{ total, page, pageSize, items }` — only this user's non-deleted resumes, ordered by `updatedAt desc`, `pageSize` defaulting to 20
+**Then** `200 OK` with `{ total, page, pageSize, items }` - only this user's non-deleted resumes, ordered by `updatedAt desc`, `pageSize` defaulting to 20
 
 **Given** `page` and `pageSize` query params are provided
 **When** the request is processed
@@ -215,4 +220,3 @@ So that I can keep my academic history accurate.
 **Then** `204 No Content`; soft-delete applied; record no longer visible in list
 
 ---
-

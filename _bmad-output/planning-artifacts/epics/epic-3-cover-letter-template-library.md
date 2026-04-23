@@ -2,6 +2,12 @@
 
 Users can build a reusable library of cover letter templates (up to 10,000 characters) they can search, manage, and apply across job applications.
 
+## Readiness Constraints From Epic 1 Retrospective
+
+- Template-name uniqueness is a per-user rule that must be enforced by a database constraint across non-deleted templates, with unique-violation mapping to `409 Conflict`.
+- Concurrent create/update integration tests are required for template-name collisions because pre-checks alone are insufficient under load.
+- Protected endpoints in this epic follow the shared JWT session policy from Epic 1 instead of assuming bearer-only transport.
+
 ### Story 3.1: Create Cover Letter Template
 
 As a **job seeker**,
@@ -10,7 +16,7 @@ So that I can quickly apply it to future job applications.
 
 **Acceptance Criteria:**
 
-**Given** a valid JWT token and `POST /api/v1/cover-letter-templates` with `name` and `content` (50–10000 chars)
+**Given** a valid JWT token and `POST /api/v1/cover-letter-templates` with `name` and `content` (50-10000 chars)
 **When** the request is processed
 **Then** `201 Created` with the full template object; `Location` header set to `/api/v1/cover-letter-templates/{id}`
 
@@ -24,11 +30,11 @@ So that I can quickly apply it to future job applications.
 
 **Given** `name` already exists for this user (across non-deleted templates)
 **When** the request is processed
-**Then** `409 Conflict`
+**Then** `409 Conflict` from database-backed per-user uniqueness enforcement
 
 **Given** the same `name` was used by another user
 **When** the request is processed
-**Then** `201 Created` — uniqueness is per-user, not global
+**Then** `201 Created` - uniqueness is per-user, not global
 
 ---
 
@@ -42,7 +48,7 @@ So that I can find the right template for a job application.
 
 **Given** a valid JWT token
 **When** `GET /api/v1/cover-letter-templates` is called with no query params
-**Then** `200 OK` with `{ total, page, pageSize, items }` — non-deleted templates owned by this user, ordered by `updatedAt desc`
+**Then** `200 OK` with `{ total, page, pageSize, items }` - non-deleted templates owned by this user, ordered by `updatedAt desc`
 **And** each item includes `id`, `name`, `createdAt`, `updatedAt`, and `contentPreview` (first 200 chars of `content`)
 
 **Given** `search` query param is provided (e.g., `?search=senior`)
@@ -86,12 +92,12 @@ So that I can refine my reusable material over time.
 
 **Given** the new `name` is already taken by another non-deleted template of this user
 **When** the request is processed
-**Then** `409 Conflict`
+**Then** `409 Conflict` from database-backed per-user uniqueness enforcement
 
 **Given** the template belongs to another user
 **Then** `403 Forbidden`
 
-**Given** updated `content` violates 50–10000 char bounds
+**Given** updated `content` violates 50-10000 char bounds
 **Then** `400 Bad Request` with field-level error on `content`
 
 ---
@@ -116,4 +122,3 @@ So that my library stays tidy.
 **Then** the cover letter is NOT deleted; `templateId` reference remains for historical context
 
 ---
-

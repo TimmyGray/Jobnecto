@@ -2,6 +2,12 @@
 
 Users can write job-specific cover letters tied to a vacancy, optionally seeded from a template, with one letter permitted per vacancy per user.
 
+## Readiness Constraints From Epic 1 Retrospective
+
+- The "one cover letter per vacancy per user" rule must be enforced by a database constraint on active records and mapped to `409 Conflict` through the shared exception pipeline.
+- Concurrent create integration coverage is required for duplicate vacancy submissions because request-level checks alone do not close the race.
+- Protected endpoints in this epic follow the shared JWT session policy from Epic 1 instead of assuming bearer-only transport.
+
 ### Story 5.1: Create Cover Letter
 
 As a **job seeker**,
@@ -20,7 +26,7 @@ So that I can submit a tailored application.
 
 **Given** the user already has a (non-deleted) cover letter for the same `vacancyId`
 **When** `POST /api/v1/cover-letters` is called again with the same `vacancyId`
-**Then** `409 Conflict`
+**Then** `409 Conflict` from database-backed per-user/per-vacancy uniqueness enforcement
 
 **Given** `vacancyId` references a vacancy that does not exist
 **When** the request is processed

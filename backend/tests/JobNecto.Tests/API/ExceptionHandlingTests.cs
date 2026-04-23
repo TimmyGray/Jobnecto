@@ -5,6 +5,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using JobNecto.API;
 using JobNecto.Application.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -48,6 +49,14 @@ public class TestEndpointsStartupFilter : IStartupFilter
                 endpoints.MapGet("/test-conflict", () =>
                 {
                     throw new ConflictException("Resource already exists.");
+                });
+
+                endpoints.MapGet("/test-db-unique-conflict", () =>
+                {
+                    throw new DbUpdateException(
+                        "duplicate key value violates unique constraint \"IX_Users_Email\"",
+                        new InvalidOperationException(
+                            "duplicate key value violates unique constraint \"IX_Users_Email\""));
                 });
 
                 endpoints.MapGet("/test-generic", () =>
@@ -167,6 +176,23 @@ public class ExceptionHandlingTests : IClassFixture<ExceptionHandlingFactory>
         document!["status"]!.GetValue<int>().Should().Be(409);
         document["title"]!.GetValue<string>().Should().Be("Conflict");
         document["detail"]!.GetValue<string>().Should().Be("Resource already exists.");
+        document["traceId"]!.GetValue<string>().Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task Get_TestDbUniqueConflict_Returns409()
+    {
+        var response = await _client.GetAsync("/test-db-unique-conflict");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+
+        var json = await response.Content.ReadAsStringAsync();
+        var document = JsonNode.Parse(json);
+
+        document!["status"]!.GetValue<int>().Should().Be(409);
+        document["title"]!.GetValue<string>().Should().Be("Conflict");
+        document["detail"]!.GetValue<string>().Should().Be("A unique constraint was violated.");
         document["traceId"]!.GetValue<string>().Should().NotBeNullOrEmpty();
     }
 

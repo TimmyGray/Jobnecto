@@ -32,7 +32,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasIndex(u => u.Login).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
 
-        builder.Property(u => u.Password).IsRequired().HasMaxLength(50);
+        builder.Property(u => u.Password).IsRequired().HasMaxLength(256);
 
         builder.Property(u => u.Email).IsRequired().IsUnicode().HasMaxLength(50);
 
