@@ -58,6 +58,7 @@ public class UsersController : ControllerBase
     /// Issues a renewed JWT for authenticated clients.
     /// Browser clients continue to receive the token via HTTP-only cookie; non-browser clients
     /// can consume the returned token body and send it in <c>Authorization: Bearer</c>.
+    /// The response body token is returned only when the request used bearer transport.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Renewed access token contract.</returns>
@@ -78,7 +79,17 @@ public class UsersController : ControllerBase
 
         return Ok(new RefreshAccessTokenResult
         {
-            AccessToken = token
+            AccessToken = UsesBearerTransport(Request) ? token : string.Empty
         });
+    }
+
+    private static bool UsesBearerTransport(HttpRequest request)
+    {
+        if (!request.Headers.TryGetValue("Authorization", out var authorizationHeader))
+        {
+            return false;
+        }
+
+        return authorizationHeader.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase);
     }
 }

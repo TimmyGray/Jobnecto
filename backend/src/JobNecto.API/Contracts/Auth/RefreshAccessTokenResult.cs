@@ -7,6 +7,7 @@ public sealed class RefreshAccessTokenResult
 {
     /// <summary>
     /// Newly issued JWT access token for non-browser bearer transport.
+    /// Empty for browser cookie transport.
     /// </summary>
     public string AccessToken { get; init; } = string.Empty;
 

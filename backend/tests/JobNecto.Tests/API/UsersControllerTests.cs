@@ -96,6 +96,41 @@ public class UsersControllerTests : IClassFixture<JobNectoApiFactory>
     }
 
     [Fact]
+    public async Task RefreshToken_WithCookieTransport_Returns200AndRenewsCookieWithoutBodyToken()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var command = new CreateUserCommand
+        {
+            LoginName = "refreshcookie" + Guid.NewGuid().ToString("N")[..8],
+            Email = Guid.NewGuid().ToString("N")[..8] + "@example.com",
+            Password = "Password123!"
+        };
+
+        var createResponse = await client.PostAsJsonAsync("/api/v1/users", command);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var cookieToken = createResponse.Headers
+            .GetValues("Set-Cookie")
+            .First()
+            .Split(';', StringSplitOptions.TrimEntries)
+            .First(x => x.StartsWith("auth-token=", StringComparison.OrdinalIgnoreCase));
+
+        var refreshRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/users/token/refresh");
+        refreshRequest.Headers.TryAddWithoutValidation("Cookie", cookieToken);
+
+        var refreshResponse = await client.SendAsync(refreshRequest);
+
+        refreshResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        refreshResponse.Headers.Should().ContainKey("Set-Cookie");
+
+        var refreshResult = await refreshResponse.Content.ReadFromJsonAsync<RefreshAccessTokenResult>();
+        refreshResult.Should().NotBeNull();
+        refreshResult!.AccessToken.Should().BeEmpty();
+        refreshResult.TokenType.Should().Be("Bearer");
+        refreshResult.RenewalPolicy.Should().Contain("token/refresh");
+    }
+
+    [Fact]
     public async Task RefreshToken_WithoutAuthentication_Returns401()
     {
         var client = _factory.CreateClient();
