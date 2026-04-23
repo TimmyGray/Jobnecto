@@ -14,10 +14,13 @@ public static class UserMappers
     /// Maps a CreateUserCommand (request DTO) to a User domain entity.
     /// Handles field name mapping: loginName -> Login, about -> AboutMe, location string -> Location enum.
     /// </summary>
-    public static User ToEntity(this CreateUserCommand command)
+    public static User ToEntity(this CreateUserCommand command, string passwordHash)
     {
         if (command == null)
             throw new ArgumentNullException(nameof(command));
+
+        if (string.IsNullOrWhiteSpace(passwordHash))
+            throw new ArgumentException("Password hash cannot be empty.", nameof(passwordHash));
 
         // Parse location enum if provided; set only when parsing succeeds, otherwise keep null.
         Location? location = null;
@@ -33,7 +36,7 @@ public static class UserMappers
         {
             Login = command.LoginName,
             Email = command.Email,
-            Password = command.Password,
+            Password = passwordHash,
             Phone = command.Phone,
             Location = location,
             AboutMe = command.About,

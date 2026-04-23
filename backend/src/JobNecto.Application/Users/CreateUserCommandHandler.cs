@@ -11,13 +11,15 @@ namespace JobNecto.Application.Users;
 public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, CreateUserResult>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPasswordHasher _passwordHasher;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CreateUserCommandHandler"/> class.
     /// </summary>
-    public CreateUserCommandHandler(IUnitOfWork unitOfWork)
+    public CreateUserCommandHandler(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
     {
         _unitOfWork = unitOfWork;
+        _passwordHasher = passwordHasher;
     }
 
     /// <summary>
@@ -42,8 +44,11 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Creat
             throw new ConflictException($"User with login '{request.LoginName}' already exists.");
         }
 
+        // Hash password before mapping to persistence entity.
+        var hashedPassword = _passwordHasher.HashPassword(request.Password);
+
         // Create entity
-        var user = request.ToEntity();
+        var user = request.ToEntity(hashedPassword);
 
         // Add and save
         await _unitOfWork.UserRepository.CreateAsync(user, cancellationToken);
