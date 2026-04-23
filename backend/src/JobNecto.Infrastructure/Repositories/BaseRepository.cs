@@ -42,20 +42,26 @@ public abstract class BaseRepository<T> : IRepository<T>
 
         var query = _dbSet.AsNoTracking();
 
+        var entityType = _context.Model.FindEntityType(typeof(T));
+        var hasUserIdProperty = entityType?.FindProperty("UserId") is not null;
+
+        if (hasUserIdProperty && pagedQuery.UserId is Guid userId)
+        {
+            query = query.Where(entity => EF.Property<Guid>(entity, "UserId") == userId);
+        }
+
         var totalCount = await query.CountAsync(ct);
 
         query = query.OrderByDescending(e => e.UpdatedAt).ThenByDescending(e => e.Id);
 
         if (pagedQuery.LastSeenId is not null)
         {
-            var cursorExists = await _dbSet
-                .AsNoTracking()
-                .AnyAsync(
-                    e =>
-                        e.Id == pagedQuery.LastSeenId
-                        || e.UpdatedAt == pagedQuery.LastSeenUpdatedAt,
-                    ct
-                );
+            var cursorExists = await query.AnyAsync(
+                e =>
+                    e.Id == pagedQuery.LastSeenId
+                    || e.UpdatedAt == pagedQuery.LastSeenUpdatedAt,
+                ct
+            );
 
             if (cursorExists)
             {

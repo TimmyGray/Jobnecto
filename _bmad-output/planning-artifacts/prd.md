@@ -96,7 +96,7 @@ A job seeker can:
 ### Measurable Outcomes
 
 1. All Phase B endpoints implemented:
-   - Users: GET/PUT (current user profile)
+  - Users: GET/PUT (current user core profile only; related resources use dedicated endpoints)
    - Resumes: GET (list), POST (create), GET (single), PUT (update), DELETE (soft)
    - Educations: GET (list), POST (create), GET (single), PUT (update), DELETE (soft)
    - Cover Letters: GET (list), POST (create), GET (single), PUT (update), DELETE (soft)
@@ -115,7 +115,7 @@ A job seeker can:
 ### MVP - Minimum Viable Product (Phase B)
 
 **Core Resources:**
-- **User profiles** — Create profile, retrieve/update current user (GET `/api/v1/users/me`, PUT `/api/v1/users/me`)
+- **User profiles** — Create profile, retrieve/update current user core fields only (GET `/api/v1/users/me`, PUT `/api/v1/users/me`)
 - **Resumes** — CRUD operations (GET list, POST create, GET detail, PUT update, DELETE soft)
 - **Educations** — CRUD operations linked to user (GET list, POST create, GET detail, PUT update, DELETE soft)
 - **Cover Letter Templates** — Reusable templates for applications (GET list, POST create, GET detail, PUT update, DELETE soft with pagination/filtration)
@@ -158,7 +158,7 @@ A job seeker can:
 **Goal:** Complete their profile so they can start job searching
 
 1. **Create User Profile** → POST `/api/v1/users` (account creation)
-2. **Retrieve Profile** → GET `/api/v1/users/me` (view current state)
+2. **Retrieve Profile** → GET `/api/v1/users/me` (view current core profile fields)
 3. **Add Education** → POST `/api/v1/educations` (add degree, specialization)
 4. **Create Resume Template** → POST `/api/v1/resumes` (add resume with skills, salary expectations, work preferences)
 5. **Update Profile** → PUT `/api/v1/users/me` (edit personal info: location, phone, about)
@@ -236,9 +236,9 @@ A job seeker can:
 **Actor:** Active job seeker maintaining current profile
 **Goal:** Keep resume and education records up-to-date as credentials and goals evolve
 
-1. **List All Resumes** → GET `/api/v1/resumes?page=1` (see all resume versions)
+1. **List My Resumes** → GET `/api/v1/resumes?page=1` (see my resume versions)
 2. **Update Resume** → PUT `/api/v1/resumes/{id}` (add new skill, update salary expectation, change work preferences)
-3. **List All Educations** → GET `/api/v1/educations` (view education history)
+3. **List My Educations** → GET `/api/v1/educations` (view my education history)
 4. **Update Education** → PUT `/api/v1/educations/{id}` (add new degree, update specialization)
 5. **Delete Education** → DELETE `/api/v1/educations/{id}` (soft delete incomplete or irrelevant education)
 6. **Review & Refresh Templates** → GET, PUT `/api/v1/cover-letter-templates/{id}` (keep reusable templates fresh and relevant)
@@ -251,10 +251,10 @@ A job seeker can:
 
 ### **1. User Profile Resource**
 
-**Purpose:** Manage job seeker identity, contact information, professional summary, and related collections (resumes, educations, cover letters).
+**Purpose:** Manage job seeker identity, contact information, and professional summary.
 
 **Endpoints:**
-- `GET /api/v1/users/me` — Retrieve current user profile with all linked data
+- `GET /api/v1/users/me` — Retrieve current user core profile fields only
 - `PUT /api/v1/users/me` — Update current user profile
 - `POST /api/v1/users` — Create new user account
 
@@ -288,12 +288,11 @@ A job seeker can:
 **Feature: Retrieve Current User (GET /api/v1/users/me)**
 
 **Acceptance Criteria:**
-- Return full user profile including all linked collections (resumes, educations, cover letters)
+- Return current user core profile fields only: `id`, `loginName`, `email`, `phone`, `location`, `about`, `avatar`, `createdAt`, `updatedAt`
 - Exclude sensitive fields (password hash, tokens)
-- Resumes: return list with ID, name, updatedAt
-- Educations: return list with ID, title, specialization, degree
-- Cover Letters: return count and recent items (last 5, sortable by CreatedAt desc)
-- On success: return `200 OK` with full user data
+- Related resources are retrieved via dedicated user-scoped routes (`/api/v1/resumes`, `/api/v1/educations`, `/api/v1/cover-letters`)
+- On success: return `200 OK` with core profile data
+- If JWT references non-existing user: return `404 Not Found`
 - On unauthorized (Phase C): return `401 Unauthorized`
 
 **Response Shape (Phase B, no auth yet):**
@@ -307,19 +306,7 @@ A job seeker can:
   "about": "Full-stack developer...",
   "avatar": "https://...",
   "createdAt": "2026-04-01T10:00:00Z",
-  "updatedAt": "2026-04-16T14:30:00Z",
-  "resumes": [
-    { "id": "uuid", "name": "Senior Dev Resume", "updatedAt": "2026-04-16T..." }
-  ],
-  "educations": [
-    { "id": "uuid", "title": "BS Computer Science", "specialization": "AI", "degree": "bachelor" }
-  ],
-  "coverLetters": {
-    "total": 5,
-    "recent": [
-      { "id": "uuid", "vacancyId": "uuid", "createdAt": "2026-04-16T..." }
-    ]
-  }
+  "updatedAt": "2026-04-16T14:30:00Z"
 }
 ```
 
