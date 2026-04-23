@@ -21,6 +21,7 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 ### Requirements Overview
 
 **Functional Requirements (Phase B):**
+
 - 6 primary domain resources: User (Profile), Resume, Education, CoverLetterTemplate, CoverLetter, Vacancy
 - CRUD operations on user-owned resources (User, Resume, Education, Template, Letter)
 - Read-only operations on shared resources (Vacancy browsing and filtering)
@@ -28,14 +29,16 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 - Paginated list operations with configurable page size (default 20, max 100)
 
 **Non-Functional Requirements:**
+
 - API response SLA: <200ms for list endpoints, <100ms for detail endpoints, <500ms for complex filters
 - Soft delete strategy with EF Core global query filters (data persists in DB but excluded from queries)
-- Ownership model: Each user sees only their own data; architecture prepared for Phase C JWT integration
+- Ownership model: Each user sees only their own data with JWT-based session claims already in use; architecture remains extensible for Phase C role-based controls
 - Validation: FluentValidation pipeline before handlers reach business logic; field-level error responses
 - Test coverage requirement: ≥85% code coverage on Application handlers and validators
 - Async throughout: Full async/await chain with CancellationToken support on public APIs
 
 **Scale & Complexity:**
+
 - Complexity level: **Medium** (multi-domain entities, complex filtering logic, relationship complexity, soft deletes)
 - Primary technical domain: **REST API Backend** (job aggregation and profile management)
 - Estimated architectural components required: **7-8 major architectural decisions**
@@ -43,6 +46,7 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 ### Technical Constraints & Dependencies
 
 **Technology Stack (Locked):**
+
 - .NET 10 (`net10.0`), nullable reference types enforced
 - ASP.NET Core 10.0.3 with OpenAPI/Swashbuckle auto-documentation
 - MediatR 14.0.0 for CQRS command/query pattern
@@ -52,6 +56,7 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 - Project uses `backend/JobNecto.slnx` (not root `.sln`)
 
 **Architecture Constraints:**
+
 - Clean Architecture enforced: API → Application → Domain ← Infrastructure
 - Domain layer must be persistence-ignorant (no EF Core references)
 - Application layer contains handlers, validators, repository interfaces
@@ -59,12 +64,14 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 - No reference inversions or architectural boundary violations allowed
 
 **Build & Quality Gates:**
+
 - Must pass: `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror`
 - Must pass: `dotnet test backend/JobNecto.slnx --configuration Release --warnaserror`
 - No nullable reference type warnings without documented suppression reason
 - CI-parity enforcement: Release build + warnings-as-errors
 
 **Phase A Assumptions (Must Be Complete):**
+
 - UnitOfWork pattern implemented with `SaveChangesAsync()` and `DisposeAsync()`
 - All repository interfaces defined in Application layer
 - PostgreSQL connection available — see `appsettings.local.json` under `ConnectionStrings:Default` for the local connection string
@@ -72,7 +79,8 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 - `AddInfrastructure()` DI registration wired in `Program.cs`
 
 **Out of Scope for Phase B:**
-- Authentication & JWT (Phase C)
+
+- Role-based authorization rules and advanced refresh-token orchestration (Phase C)
 - Job source synchronization and OAuth integrations (Phase D)
 - LLM analysis and cover letter generation endpoints (Phase D)
 - Rate limiting, Redis caching, Quartz scheduled jobs (Phase E)
@@ -80,14 +88,16 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 ### Cross-Cutting Concerns
 
 **1. Ownership & Authorization**
+
 - Every resource must enforce user ownership before write operations
 - **Resumes are user-scoped:** Each user sees only their own resumes (filtered at repository layer)
 - All list queries automatically filter by current user (via query handlers or repository layer)
-- Architecture must support Phase C JWT integration without refactoring core patterns
+- Architecture standardizes JWT session transport (HTTP-only secure cookie for browser clients; `Authorization: Bearer` for non-browser clients) and must support Phase C role-based extension without refactoring core patterns
 - Design pattern: ownership check delegated to handler, not API layer
-- **UserId source:** Generated during user registration (profile creation); Phase B uses JWT bearer token with `UserId` stored as a claim; extracted in controllers from `HttpContext.User`
+- **UserId source:** Generated during user registration (profile creation); Phase B uses JWT-based sessions with `UserId` stored as a claim and extracted in controllers from `HttpContext.User`
 
 **2. Soft Delete Consistency**
+
 - Entities marked for soft delete: Resume, Education, CoverLetter, CoverLetterTemplate, Vacancy
 - Strategy: EF Core global query filters on `DbContext.OnModelCreating` + PostgreSQL cascade rules
 - Soft-deleted records excluded from ALL queries unless explicitly requested
@@ -101,13 +111,16 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 - **Grace Period (Future - Phase E):** TTL implemented in Phase E; soft-deleted records eligible for hard-delete after 1 month
 
 **3. Validation & Error Handling**
+
 - Two-layer validation strategy: FluentValidation (field-level) + handler-level (business rules)
 - FluentValidation validators fire before handler execution (MediatR pipeline)
 - Error response format: RFC 7808 Problem Details (application/problem+json)
 - HTTP status codes: 200, 201, 204 (success); 400, 404, 409, 422, 500 (errors)
 - Field-level errors: `{ "email": ["must be valid format"], "phone": ["already in use"] }`
+- Any business rule exposed as `409 Conflict` must be enforced by a database-level unique constraint, with DB unique-violation mapped through global exception handling and at least one concurrent-request integration test on race-prone endpoints.
 
 **4. Complex Filtering Architecture**
+
 - Vacancy filtering accepts POST body (not query params) to support multi-criteria queries
 - Filter object contains: skills[], location, salaryMin/Max, workLocationType[], etc.
 - AND logic between fields, OR logic within arrays (e.g., matches ANY skill)
@@ -115,12 +128,14 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 - Design advantage: No URL length limits; type-safe filtering with request models
 
 **5. Async-First Pattern**
+
 - All I/O operations: async/await end-to-end
 - CancellationToken parameters on all public async handlers
 - EF Core async methods: `ToListAsync()`, `FirstOrDefaultAsync()`, `SaveChangesAsync()`
 - Database context should be disposed via `await using` in tests
 
 **6. Database Migrations & Relationships**
+
 - Migrations live in Infrastructure; tracked via EF Core schema history
 - Entity relationships: 1:N (User→Resume, User→Education, Resume→CoverLetter), M:N (Resume↔Education via join table)
 - **Cascade Rules (EF Core + PostgreSQL):**
@@ -131,6 +146,7 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 - ResumeEducations join table: supports M:N linkage without direct references; cascade soft-deletes to join table entries
 
 **7. OpenAPI Documentation**
+
 - Swashbuckle auto-generates OpenAPI spec from attributes and models
 - Every endpoint must have clear request/response models for auto-documentation
 - Status codes documented in swagger attributes (200, 201, 400, 404, 422, etc.)
@@ -165,6 +181,7 @@ DbContext (EF Core)
 - All handlers are synchronous logic; async I/O happens via repository and DbContext (which are awaited by handler)
 
 **Request Class Naming:**
+
 ```csharp
 // Command: verb + noun + "Command"
 public class CreateUserCommand : IRequest<CreateUserResponse> { }
@@ -178,6 +195,7 @@ public class FilterVacanciesQuery : IRequest<PagedResult<VacancyDto>> { }
 ```
 
 **Handler Injection Pattern:**
+
 ```csharp
 public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, CreateUserResponse>
 {
@@ -255,6 +273,7 @@ public async Task<CreateUserResponse> Handle(CreateUserCommand request, Cancella
 ```
 
 **Error Response Format (from validation failures):**
+
 ```json
 {
   "type": "https://api.jobnecto.dev/errors/validation",
@@ -466,6 +485,7 @@ public class ExceptionHandlingMiddleware
 **Decision:** Full async/await chain with CancellationToken propagation.
 
 **Handler Signature:**
+
 ```csharp
 public async Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken)
 {
@@ -476,6 +496,7 @@ public async Task<TResponse> Handle(TRequest request, CancellationToken cancella
 ```
 
 **Repository Async Pattern:**
+
 ```csharp
 public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
 {
@@ -486,6 +507,7 @@ public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationTok
 ```
 
 **API Endpoint Signature:**
+
 ```csharp
 [HttpPost("users")]
 public async Task<ActionResult<CreateUserResponse>> Create(
@@ -499,6 +521,7 @@ public async Task<ActionResult<CreateUserResponse>> Create(
 ```
 
 **Test Pattern (using CancellationToken):**
+
 ```csharp
 [Fact]
 public async Task Handle_ValidRequest_CreatesUser()
@@ -520,6 +543,7 @@ public async Task Handle_ValidRequest_CreatesUser()
 **Decision:** EF Core global query filters to exclude soft-deleted records from all queries; PostgreSQL cascade rules enforce referential integrity; logging on hard-deletes for audit.
 
 **Entity Pattern (Domain Layer):**
+
 ```csharp
 public abstract class SoftDeletableEntity : BaseEntity
 {
@@ -538,6 +562,7 @@ public class Resume : SoftDeletableEntity
 ```
 
 **DbContext Configuration (Infrastructure Layer):**
+
 ```csharp
 public class AppDbContext : DbContext
 {
@@ -580,6 +605,7 @@ public class AppDbContext : DbContext
 ```
 
 **Soft Delete Handler Pattern:**
+
 ```csharp
 public async Task<Unit> Handle(DeleteResumeCommand request, CancellationToken cancellationToken)
 {
@@ -610,6 +636,7 @@ public async Task<Unit> Handle(DeleteResumeCommand request, CancellationToken ca
 ```
 
 **Hard Delete Handler Pattern (When User Permanently Deletes Account - Phase C/D):**
+
 ```csharp
 public async Task<Unit> Handle(HardDeleteUserCommand request, CancellationToken cancellationToken)
 {
@@ -633,6 +660,7 @@ public async Task<Unit> Handle(HardDeleteUserCommand request, CancellationToken 
 ```
 
 **Cascade Rules Summary:**
+
 | Delete Type | Entity | Behavior | Cascades |
 |-------------|--------|----------|----------|
 | Soft Delete | Resume | Mark IsDeleted=true, set DeletedAt | CoverLetters soft-delete |
@@ -642,11 +670,13 @@ public async Task<Unit> Handle(HardDeleteUserCommand request, CancellationToken 
 | Hard Delete | User | Remove from DB (DELETE) | Resumes hard-delete (PostgreSQL FK); cascades to CoverLetters |
 
 **Logging Strategy:**
+
 - **Soft deletes** (user-initiated): Minimal logging (data recoverable within 1-month grace)
 - **Hard deletes** (system/admin): Full audit log with timestamp, user ID, affected records count
 - **Log location:** Application logs + database audit trail (if compliance required)
 
 **Key Benefits:**
+
 - Soft-deleted records automatically excluded from ALL queries (no accidental exposure)
 - Single source of truth for deletion logic via query filters
 - PostgreSQL foreign key cascades enforce data integrity (no orphaned records after hard-delete)
@@ -660,6 +690,7 @@ public async Task<Unit> Handle(HardDeleteUserCommand request, CancellationToken 
 **Decision:** Handlers verify ownership before mutations; repository layer enforces user-scoped queries.
 
 **Pattern: Ownership Check in Handler**
+
 ```csharp
 public async Task<Unit> Handle(UpdateResumeCommand request, CancellationToken ct)
 {
@@ -681,6 +712,7 @@ public async Task<Unit> Handle(UpdateResumeCommand request, CancellationToken ct
 ```
 
 **Pattern: User-Scoped Queries in Handlers**
+
 ```csharp
 // Query for lists always includes UserId filter
 public async Task<PagedResult<ResumeDto>> Handle(ListResumesQuery request, CancellationToken ct)
@@ -698,7 +730,7 @@ public async Task<PagedResult<ResumeDto>> Handle(ListResumesQuery request, Cance
 
 **Pattern: How UserId Gets Into Query**
 
-UserId is extracted from the JWT bearer token claim in both Phase B and onwards:
+UserId is extracted from authenticated JWT claims in both Phase B and onwards:
 
 ```csharp
 public async Task<ActionResult<PagedResult<ResumeDto>>> ListResumes(
@@ -726,10 +758,15 @@ private Guid GetCurrentUserId()
 ```
 
 **JWT in Phase B:**
-- JWT bearer token issued on login; `UserId` stored as `sub` or `userId` claim
+
+- Browser clients receive JWT sessions via HTTP-only secure cookie; non-browser clients use `Authorization: Bearer`
+- `UserId` is stored as `sub` or `userId` claim and extracted uniformly in controllers/handlers
 - Every mutation handler already verifies ownership
 - Every query handler already receives `UserId` as a parameter from the controller
-- Phase C (if applicable) can extend claims or rotate tokens without changing handler logic
+- Token renewal contract is `POST /api/v1/users/token/refresh` for currently authenticated sessions; browser clients receive renewed HTTP-only cookie and non-browser clients receive bearer token payload
+- If refresh is rejected due to expired/invalid credentials, client must re-authenticate
+- OpenAPI exposes both `CookieAuth` and `BearerAuth` security schemes with this lifecycle guidance
+- Phase C (if applicable) can extend claims and role-based controls without changing handler logic
 
 ---
 
@@ -751,6 +788,7 @@ private Guid GetCurrentUserId()
 ## Implementation Checklist for Phase B
 
 **Database & Entities:**
+
 - [ ] Add `IsDeleted` and `DeletedAt` timestamps to: Resume, Education, CoverLetterTemplate, CoverLetter, Vacancy
 - [ ] Add `[Timestamp]` RowVersion to all entities for optimistic locking
 - [ ] Configure global query filters for soft-delete entities
@@ -758,12 +796,14 @@ private Guid GetCurrentUserId()
 - [ ] Create migration with all schema changes
 
 **Handlers & Repositories:**
+
 - [ ] Implement user-scoped repository methods (GetByUserIdAsync, ListByUserIdAsync, etc.)
 - [ ] Soft-delete handlers: Set IsDeleted=true, propagate cascade soft-deletes to children
-- [ ] All mutation handlers: Verify ownership before allowing changes (409 Conflict if forbidden)
+- [ ] All mutation handlers: Verify ownership before allowing changes (`403 Forbidden` when ownership is violated)
 - [ ] All query handlers: Filter by UserId in request (user sees only their own data)
 
 **Testing:**
+
 - [ ] Soft-delete audit fixtures: Verify deleted data excluded from queries but exists in DB
 - [ ] Ownership violation suite: Run against all mutation handlers
 - [ ] Cascade soft-delete tests: Resume soft-delete→CoverLetter soft-delete
@@ -771,13 +811,14 @@ private Guid GetCurrentUserId()
 - [ ] CancellationToken timeout tests: At least one per resource
 
 **Logging & Audit:**
+
 - [ ] Log all hard-delete operations with timestamp, user ID, affected records
 - [ ] Application logs or database audit table (depending on compliance needs)
 
 **Phase C Readiness:**
-- [ ] UserId extraction from request (Phase B) → JWT token (Phase C) is straightforward
+
+- [ ] JWT claim extraction and transport policy in Phase B can be extended to role-based controls in Phase C without handler refactoring
 - [ ] Handlers already receive UserId as parameter; no refactoring needed
 - [ ] Ownership checks are centralized per handler; easy to audit for Phase C
 
 These decisions are codified to ensure **consistency across all Phase B endpoints** and to make your developers' jobs straightforward: follow the patterns, and the architecture handles the rest.
-

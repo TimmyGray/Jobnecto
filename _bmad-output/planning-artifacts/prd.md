@@ -257,16 +257,17 @@ A job seeker can:
 - User can register with `loginName`, `email`, `password`, and optional profile fields (`phone`, `location`, `about`, `avatar`)
 - Email validation: must be valid email format; must be unique across the system
 - Phone validation (if provided): must be valid E.164 format (e.g., `+1234567890`)
-- Password: minimum 8 characters (actual strength rules TBD in Phase C when hashing is implemented)
+- Password: minimum 8 characters; persisted values must be one-way salted hashes (never plaintext)
 - `loginName`: must be unique, alphanumeric + underscore, 3-20 characters
 - On success: return `201 Created` with user object (exclude password); set JWT token as HTTP-Only secure cookie (SameSite=Strict)
+- Non-browser clients use `Authorization: Bearer` for protected APIs and renew active sessions through `POST /api/v1/users/token/refresh`; expired/invalid sessions must re-authenticate.
 - On validation error: return `400 Bad Request` with field-level error messages
 - On duplicate email/loginName: return `409 Conflict` with message
 
 **Validation Rules:**
 - `email`: Required, valid format, unique
 - `loginName`: Required, 3-20 chars, alphanumeric + underscore, unique
-- `password`: Required, minimum 8 characters (Phase C: add strength rules)
+- `password`: Required, minimum 8 characters; persisted values must be one-way salted hashes
 - `phone`: Optional, E.164 format if provided
 - `avatar`: Optional, URL or base64 data
 
@@ -714,7 +715,7 @@ User (1)
 
 ## Ownership & Authorization Model
 
-**Principle:** Every resource has a clear owner. Phase B includes JWT bearer token authentication; `UserId` is extracted from the token claim and used for all ownership checks.
+**Principle:** Every resource has a clear owner. Phase B uses JWT-based sessions; browser flows use HTTP-only secure cookies and non-browser clients use `Authorization: Bearer`. `UserId` is extracted from token claims and used for all ownership checks. Token renewal contract: authenticated clients call `POST /api/v1/users/token/refresh`; if refresh is rejected due to expired/invalid credentials, the client re-authenticates.
 
 **Ownership Rules:**
 
@@ -732,12 +733,12 @@ User (1)
 - **Query Filtering:** All list endpoints MUST filter by `userId` automatically
   - Example: `GET /api/v1/resumes` returns only resumes where `Resume.UserId == CurrentUserId`
   - This must be enforced at the repository or query handler level, not just API level
-  - In Phase B, `UserId` is extracted from the JWT bearer token claim (`sub` or `userId`)
+  - In Phase B, `UserId` is extracted from authenticated JWT claims (`sub` or `userId`) regardless of whether transport is cookie or bearer
 
 - **Validation:** Write operations MUST verify ownership before allowing mutation
   - Example: `PUT /api/v1/resumes/{id}` verifies the resume's `UserId` matches the current user
 
-- **Authorization Layer:** Phase B uses JWT bearer tokens; `UserId` claim drives all ownership checks; Phase C adds role-based authorization and token refresh
+- **Authorization Layer:** Phase B uses JWT-based sessions with explicit transport policy (cookie for browser, bearer for non-browser); `UserId` claim drives all ownership checks; Phase C adds role-based authorization and extended token lifecycle controls.
 
 ---
 
@@ -816,9 +817,10 @@ Phase B development assumes Phase A is **complete**:
 
 - **No external job sources yet** — Vacancies are assumed to exist in the database (manually seeded or Phase D will sync them)
 - **No LLM integration** — LLM endpoints NOT included in Phase B; Phase D adds `/analyze` and cover letter generation
-- **Authentication** — Phase B includes JWT bearer token authentication; `UserId` stored as a claim; Phase C adds role-based authorization and token refresh
+- **Authentication** — Phase B includes JWT-based sessions; browser flows issue HTTP-only secure cookies and non-browser clients use `Authorization: Bearer`; `UserId` is stored as a claim and extracted uniformly. Phase B renewal contract is `POST /api/v1/users/token/refresh` for active sessions; expired sessions re-authenticate. Phase C adds role-based authorization and extended refresh controls.
 - **No third-party OAuth** — Phase B cannot connect to HeadHunter/LinkedIn; Phase D adds OAuth
 - **PostgreSQL connection string** — Assumed available; see `appsettings.local.json` under `ConnectionStrings:Default` for the local connection string
+- **Secrets handling** — Planning artifacts may reference configuration keys and local config file paths, but must not embed live credentials or secrets
 
 ---
 
@@ -833,6 +835,8 @@ Phase B development assumes Phase A is **complete**:
 | Resume | `title` | Per user | Same user cannot have 2 resumes with same title |
 | CoverLetterTemplate | `name` | Per user | Same user cannot have 2 templates with same name |
 | CoverLetter | `(vacancyId, userId)` | Per vacancy per user | Only one cover letter allowed per vacancy per user |
+
+All uniqueness rules above must be enforced by database-level unique constraints and mapped to `409 Conflict` at the API boundary. For race-prone create/update paths, add at least one integration test that exercises concurrent requests.
 
 **Referential Integrity:**
 
