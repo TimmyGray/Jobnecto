@@ -53,8 +53,15 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **OpenAPI** is served at **`GET /openapi/v1.json`**. Root URL **404** is expected until user-facing routes exist.
 - **Application** handlers/validators live in **Application**; **API** maps HTTP to application entry points only.
 - **EF Core**: migrations and `DbContext` stay in **Infrastructure**; Application/Domain stay persistence-ignorant except via abstractions already in the design.
-- **`Program.cs`** may **not** call **`AddInfrastructure()`** yet — DB is not wired at startup until that changes; do not assume DB connectivity in all environments without checking current registration.
+- **`Program.cs`** wires **`AddInfrastructure()`** and **`AddJwtAuthentication()`** in the API host. For tests, DB wiring/connection scope can be overridden by the test host.
 - When adding Redis/Quartz behavior, align with packages already referenced — avoid duplicate client/scheduler abstractions unless introducing a deliberate replacement.
+
+### Current implementation snapshot (2026-04-23)
+
+- Merged stories: `1-1` (global exception handling), `1-2` (create user account), `1-5` (password hashing + token policy hardening).
+- Active HTTP endpoints: `POST /api/v1/users` and `POST /api/v1/users/token/refresh`.
+- Password storage uses PBKDF2 (`Pbkdf2PasswordHasher`) behind `IPasswordHasher`.
+- Auth transport policy: browser flows rely on HTTP-only cookie transport; bearer clients can use response-body token on refresh.
 
 ### Testing rules
 
@@ -102,6 +109,6 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Keep this file **lean** and agent-focused; prefer **`AGENTS.md`** for long-form contributor docs if content overlaps.
 - Refresh when **TargetFramework**, CI, or layer boundaries change; remove rules that become universally obvious.
 
-_Last updated: 2026-04-18_
+_Last updated: 2026-04-23_
 
 ---

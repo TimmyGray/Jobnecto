@@ -6,7 +6,7 @@ JobNecto is a **.NET 10** backend API focused on **job vacancy aggregation and m
 
 ## Description
 
-The solution is intentionally **API-first** and currently **minimal at the HTTP layer**: there are no public product routes yet, and the root URL may return **404**, which is expected. In **Development**, the app exposes **OpenAPI** so contracts and tooling can be exercised early.
+The solution is intentionally **API-first** and now exposes the first production API routes for onboarding and auth token renewal under `/api/v1/users`. The root URL may still return **404**, which is expected for this stage. In **Development**, the app exposes **OpenAPI** so contracts and tooling can be exercised early.
 
 The **domain model** already includes core concepts for the product direction, for example **vacancies** (title, company, location, salary, skills, job source, match hints), **users**, **resumes**, **education**, **cover letters**, and configuration for **LLM providers**. Application interfaces define **repositories** and **unit of work**; concrete implementations belong in **Infrastructure** and related projects.
 
@@ -95,6 +95,13 @@ curl -i http://localhost:5000/
 
 - **`GET /openapi/v1.json`** — should return **200** in Development.
 - **`GET /`** — **404** is expected until public routes exist.
+
+### Current API surface
+
+- `POST /api/v1/users`
+  - Creates a user account, persists password as PBKDF2 hash, sets HTTP-only auth cookie, returns `201 Created`.
+- `POST /api/v1/users/token/refresh`
+  - Requires authentication, renews JWT cookie, and returns body token only for bearer transport clients.
 
 ### CORS
 
@@ -217,7 +224,7 @@ Repository agent profiles:
 
 The following are **directional** items implied by the solution structure and dependencies; timelines are not fixed here.
 
-- **HTTP surface**: Vacancy and user-facing endpoints, authentication and authorization, consistent API versioning beyond OpenAPI in Development.
+- **HTTP surface**: Expand beyond current user onboarding + token refresh to include profile, vacancy, resume, education, and cover-letter resource endpoints.
 - **Infrastructure**: Register Infrastructure services in the API host where appropriate; use PostgreSQL for reads/writes; optional **Redis** caching and **Quartz**-based jobs when requirements solidify.
 - **Integrations**: Expand **JobNecto.Infrastructure.JobSources** for ingestion from multiple boards and feeds; use **JobNecto.Infrastructure.LLM** for ranking, summarization, or matching assistance.
 - **Operations**: Non-placeholder container images and compose files when deployment stories are defined (current Docker assets in `docker/` may be stubs).

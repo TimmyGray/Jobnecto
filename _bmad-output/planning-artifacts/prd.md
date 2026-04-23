@@ -33,6 +33,13 @@ Jobnecto consolidates this chaos. Users connect their accounts from multiple job
 
 **Phase B Scope:** The HTTP core and API endpoints that power the job seeker's job hunting workflow. Users manage their profiles (education, resumes, cover letters, templates), browse and filter unified vacancies, and send applications to multiple platforms.
 
+## Post-Merge Implementation Status (2026-04-23)
+
+- Completed stories now merged on `master`: `1-1-global-exception-handling`, `1-2-create-user-account`, `1-5-password-hashing-token-policy-hardening`.
+- Implemented API surface includes `POST /api/v1/users` (registration) and `POST /api/v1/users/token/refresh` (authenticated token renewal).
+- Password persistence uses PBKDF2 (`pbkdf2-sha256`) through `IPasswordHasher` + `Pbkdf2PasswordHasher`; tokens are renewed through HTTP-only cookie transport and bearer transport support.
+- Scope adjustment: a subset of Phase C security baseline (password hashing + JWT protected refresh route) is already delivered while broader profile/resource endpoints remain in Phase B backlog.
+
 ### What Makes This Special
 
 Three differentiators converge:

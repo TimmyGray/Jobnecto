@@ -9,12 +9,20 @@ inputDocuments:
 workflowType: 'architecture'
 project_name: 'Jobnecto'
 user_name: 'Timmy'
-date: '2026-04-17'
+date: '2026-04-23'
 ---
 
 # Architecture Decision Document — Jobnecto Phase B
 
 _This document builds collaboratively through step-by-step discovery. We'll make and document architectural decisions together to guide implementation._
+
+## Post-Merge Implementation Status (2026-04-23)
+
+- Story `1-5-password-hashing-token-policy-hardening` is merged and active on `master`.
+- `Program.cs` now wires infrastructure (`AddInfrastructure`), JWT authentication, CORS, and global exception handling in the HTTP pipeline.
+- Security baseline is implemented with `IPasswordHasher` (`Pbkdf2PasswordHasher`) and authenticated token refresh (`POST /api/v1/users/token/refresh`).
+- Token transport policy is explicit: browser flows rely on HTTP-only secure cookies; bearer clients can consume body tokens from refresh responses.
+- Architecture decisions around conflict handling are enforced in production code (`DbUpdateException` unique-constraint mapping to HTTP 409) and concurrency integration tests.
 
 ## Project Context Analysis
 

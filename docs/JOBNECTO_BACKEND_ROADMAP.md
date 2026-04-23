@@ -9,6 +9,13 @@
 - **Filter and paginate** vacancies (`VacancyFilter`, `PagedQuery`, `PagedResult`); support **matching** via `Vacancy.MatchScore` (and optional future persisted analysis if the team adds it).
 - **LLM** integration via `JobNecto.Infrastructure.LLM`, `LlmProvider` enum, and `LlmProviderConfig`.
 
+## Implementation snapshot (2026-04-23)
+
+- Story `1-1` (global exception handling), `1-2` (create user account), and `1-5` (password hashing and token policy hardening) are merged to `master`.
+- Authentication baseline is live for user onboarding: `POST /api/v1/users` creates users and issues secure auth cookies; `POST /api/v1/users/token/refresh` renews JWTs for authenticated clients.
+- Password persistence now uses PBKDF2 (`pbkdf2-sha256`) via `IPasswordHasher` and `Pbkdf2PasswordHasher`, with test coverage for malformed hash formats.
+- CI and PR review automation are active on merge and PR events (`CI` + `PR review (LLM via OpenRouter)`).
+
 ## Solution layout
 
 | Project | Path |
@@ -27,10 +34,10 @@ Dependencies flow **inward**: API → Application → Domain ← Infrastructure.
 
 | Layer | Project | Status |
 |-------|---------|--------|
-| API | `JobNecto.API` | OpenAPI/Swashbuckle, Serilog; **no REST resources yet**; **`Program.cs` does not call `AddInfrastructure()`**. |
-| Application | `JobNecto.Application` | MediatR and FluentValidation **referenced**; **repository interfaces** only — no command/query handlers or pipeline behaviors yet. |
+| API | `JobNecto.API` | OpenAPI/Swashbuckle, Serilog, and active user/auth endpoints (`POST /api/v1/users`, `POST /api/v1/users/token/refresh`); `Program.cs` wires infrastructure, JWT auth, CORS, and global exception handling. |
+| Application | `JobNecto.Application` | MediatR handlers and FluentValidation pipeline are active for user creation; repository abstractions and password hasher contract are in use. |
 | Domain | `JobNecto.Domain` | Entities, enums, value objects. No separate “vacancy analysis” aggregate today; **`Vacancy.MatchScore`** supports filtering/sorting. Domain events not wired. |
-| Infrastructure | `JobNecto.Infrastructure` | EF Core + Npgsql, Redis + Quartz **packages**; `AppDbContext`, configurations, repositories; **`UnitOfWork` incomplete**; **no committed migrations**. |
+| Infrastructure | `JobNecto.Infrastructure` | EF Core + Npgsql wired through DI; repositories + `UnitOfWork` transaction API implemented; committed migrations include password hash length hardening. |
 | LLM | `JobNecto.Infrastructure.LLM` | Stub. |
 | Job sources | `JobNecto.Infrastructure.JobSources` | Stub (external API clients not implemented). |
 
@@ -63,6 +70,13 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 | PUT | `/api/v1/users/me/llm-config` | Store LLM settings (design storage first). |
 | GET, POST | `/api/v1/sources` | List and register job sources / sync metadata (beyond `JobSource` on each vacancy). |
 
+## Current HTTP API (implemented)
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/v1/users` | Register user, persist password hash, return `201 Created`, and issue HTTP-only auth cookie. |
+| POST | `/api/v1/users/token/refresh` | Refresh JWT for authenticated clients; always renew cookie and return body token only for bearer transport clients. |
+
 ## Tech stack
 
 | Area | In repo | Notes |
@@ -84,24 +98,24 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 
 ### Phase A — Foundation (persistence)
 
-1. Call **`AddInfrastructure()`** from `Program.cs` (validate connection string).
-2. **Initial EF Core migration** and documented `database update` flow.
-3. Complete **`UnitOfWork`**: `SaveChangesAsync`, `DisposeAsync`, repository getters, transactions.
-4. Repositories for **`Resume`**, **`Education`**, **`CoverLetter`** as needed.
-5. Implement **`VacancyRepository.UpdateMatchScoreAsync`**.
+1. [done] Call **`AddInfrastructure()`** from `Program.cs` (validate connection string).
+2. [done] **Initial EF Core migration** and documented `database update` flow.
+3. [done] Complete **`UnitOfWork`**: `SaveChangesAsync`, `DisposeAsync`, repository getters, transactions.
+4. [done] Repositories for **`Resume`**, **`Education`**, **`CoverLetter`** as needed.
+5. [done] Implement **`VacancyRepository.UpdateMatchScoreAsync`**.
 
 ### Phase B — HTTP core
 
-6. API versioning and first endpoints (minimal APIs or controllers).
-7. **Users** CRUD with validation (email, phone E.164, age per EF rules).
-8. **Vacancies** list + CRUD.
-9. **Resumes**, **educations**, **cover letters** CRUD and relationships.
+6. [done] API versioning and first endpoints (controllers under `/api/v1`).
+7. [in-progress] **Users** CRUD with validation (create endpoint implemented; remaining profile endpoints pending).
+8. [backlog] **Vacancies** list + CRUD.
+9. [backlog] **Resumes**, **educations**, **cover letters** CRUD and relationships.
 
 ### Phase C — Security
 
-10. Password hashing.
-11. JWT (or chosen scheme) and protected routes.
-12. Authorization: users mutate only their data.
+10. [done] Password hashing.
+11. [done] JWT (or chosen scheme) and protected routes.
+12. [in-progress] Authorization: users mutate only their data.
 
 ### Phase D — Ingestion and LLM
 
@@ -117,3 +131,4 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 ## Tracking
 
 Work is broken into small GitHub issues **#16–#37** (foundation through hardening).
+Story **1-5 password hashing and token policy hardening** merged on **2026-04-23**.
