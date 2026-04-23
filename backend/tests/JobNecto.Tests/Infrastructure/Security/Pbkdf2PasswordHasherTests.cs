@@ -75,4 +75,19 @@ public class Pbkdf2PasswordHasherTests
 
         _hasher.IsHashSupportedFormat(malformed).Should().BeFalse();
     }
+
+    [Theory]
+    [InlineData("abc")]
+    [InlineData("-1")]
+    [InlineData("+100000")]
+    [InlineData("100000.5")]
+    [InlineData("100,000")]
+    public void IsHashSupportedFormat_WithMalformedIterationToken_ReturnsFalse(string iterationToken)
+    {
+        var salt = Convert.ToBase64String(new byte[16]);
+        var hash = Convert.ToBase64String(new byte[32]);
+        var malformed = $"pbkdf2-sha256${iterationToken}${salt}${hash}";
+
+        _hasher.IsHashSupportedFormat(malformed).Should().BeFalse();
+    }
 }
