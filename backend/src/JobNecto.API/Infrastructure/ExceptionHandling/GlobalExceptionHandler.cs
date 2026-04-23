@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using FluentValidation;
 using JobNecto.Application.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 
 namespace JobNecto.API.Infrastructure.ExceptionHandling;
 
@@ -83,6 +85,12 @@ public class GlobalExceptionHandler : IExceptionHandler
                 problemDetails.Detail = conflictException.Message;
                 break;
 
+            case DbUpdateException dbUpdateException when IsUniqueConstraintViolation(dbUpdateException):
+                problemDetails.Status = StatusCodes.Status409Conflict;
+                problemDetails.Title = "Conflict";
+                problemDetails.Detail = "A unique constraint was violated.";
+                break;
+
             default:
                 problemDetails.Status = StatusCodes.Status500InternalServerError;
                 problemDetails.Title = "Internal Server Error";
@@ -106,5 +114,18 @@ public class GlobalExceptionHandler : IExceptionHandler
             contentType: "application/problem+json", 
             cancellationToken);
         return true;
+    }
+
+    private static bool IsUniqueConstraintViolation(DbUpdateException exception)
+    {
+        if (exception.InnerException is PostgresException postgresException)
+        {
+            return postgresException.SqlState == PostgresErrorCodes.UniqueViolation;
+        }
+
+        var message = exception.InnerException?.Message ?? exception.Message;
+        return message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
+               || message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase)
+               || message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase);
     }
 }
