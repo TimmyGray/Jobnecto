@@ -1,7 +1,5 @@
-using JobNecto.Application.Exceptions;
 using JobNecto.Application.Interfaces;
 using JobNecto.Application.Users.Mappers;
-using JobNecto.Domain.Entities;
 using MediatR;
 
 namespace JobNecto.Application.Users;
@@ -27,16 +25,7 @@ public class GetCurrentUserQueryHandler : IRequestHandler<GetCurrentUserQuery, G
     /// </summary>
     public async Task<GetCurrentUserResult> Handle(GetCurrentUserQuery request, CancellationToken cancellationToken)
     {
-        User user;
-        try
-        {
-            user = await _unitOfWork.UserRepository.GetByIdAsync(request.UserId, cancellationToken);
-        }
-        catch (NotFoundException)
-        {
-            throw new NotFoundException("User", request.UserId);
-        }
-
+        var user = await _unitOfWork.UserRepository.GetByIdAsync(request.UserId, cancellationToken);
         return user.ToGetCurrentUserResult();
     }
 }

@@ -66,6 +66,15 @@ so that identity/profile information remains simple while resumes, educations, t
 - [x] \[Review\]\[Patch\] Add API integration coverage for authenticated missing-user path (`404`) — resolved.
 - [x] \[Review\]\[Patch\] Add repository tests for `PagedQuery.UserId` filtering and cursor scope behavior — resolved.
 
+#### PR #56 Code Review (2026-04-23)
+
+- [x] \[Review\]\[Patch\] Remove pointless try-catch in `GetCurrentUserQueryHandler` — removed redundant catch/rethrow so repository `NotFoundException` propagates with original stack trace preserved [`GetCurrentUserQueryHandler.cs`]
+- [x] \[Review\]\[Patch\] `EF.Property<Guid>` type guard missing in `BaseRepository.GetAsync` — applied safe CLR type checks and support for both `Guid` and `Guid?` `UserId` mappings before applying ownership filter [`BaseRepository.cs`]
+- [x] \[Review\]\[Patch\] Story Dev Agent Record / File List was materially inaccurate — corrected implementation notes and file list to match actual diff (`IEditableRepository<T> : IRepository<T>` + base repository `UserId` filtering) [`1-3-retrieve-current-user-profile.md`]
+- [x] \[Review\]\[Patch\] Cursor existence predicate used `Id || UpdatedAt` and could accept unrelated rows sharing timestamp — replaced with exact cursor validation (`Id` or `Id+UpdatedAt`) and added collision-focused regression coverage [`BaseRepository.cs`]
+- [x] \[Review\]\[Defer\] `DateTime` vs `DateTimeOffset` for `CreatedAt`/`UpdatedAt` in `GetCurrentUserResult` — JSON serialisation omits timezone designator; project-wide pattern decision, not specific to this PR — deferred, pre-existing
+- [x] \[Review\]\[Defer\] `UserId` in `PagedQuery` (Domain layer) conflates row-ownership filtering with cursor pagination — pragmatic decision accepted in this story but should be revisited when dedicated query objects are introduced — deferred, pre-existing
+
 ## Dev Notes
 
 ### Previous Story Intelligence (Story 1.2)
@@ -209,11 +218,11 @@ GitHub Copilot (GPT-5.3-Codex)
 ### Completion Notes List
 
 - Implemented `GET /api/v1/users/me` as an authenticated MediatR query endpoint in `UsersController`.
-- Added current-user profile contracts in `GetCurrentUserQuery.cs` with nested DTOs for resumes, educations, and cover letter summary.
-- Implemented `GetCurrentUserQueryHandler` with strict ownership filtering by authenticated `UserId` and `NotFoundException` mapping for missing users.
+- Added profile-only current-user response contract in `GetCurrentUserQuery.cs` (core user fields only).
+- Implemented `GetCurrentUserQueryHandler` using `UserRepository.GetByIdAsync` and direct exception propagation to global `404` mapping.
 - Extended `UserMappers` with `ToGetCurrentUserResult(...)` while preserving password exclusion.
-- Added dedicated repository interfaces (`IResumeRepository`, `IEducationRepository`, `ICoverLetterRepository`) with `GetByUserIdAsync(...)` and wired them through `IUnitOfWork` + `UnitOfWork`.
-- Implemented `GetByUserIdAsync(...)` in `ResumeRepository`, `EducationRepository`, and `CoverLetterRepository` using `AsNoTracking()`.
+- Extended pagination flow by adding `PagedQuery.UserId` and applying scoped ownership filtering in `BaseRepository.GetAsync(...)` via `IEditableRepository<T> : IRepository<T>`.
+- Hardened cursor handling to validate exact cursor rows and avoid false-positive matches on shared `UpdatedAt` timestamps.
 - Added `GetCurrentUserHandlerTests` covering success, missing user, soft-delete exclusions, and recent cover letter ordering/capping.
 - Extended `UsersControllerTests` with unauthorized and authorized `/users/me` integration coverage and sensitive field assertions.
 - Updated `JobNectoApiFactory` to keep one in-memory DB per factory instance, then made `UsersControllerTests` instantiate a fresh factory per test to preserve test isolation.
@@ -223,20 +232,18 @@ GitHub Copilot (GPT-5.3-Codex)
 - `_bmad-output/implementation-artifacts/1-3-retrieve-current-user-profile.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `backend/src/JobNecto.API/Controllers/UsersController.cs`
-- `backend/src/JobNecto.Application/Interfaces/ICoverLetterRepository.cs`
-- `backend/src/JobNecto.Application/Interfaces/IEducationRepository.cs`
-- `backend/src/JobNecto.Application/Interfaces/IResumeRepository.cs`
+- `backend/src/JobNecto.Application/Interfaces/IEditableRepository.cs`
 - `backend/src/JobNecto.Application/Interfaces/IUnitOfWork.cs`
 - `backend/src/JobNecto.Application/Users/GetCurrentUserQuery.cs`
 - `backend/src/JobNecto.Application/Users/GetCurrentUserQueryHandler.cs`
 - `backend/src/JobNecto.Application/Users/Mappers/UserMappers.cs`
 - `backend/src/JobNecto.Infrastructure/Persistance/UnitOfWork.cs`
-- `backend/src/JobNecto.Infrastructure/Repositories/CoverLetterRepository.cs`
-- `backend/src/JobNecto.Infrastructure/Repositories/EducationRepository.cs`
-- `backend/src/JobNecto.Infrastructure/Repositories/ResumeRepository.cs`
+- `backend/src/JobNecto.Domain/ValueObjects/Pagination.cs`
+- `backend/src/JobNecto.Infrastructure/Repositories/BaseRepository.cs`
 - `backend/tests/JobNecto.Tests/API/JobNectoApiFactory.cs`
 - `backend/tests/JobNecto.Tests/API/UsersControllerTests.cs`
 - `backend/tests/JobNecto.Tests/Application/Users/GetCurrentUserHandlerTests.cs`
+- `backend/tests/JobNecto.Tests/Infrastructure/ResumeRepositoryTests.cs`
 
 ## Change Log
 

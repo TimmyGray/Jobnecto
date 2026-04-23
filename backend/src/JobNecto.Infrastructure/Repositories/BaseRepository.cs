@@ -42,33 +42,45 @@ public abstract class BaseRepository<T> : IRepository<T>
 
         var query = _dbSet.AsNoTracking();
 
-        var entityType = _context.Model.FindEntityType(typeof(T));
-        var hasUserIdProperty = entityType?.FindProperty("UserId") is not null;
+        var userIdProperty = _context.Model.FindEntityType(typeof(T))?.FindProperty("UserId");
 
-        if (hasUserIdProperty && pagedQuery.UserId is Guid userId)
+        if (pagedQuery.UserId is Guid userId && userIdProperty is not null)
         {
-            query = query.Where(entity => EF.Property<Guid>(entity, "UserId") == userId);
+            if (userIdProperty.ClrType == typeof(Guid))
+            {
+                query = query.Where(entity => EF.Property<Guid>(entity, "UserId") == userId);
+            }
+            else if (userIdProperty.ClrType == typeof(Guid?))
+            {
+                query = query.Where(entity => EF.Property<Guid?>(entity, "UserId") == userId);
+            }
         }
 
         var totalCount = await query.CountAsync(ct);
 
         query = query.OrderByDescending(e => e.UpdatedAt).ThenByDescending(e => e.Id);
 
-        if (pagedQuery.LastSeenId is not null)
+        if (pagedQuery.LastSeenId is Guid lastSeenId)
         {
-            var cursorExists = await query.AnyAsync(
-                e =>
-                    e.Id == pagedQuery.LastSeenId
-                    || e.UpdatedAt == pagedQuery.LastSeenUpdatedAt,
-                ct
-            );
+            var cursorExists = pagedQuery.LastSeenUpdatedAt is DateTime lastSeenUpdatedAt
+                ? await query.AnyAsync(e => e.Id == lastSeenId && e.UpdatedAt == lastSeenUpdatedAt, ct)
+                : await query.AnyAsync(e => e.Id == lastSeenId, ct);
 
             if (cursorExists)
             {
-                query = query.Where(e =>
-                    e.UpdatedAt < pagedQuery.LastSeenUpdatedAt
-                    || (e.UpdatedAt == pagedQuery.LastSeenUpdatedAt && e.Id < pagedQuery.LastSeenId)
-                );
+                var effectiveLastSeenUpdatedAt = pagedQuery.LastSeenUpdatedAt
+                    ?? await query
+                        .Where(e => e.Id == lastSeenId)
+                        .Select(e => (DateTime?)e.UpdatedAt)
+                        .FirstOrDefaultAsync(ct);
+
+                if (effectiveLastSeenUpdatedAt is DateTime cursorUpdatedAt)
+                {
+                    query = query.Where(e =>
+                        e.UpdatedAt < cursorUpdatedAt
+                        || (e.UpdatedAt == cursorUpdatedAt && e.Id < lastSeenId)
+                    );
+                }
             }
         }
 

@@ -92,13 +92,15 @@ public class ResumeRepositoryTests : EditableRepositoryTestsBase<Resume, ResumeR
         var otherUserId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
+        var sharedUpdatedAt = now.AddHours(-1);
+
         var ownerNewest = new Resume
         {
             Id = Guid.NewGuid(),
             UserId = ownerUserId,
             Title = "Owner newest",
             CreatedAt = now.AddHours(-1),
-            UpdatedAt = now.AddHours(-1),
+            UpdatedAt = sharedUpdatedAt,
         };
 
         var ownerOlder = new Resume
@@ -116,7 +118,7 @@ public class ResumeRepositoryTests : EditableRepositoryTestsBase<Resume, ResumeR
             UserId = otherUserId,
             Title = "Foreign cursor",
             CreatedAt = now,
-            UpdatedAt = now,
+            UpdatedAt = sharedUpdatedAt,
         };
 
         context.Resumes.AddRange(ownerNewest, ownerOlder, foreignCursor);
