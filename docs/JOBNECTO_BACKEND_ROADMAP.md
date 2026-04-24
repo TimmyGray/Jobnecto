@@ -11,11 +11,12 @@
 
 ## Implementation snapshot (2026-04-23)
 
-- Story `1-1` (global exception handling), `1-2` (create user account), and `1-5` (password hashing and token policy hardening) are merged to `master`.
-- Authentication baseline is live for user onboarding: `POST /api/v1/users` creates users and issues secure auth cookies; `POST /api/v1/users/token/refresh` renews JWTs for authenticated clients.
-- Password persistence now uses PBKDF2 (`pbkdf2-sha256`) via `IPasswordHasher` and `Pbkdf2PasswordHasher`, with test coverage for malformed hash formats.
+- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), and `1-5` (password hashing and token policy hardening) are merged to `master`.
+- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps) for authenticated users.
+- Password persistence uses PBKDF2 (`pbkdf2-sha256`) via `IPasswordHasher` and `Pbkdf2PasswordHasher`, with test coverage for malformed hash formats.
 - CI and PR review automation are active on merge and PR events (`CI` + `PR review (LLM via OpenRouter)`).
-- Product direction update: `GET /api/v1/users/me` remains a core profile endpoint only; resumes, educations, templates, and cover letters are exposed through separate user-scoped routes with mandatory ownership checks.
+- Repository layer supports UserId-scoped filtering and cursor-based pagination (BaseRepository); ownership filtering is enforced for all user-scoped resources.
+- Product direction: resumes, educations, templates, and cover letters are exposed through separate user-scoped routes with mandatory ownership checks.
 
 ## Solution layout
 
@@ -85,6 +86,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 |--------|----------|---------|
 | POST | `/api/v1/users` | Register user, persist password hash, return `201 Created`, and issue HTTP-only auth cookie. |
 | POST | `/api/v1/users/token/refresh` | Refresh JWT for authenticated clients; always renew cookie and return body token only for bearer transport clients. |
+| GET | `/api/v1/users/me` | Return core profile fields for the authenticated user (id, loginName, email, phone, location, about, avatar, timestamps). Requires valid JWT. |
 
 ## Tech stack
 
