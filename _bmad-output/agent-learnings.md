@@ -11,6 +11,26 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-04-23 - Treat planning correction as source of truth immediately
+
+**Trigger:** User correction
+**Context:** Code review for Story 1.3 where artifacts required `/users/me` to return nested resumes/educations/cover letters.
+**Wrong action:** I treated the existing story acceptance criteria as authoritative until after review findings, instead of immediately applying the user's clarified product direction.
+**Root cause:** I over-weighted stale planning artifacts versus explicit user intent about endpoint boundaries and ownership model.
+**Correct behavior:** When the user clarifies route boundaries and ownership scope, update epics/PRD/architecture/roadmap first, then re-triage review findings against the corrected artifacts.
+**Pattern / trigger:** User states goals changed or documents misunderstood requirements.
+**Generalize?** Yes
+
+### 2026-04-23 - Over-expanded /me response and repository surface
+
+**Trigger:** User correction
+**Context:** Story 1.3 implementation for `GET /api/v1/users/me` and related repository contracts.
+**Wrong action:** Added specialized repository interfaces (`IResumeRepository`, `IEducationRepository`, `ICoverLetterRepository`) and returned resumes/educations/cover letters from `/me`.
+**Root cause:** I overfit to implementation convenience and prior story notes instead of preserving the existing generic repository pattern and endpoint boundary the user wanted.
+**Correct behavior:** Keep `/me` limited to user profile data, move related resources to separate paged endpoints, and support user scoping through generic `GetAsync(PagedQuery, ct)`.
+**Pattern / trigger:** Requests that explicitly say "use existing method", "do not create new interface", or "keep `/me` user-only".
+**Generalize?** Yes
+
 ### 2026-04-23 - Secure cookie not auto-sent in HTTP test client
 
 **Trigger:** Test failure

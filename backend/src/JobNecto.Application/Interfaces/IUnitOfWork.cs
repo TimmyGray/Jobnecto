@@ -1,5 +1,4 @@
 using JobNecto.Domain.Entities;
-using JobNecto.Domain.ValueObjects;
 
 namespace JobNecto.Application.Interfaces;
 
@@ -22,17 +21,17 @@ public interface IUnitOfWork : IAsyncDisposable
     IVacancyRepository VacancyRepository { get; }
 
     /// <summary>
-    /// Repository for cover letters with update support.
+    /// Repository for cover letters with CRUD/query support.
     /// </summary>
     IEditableRepository<CoverLetter> CoverLetterRepository { get; }
 
     /// <summary>
-    /// Repository for resumes with update support.
+    /// Repository for resumes with CRUD/query support.
     /// </summary>
     IEditableRepository<Resume> ResumeRepository { get; }
 
     /// <summary>
-    /// Repository for educations with update support.
+    /// Repository for educations with CRUD/query support.
     /// </summary>
     IEditableRepository<Education> EducationRepository { get; }
 

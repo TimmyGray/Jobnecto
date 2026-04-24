@@ -65,4 +65,28 @@ public static class UserMappers
             Avatar = user.Avatar
         };
     }
+
+    /// <summary>
+    /// Maps a User domain entity to the current-user profile result.
+    /// </summary>
+    /// <param name="user">Source user entity.</param>
+    /// <returns>Profile response object for GET /api/v1/users/me.</returns>
+    public static GetCurrentUserResult ToGetCurrentUserResult(this User user)
+    {
+        if (user == null)
+            throw new ArgumentNullException(nameof(user));
+
+        return new GetCurrentUserResult
+        {
+            Id = user.Id,
+            LoginName = user.Login,
+            Email = user.Email,
+            Phone = user.Phone,
+            Location = user.Location?.ToString(),
+            About = user.AboutMe,
+            Avatar = user.Avatar,
+            CreatedAt = user.CreatedAt,
+            UpdatedAt = user.UpdatedAt
+        };
+    }
 }

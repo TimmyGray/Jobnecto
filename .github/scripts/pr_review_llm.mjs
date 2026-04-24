@@ -225,6 +225,11 @@ async function openrouterReview(diffText, model, previousReviewContext = null) {
 Your audience is the PR author and other maintainers. Be specific: reference file paths and
 line ranges from the diff when pointing out issues.
 
+Evidence rule: every finding must be traceable to lines visible in this diff.
+If a finding depends on the behavior of a method whose implementation is not in the diff,
+you MUST explicitly state the assumption (e.g., "assuming X can return null") and cap the
+severity at 🟡 warning. Never rate an inferred, unverified path as 🔴 critical.
+
 Output valid GitHub-flavoured Markdown. Use exactly these sections in order:
 
 ## Summary of changes
@@ -242,7 +247,7 @@ ${previousReviewContext}`;
 
 ## Correctness
 Analyse whether the implementation is logically correct. Look for:
-- Off-by-one errors, wrong comparisons, missing null/undefined checks
+- Off-by-one errors, wrong comparisons, missing null checks for values whose source is visible in the diff
 - Incorrect async/await usage, unhandled promise rejections
 - Misuse of APIs or library functions
 - State mutations that could cause race conditions
@@ -255,6 +260,8 @@ Identify concrete scenarios that could break:
 - Missing error handling or swallowed exceptions
 - Broken contracts with callers or downstream services
 Rate each finding: 🔴 critical, 🟡 warning, 🔵 nit.
+Before rating any finding 🔴 critical, verify: can you quote specific diff lines that
+demonstrate the full fault path? If not, downgrade to 🟡 warning.
 
 ## Security
 Flag any security concerns:

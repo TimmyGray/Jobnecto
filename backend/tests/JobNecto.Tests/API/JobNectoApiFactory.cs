@@ -14,6 +14,8 @@ namespace JobNecto.Tests.API;
 /// </summary>
 public class JobNectoApiFactory : WebApplicationFactory<Program>
 {
+    private readonly string _databaseName = "JobNectoTest_" + Guid.NewGuid();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
@@ -37,7 +39,7 @@ public class JobNectoApiFactory : WebApplicationFactory<Program>
 
             // Replace with isolated InMemory database
             services.AddDbContext<AppDbContext>(options =>
-                options.UseInMemoryDatabase("JobNectoTest_" + Guid.NewGuid()));
+                options.UseInMemoryDatabase(_databaseName));
         });
     }
 }

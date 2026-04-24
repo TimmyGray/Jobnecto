@@ -85,18 +85,16 @@ So that I can receive a JWT token and start managing my profile.
 ### Story 1.3: Retrieve Current User Profile
 
 As a **job seeker**,
-I want to retrieve my full profile including my resumes, educations, and recent cover letters,
-So that I can see my complete professional record in one call.
+I want to retrieve my current core profile data,
+So that identity/profile information stays simple while resumes, educations, and cover letters are managed through their own user-scoped endpoints.
 
 **Acceptance Criteria:**
 
 **Given** a valid JWT token
 **When** `GET /api/v1/users/me` is called
 **Then** `200 OK` with full user object: `id`, `loginName`, `email`, `phone`, `location`, `about`, `avatar`, `createdAt`, `updatedAt`
-**And** `resumes` array with `id`, `title`, `updatedAt` for each non-deleted resume
-**And** `educations` array with `id`, `title`, `specialization`, `degree` for each non-deleted education
-**And** `coverLetters` object with `total` count and `recent` array (last 5, sorted by `createdAt desc`)
 **And** password/hash fields are never present in the response
+**And** related resources are fetched via dedicated user-scoped routes (`GET /api/v1/resumes`, `GET /api/v1/educations`, `GET /api/v1/cover-letters`)
 
 **Given** the JWT token references a user ID that no longer exists
 **When** `GET /api/v1/users/me` is called

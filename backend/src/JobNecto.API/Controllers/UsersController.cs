@@ -55,6 +55,28 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
+    /// Retrieves the current authenticated user's profile.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The current user profile.</returns>
+    [HttpGet("me")]
+    [Authorize]
+    [ProducesResponseType(typeof(GetCurrentUserResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GetCurrentUserResult>> GetCurrentUser(CancellationToken cancellationToken)
+    {
+        var userIdValue = HttpContext.GetCurrentUserId();
+        if (!Guid.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _mediator.Send(new GetCurrentUserQuery { UserId = userId }, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Issues a renewed JWT for authenticated clients.
     /// Browser clients continue to receive the token via HTTP-only cookie; non-browser clients
     /// can consume the returned token body and send it in <c>Authorization: Bearer</c>.

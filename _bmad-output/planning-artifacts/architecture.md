@@ -31,6 +31,7 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 **Functional Requirements (Phase B):**
 
 - 6 primary domain resources: User (Profile), Resume, Education, CoverLetterTemplate, CoverLetter, Vacancy
+- `GET /api/v1/users/me` returns only core user profile fields; related resources are fetched via dedicated resource routes
 - CRUD operations on user-owned resources (User, Resume, Education, Template, Letter)
 - Read-only operations on shared resources (Vacancy browsing and filtering)
 - Filtering: Complex multi-criteria vacancy filtering via POST body (skills, location, salary, work type, etc.)
@@ -98,8 +99,10 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 **1. Ownership & Authorization**
 
 - Every resource must enforce user ownership before write operations
+- `/api/v1/users/me` is a profile-only endpoint and must not embed resumes, educations, or cover letters
 - **Resumes are user-scoped:** Each user sees only their own resumes (filtered at repository layer)
-- All list queries automatically filter by current user (via query handlers or repository layer)
+- All user-owned list queries automatically filter by current user (via query handlers or repository layer)
+- User-owned collection endpoints are explicit resource routes (`/resumes`, `/educations`, `/cover-letter-templates`, `/cover-letters`), never cross-user aggregates
 - Architecture standardizes JWT session transport (HTTP-only secure cookie for browser clients; `Authorization: Bearer` for non-browser clients) and must support Phase C role-based extension without refactoring core patterns
 - Design pattern: ownership check delegated to handler, not API layer
 - **UserId source:** Generated during user registration (profile creation); Phase B uses JWT-based sessions with `UserId` stored as a claim and extracted in controllers from `HttpContext.User`
@@ -806,6 +809,7 @@ private Guid GetCurrentUserId()
 **Handlers & Repositories:**
 
 - [ ] Implement user-scoped repository methods (GetByUserIdAsync, ListByUserIdAsync, etc.)
+- [ ] Keep `/api/v1/users/me` profile-only; serve related user-owned resources via dedicated user-scoped routes
 - [ ] Soft-delete handlers: Set IsDeleted=true, propagate cascade soft-deletes to children
 - [ ] All mutation handlers: Verify ownership before allowing changes (`403 Forbidden` when ownership is violated)
 - [ ] All query handlers: Filter by UserId in request (user sees only their own data)
