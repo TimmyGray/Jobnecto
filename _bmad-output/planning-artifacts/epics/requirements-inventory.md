@@ -4,7 +4,7 @@
 
 FR1: User can create a new account with `loginName`, `email`, `password`, and optional profile fields (`phone`, `location`, `about`, `avatar`) via `POST /api/v1/users`; returns `201 Created` with user object (excluding password).
 FR2: User can retrieve their core profile fields via `GET /api/v1/users/me`; related resources (resumes, educations, cover letters) are retrieved through dedicated user-scoped endpoints; returns `200 OK`.
-FR3: User can update profile fields (`email`, `loginName`, `phone`, `location`, `about`, `avatar`) via `PUT /api/v1/users/me`; `loginName` is mutable but must remain unique system-wide; returns `200 OK` with updated object; `409 Conflict` if new `loginName` is already taken.
+FR3: User can update profile fields (`email`, `loginName`, `phone`, `location`, `about`, `avatar`) via `PATCH /api/v1/users/me`; `loginName` is mutable but must remain unique system-wide; returns `200 OK` with updated object; `409 Conflict` if new `loginName` is already taken.
 FR4: User can create a resume with `title`, `skills` (array, min 1), `workLocationType` (enum: remote/office/hybrid), and optional fields (`salary`, `currency`, `experience`, `projects`, `certifications`, `languages`, `locations`, `excludedWords`) via `POST /api/v1/resumes`; returns `201 Created`.
 FR5: User can list their own resumes (paginated: default 20, max 100, ordered by `updatedAt desc`) via `GET /api/v1/resumes`; returns `200 OK` with `{ total, page, pageSize, items }`.
 FR6: User can retrieve a single resume with all fields via `GET /api/v1/resumes/{id}`; returns `404` if not found.

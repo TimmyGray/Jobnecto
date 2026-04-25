@@ -11,6 +11,26 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-04-25 - Verify review findings against concrete code paths
+
+**Trigger:** User correction
+**Context:** Story 1.4 code review findings included overstated/duplicate issues before user requested a more accurate re-review.
+**Wrong action:** I accepted subagent findings too quickly and persisted some claims (e.g., phone race returning 500, soft-delete phone lookup mismatch) without fully validating exception mapping/query-filter behavior in the actual code.
+**Root cause:** Insufficient evidence-first verification on each finding before triage persistence; I optimized for speed over source-level confirmation.
+**Correct behavior:** Re-check every finding against concrete implementation points (controller flow, validators, repository/query filters, global exception handler, and tests) before classifying severity or writing review artifacts.
+**Pattern / trigger:** Multi-layer review outputs with overlapping findings, especially where framework behavior (EF query filters, global exception mapping) can invalidate assumptions.
+**Generalize?** Yes
+
+### 2026-04-25 - Keep generated test data validator-compliant
+
+**Trigger:** Test failure
+**Context:** Story 1.4 API tests in `UsersControllerTests` failed before reaching conflict assertions.
+**Wrong action:** I generated dynamic `loginName` values containing hyphens and an update email that exceeded the max length constraint, causing `400 Bad Request` on setup/update steps.
+**Root cause:** Test data helpers were not aligned with FluentValidation constraints (`loginName` regex and `email` max length).
+**Correct behavior:** Normalize helper prefixes to allowed characters and generate bounded email values so setup data always satisfies validators unless the test explicitly targets validation errors.
+**Pattern / trigger:** Integration tests that create prerequisite entities with dynamic identifiers before asserting downstream conflict/business behavior.
+**Generalize?** Yes
+
 ### 2026-04-23 - Treat planning correction as source of truth immediately
 
 **Trigger:** User correction

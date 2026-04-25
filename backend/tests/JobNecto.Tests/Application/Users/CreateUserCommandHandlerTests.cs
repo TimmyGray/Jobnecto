@@ -92,6 +92,31 @@ public class CreateUserCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_DuplicatePhone_ThrowsConflictException()
+    {
+        var command = new CreateUserCommand
+        {
+            Email = "user@example.com",
+            LoginName = "newuser",
+            Password = "Password123!",
+            Phone = "+15555550123"
+        };
+
+        _userRepoMock.Setup(x => x.GetByEmailAsync(command.Email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+        _userRepoMock.Setup(x => x.GetByLoginAsync(command.LoginName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+        _userRepoMock.Setup(x => x.GetByPhoneAsync(command.Phone, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User { Login = "other", Email = "other@example.com", Password = "pwd", Phone = command.Phone });
+
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage($"User with phone '{command.Phone}' already exists.");
+        _passwordHasherMock.Verify(x => x.HashPassword(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public void CreateUserResult_DoesNotExposePasswordField()
     {
         var passwordProperty = typeof(CreateUserResult).GetProperty("Password");

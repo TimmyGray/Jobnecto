@@ -68,7 +68,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 | POST | `/api/v1/vacancies/sync` | Trigger ingestion from configured job sources. |
 | POST | `/api/v1/vacancies/{id}/analyze` | LLM analysis; update `MatchScore` and/or return analysis DTO (persist only if schema is added). |
 | POST | `/api/v1/vacancies/{id}/cover-letter` | Generate and persist `CoverLetter`. |
-| GET, PUT | `/api/v1/users/me` | Current user core profile only (`id`, `loginName`, `email`, `phone`, `location`, `about`, `avatar`, timestamps). |
+| GET, PATCH | `/api/v1/users/me` | Current user core profile only (`id`, `loginName`, `email`, `phone`, `location`, `about`, `avatar`, timestamps). |
 | GET, POST | `/api/v1/resumes` | User-scoped resume list/create for the authenticated user only. |
 | GET, PUT, DELETE | `/api/v1/resumes/{id}` | User-scoped resume detail/update/soft delete with ownership checks. |
 | GET, POST | `/api/v1/educations` | User-scoped education list/create for the authenticated user only. |

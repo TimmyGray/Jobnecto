@@ -115,7 +115,7 @@ A job seeker can:
 ### MVP - Minimum Viable Product (Phase B)
 
 **Core Resources:**
-- **User profiles** — Create profile, retrieve/update current user core fields only (GET `/api/v1/users/me`, PUT `/api/v1/users/me`)
+- **User profiles** — Create profile, retrieve/update current user core fields only (GET `/api/v1/users/me`, PATCH `/api/v1/users/me`)
 - **Resumes** — CRUD operations (GET list, POST create, GET detail, PUT update, DELETE soft)
 - **Educations** — CRUD operations linked to user (GET list, POST create, GET detail, PUT update, DELETE soft)
 - **Cover Letter Templates** — Reusable templates for applications (GET list, POST create, GET detail, PUT update, DELETE soft with pagination/filtration)
@@ -161,7 +161,7 @@ A job seeker can:
 2. **Retrieve Profile** → GET `/api/v1/users/me` (view current core profile fields)
 3. **Add Education** → POST `/api/v1/educations` (add degree, specialization)
 4. **Create Resume Template** → POST `/api/v1/resumes` (add resume with skills, salary expectations, work preferences)
-5. **Update Profile** → PUT `/api/v1/users/me` (edit personal info: location, phone, about)
+5. **Update Profile** → PATCH `/api/v1/users/me` (edit personal info: location, phone, about)
 
 **Success:** Job seeker has a complete profile and one resume template ready for matching.
 
@@ -255,7 +255,7 @@ A job seeker can:
 
 **Endpoints:**
 - `GET /api/v1/users/me` — Retrieve current user core profile fields only
-- `PUT /api/v1/users/me` — Update current user profile
+- `PATCH /api/v1/users/me` — Update current user profile
 - `POST /api/v1/users` — Create new user account
 
 **Feature: Create User Profile (POST /api/v1/users)**
@@ -312,7 +312,7 @@ A job seeker can:
 
 ---
 
-**Feature: Update User Profile (PUT /api/v1/users/me)**
+**Feature: Update User Profile (PATCH /api/v1/users/me)**
 
 **Acceptance Criteria:**
 - Update any profile field: `email`, `phone`, `location`, `about`, `avatar`

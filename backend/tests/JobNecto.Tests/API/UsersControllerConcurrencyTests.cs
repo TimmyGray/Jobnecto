@@ -74,6 +74,48 @@ public class UsersControllerConcurrencyTests : IClassFixture<UsersControllerConc
         problem["title"]!.GetValue<string>().Should().Be("Conflict");
         problem["traceId"]!.GetValue<string>().Should().NotBeNullOrEmpty();
     }
+
+    [Fact]
+    public async Task Create_ConcurrentDuplicatePhoneRequests_ReturnsOneCreatedAndOneConflict()
+    {
+        if (!await _factory.TryInitializeSchemaAsync())
+        {
+            _output.WriteLine("Skipped real-database phone uniqueness concurrency assertion because PostgreSQL test database was unavailable.");
+            return;
+        }
+
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var phone = "+15555550999";
+
+        var requestA = new CreateUserCommand
+        {
+            LoginName = "phonea" + Guid.NewGuid().ToString("N")[..8],
+            Email = Guid.NewGuid().ToString("N")[..8] + "@example.com",
+            Password = "Password123!",
+            Phone = phone
+        };
+
+        var requestB = new CreateUserCommand
+        {
+            LoginName = "phoneb" + Guid.NewGuid().ToString("N")[..8],
+            Email = Guid.NewGuid().ToString("N")[..8] + "@example.com",
+            Password = "Password123!",
+            Phone = phone
+        };
+
+        var responseTasks = new[]
+        {
+            client.PostAsJsonAsync("/api/v1/users", requestA),
+            client.PostAsJsonAsync("/api/v1/users", requestB)
+        };
+
+        await Task.WhenAll(responseTasks);
+
+        var responses = responseTasks.Select(task => task.Result).ToArray();
+        responses.Count(r => r.StatusCode == HttpStatusCode.Created).Should().Be(1);
+        responses.Count(r => r.StatusCode == HttpStatusCode.Conflict).Should().Be(1);
+    }
 }
 
 public sealed class UsersControllerConcurrencyFactory : WebApplicationFactory<Program>

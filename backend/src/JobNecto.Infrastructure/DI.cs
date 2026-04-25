@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using JobNecto.Application.Interfaces;
+using JobNecto.Infrastructure.Configuration;
 using JobNecto.Infrastructure.Persistance;
 using JobNecto.Infrastructure.Services;
 using Npgsql;
@@ -33,6 +34,8 @@ public static class InfrastructureCollectionExtensions
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
+        services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
+        services.AddSingleton<IAvatarStorageService, CloudinaryAvatarStorageService>();
 
         return services;
     }
