@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using JobNecto.Application.Interfaces;
+using JobNecto.Infrastructure.Configuration;
 using JobNecto.Infrastructure.Persistance;
 using JobNecto.Infrastructure.Services;
 using Npgsql;
@@ -33,6 +35,47 @@ public static class InfrastructureCollectionExtensions
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
+        services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
+
+        // Log a clear warning at startup when Cloudinary settings are missing or incomplete.
+        try
+        {
+            var cloudSection = configuration.GetSection("Cloudinary");
+            var cloudCfg = cloudSection.Get<CloudinarySettings>();
+            var isConfigured = cloudCfg != null &&
+                (!string.IsNullOrWhiteSpace(cloudCfg.CloudinaryUrl) ||
+                 (!string.IsNullOrWhiteSpace(cloudCfg.CloudName) &&
+                  !string.IsNullOrWhiteSpace(cloudCfg.ApiKey) &&
+                  !string.IsNullOrWhiteSpace(cloudCfg.ApiSecret)));
+
+            if (!isConfigured)
+            {
+                try
+                {
+                    using var sp = services.BuildServiceProvider();
+                    var loggerFactory = sp.GetService<Microsoft.Extensions.Logging.ILoggerFactory>();
+                    if (loggerFactory != null)
+                    {
+                        var logger = loggerFactory.CreateLogger(typeof(InfrastructureCollectionExtensions).FullName ?? "JobNecto.Infrastructure.DI");
+                        logger.LogWarning("Cloudinary settings are missing or incomplete. Avatar endpoints will fail at runtime unless Cloudinary is configured.");
+                    }
+                    else
+                    {
+                        System.Console.WriteLine("Warning: Cloudinary settings are missing or incomplete. Avatar endpoints may fail at runtime unless Cloudinary is configured.");
+                    }
+                }
+                catch
+                {
+                    // swallowing logging errors to avoid failing startup registration
+                }
+            }
+        }
+        catch
+        {
+            // ignore binding errors
+        }
+
+        services.AddSingleton<IAvatarStorageService, CloudinaryAvatarStorageService>();
 
         return services;
     }

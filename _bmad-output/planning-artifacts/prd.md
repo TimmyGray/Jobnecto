@@ -33,10 +33,10 @@ Jobnecto consolidates this chaos. Users connect their accounts from multiple job
 
 **Phase B Scope:** The HTTP core and API endpoints that power the job seeker's job hunting workflow. Users manage their profiles (education, resumes, cover letters, templates), browse and filter unified vacancies, and send applications to multiple platforms.
 
-## Post-Merge Implementation Status (2026-04-23)
+-## Post-Merge Implementation Status (2026-04-25)
 
-- Completed stories now merged on `master`: `1-1-global-exception-handling`, `1-2-create-user-account`, `1-5-password-hashing-token-policy-hardening`.
-- Implemented API surface includes `POST /api/v1/users` (registration) and `POST /api/v1/users/token/refresh` (authenticated token renewal).
+- Completed stories now merged on `master`: `1-1-global-exception-handling`, `1-2-create-user-account`, `1-4-update-user-profile`, `1-5-password-hashing-token-policy-hardening`.
+- Implemented API surface includes `POST /api/v1/users` (registration), `POST /api/v1/users/token/refresh` (authenticated token renewal), and the new profile mutation and avatar management endpoints (`PATCH /api/v1/users/me`, `POST/PUT/DELETE /api/v1/users/me/avatar`).
 - Password persistence uses PBKDF2 (`pbkdf2-sha256`) through `IPasswordHasher` + `Pbkdf2PasswordHasher`; tokens are renewed through HTTP-only cookie transport and bearer transport support.
 - Scope adjustment: a subset of Phase C security baseline (password hashing + JWT protected refresh route) is already delivered while broader profile/resource endpoints remain in Phase B backlog.
 
@@ -115,7 +115,7 @@ A job seeker can:
 ### MVP - Minimum Viable Product (Phase B)
 
 **Core Resources:**
-- **User profiles** — Create profile, retrieve/update current user core fields only (GET `/api/v1/users/me`, PUT `/api/v1/users/me`)
+- **User profiles** — Create profile, retrieve/update current user core fields only (GET `/api/v1/users/me`, PATCH `/api/v1/users/me`)
 - **Resumes** — CRUD operations (GET list, POST create, GET detail, PUT update, DELETE soft)
 - **Educations** — CRUD operations linked to user (GET list, POST create, GET detail, PUT update, DELETE soft)
 - **Cover Letter Templates** — Reusable templates for applications (GET list, POST create, GET detail, PUT update, DELETE soft with pagination/filtration)
@@ -161,7 +161,7 @@ A job seeker can:
 2. **Retrieve Profile** → GET `/api/v1/users/me` (view current core profile fields)
 3. **Add Education** → POST `/api/v1/educations` (add degree, specialization)
 4. **Create Resume Template** → POST `/api/v1/resumes` (add resume with skills, salary expectations, work preferences)
-5. **Update Profile** → PUT `/api/v1/users/me` (edit personal info: location, phone, about)
+5. **Update Profile** → PATCH `/api/v1/users/me` (edit personal info: location, phone, about)
 
 **Success:** Job seeker has a complete profile and one resume template ready for matching.
 
@@ -255,7 +255,7 @@ A job seeker can:
 
 **Endpoints:**
 - `GET /api/v1/users/me` — Retrieve current user core profile fields only
-- `PUT /api/v1/users/me` — Update current user profile
+- `PATCH /api/v1/users/me` — Update current user profile
 - `POST /api/v1/users` — Create new user account
 
 **Feature: Create User Profile (POST /api/v1/users)**
@@ -312,7 +312,7 @@ A job seeker can:
 
 ---
 
-**Feature: Update User Profile (PUT /api/v1/users/me)**
+**Feature: Update User Profile (PATCH /api/v1/users/me)**
 
 **Acceptance Criteria:**
 - Update any profile field: `email`, `phone`, `location`, `about`, `avatar`

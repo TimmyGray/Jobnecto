@@ -114,7 +114,7 @@ So that I can keep my professional identity and contact info current.
 
 **Acceptance Criteria:**
 
-**Given** a valid JWT token and a `PUT /api/v1/users/me` request with one or more of: `loginName`, `email`, `phone`, `location`, `about`, `avatar`
+**Given** a valid JWT token and a `PATCH /api/v1/users/me` request with one or more of: `loginName`, `email`, `phone`, `location`, `about`, `avatar`
 **When** the request is processed
 **Then** `200 OK` with updated user object; `updatedAt` timestamp refreshed
 

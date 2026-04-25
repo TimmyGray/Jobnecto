@@ -9,10 +9,10 @@
 - **Filter and paginate** vacancies (`VacancyFilter`, `PagedQuery`, `PagedResult`); support **matching** via `Vacancy.MatchScore` (and optional future persisted analysis if the team adds it).
 - **LLM** integration via `JobNecto.Infrastructure.LLM`, `LlmProvider` enum, and `LlmProviderConfig`.
 
-## Implementation snapshot (2026-04-23)
+## Implementation snapshot (2026-04-25)
 
-- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), and `1-5` (password hashing and token policy hardening) are merged to `master`.
-- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps) for authenticated users.
+- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), and `1-5` (password hashing and token policy hardening) are merged to `master`.
+- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`).
 - Password persistence uses PBKDF2 (`pbkdf2-sha256`) via `IPasswordHasher` and `Pbkdf2PasswordHasher`, with test coverage for malformed hash formats.
 - CI and PR review automation are active on merge and PR events (`CI` + `PR review (LLM via OpenRouter)`).
 - Repository layer supports UserId-scoped filtering and cursor-based pagination (BaseRepository); ownership filtering is enforced for all user-scoped resources.
@@ -68,7 +68,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 | POST | `/api/v1/vacancies/sync` | Trigger ingestion from configured job sources. |
 | POST | `/api/v1/vacancies/{id}/analyze` | LLM analysis; update `MatchScore` and/or return analysis DTO (persist only if schema is added). |
 | POST | `/api/v1/vacancies/{id}/cover-letter` | Generate and persist `CoverLetter`. |
-| GET, PUT | `/api/v1/users/me` | Current user core profile only (`id`, `loginName`, `email`, `phone`, `location`, `about`, `avatar`, timestamps). |
+| GET, PATCH | `/api/v1/users/me` | Current user core profile only (`id`, `loginName`, `email`, `phone`, `location`, `about`, `avatar`, timestamps). |
 | GET, POST | `/api/v1/resumes` | User-scoped resume list/create for the authenticated user only. |
 | GET, PUT, DELETE | `/api/v1/resumes/{id}` | User-scoped resume detail/update/soft delete with ownership checks. |
 | GET, POST | `/api/v1/educations` | User-scoped education list/create for the authenticated user only. |
@@ -118,7 +118,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 ### Phase B — HTTP core
 
 6. [done] API versioning and first endpoints (controllers under `/api/v1`).
-7. [in-progress] **Users** CRUD with validation (create endpoint implemented; remaining profile endpoints pending).
+7. [done] **Users** CRUD with validation (create endpoint implemented; profile update and avatar management implemented in Story 1.4).
 8. [backlog] **Vacancies** list + CRUD.
 9. [backlog] **Resumes**, **educations**, **cover letters** CRUD and relationships via user-scoped routes only (no cross-user list endpoints).
 
@@ -142,4 +142,4 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 ## Tracking
 
 Work is broken into small GitHub issues **#16–#37** (foundation through hardening).
-Story **1-5 password hashing and token policy hardening** merged on **2026-04-23**.
+Story **1-4 update user profile and avatar management** merged on **2026-04-25**.

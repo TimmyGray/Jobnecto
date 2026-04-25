@@ -33,4 +33,16 @@ public class UserRepository : EditableRepository<User>, IUserRepository
         return await _dbSet
             .AnyAsync(u => u.Login == login, ct);
     }
+
+    public async Task<User?> GetByPhoneAsync(string phone, CancellationToken ct = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(u => u.Phone == phone, ct);
+    }
+
+    public async Task<bool> ExistsByPhoneAsync(string phone, CancellationToken ct = default)
+    {
+        return await _dbSet
+            .AnyAsync(u => u.Phone == phone, ct);
+    }
 }

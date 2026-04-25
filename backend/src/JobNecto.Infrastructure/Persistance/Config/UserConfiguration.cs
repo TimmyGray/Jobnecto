@@ -40,6 +40,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.Phone).HasMaxLength(20);
 
+        builder.HasIndex(u => u.Phone).IsUnique().HasFilter("\"Phone\" IS NOT NULL AND \"IsDeleted\" = FALSE");
+
         builder.Property(u => u.Location).HasConversion<string>().HasMaxLength(50);
 
         builder

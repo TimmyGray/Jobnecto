@@ -102,6 +102,12 @@ curl -i http://localhost:5000/
   - Creates a user account, persists password as PBKDF2 hash, sets HTTP-only auth cookie, returns `201 Created`.
 - `POST /api/v1/users/token/refresh`
   - Requires authentication, renews JWT cookie, and returns body token only for bearer transport clients.
+- `GET /api/v1/users/me`
+  - Returns the authenticated user's core profile (id, loginName, email, phone, location, about, avatar, timestamps).
+- `PATCH /api/v1/users/me`
+  - Partial profile update for the authenticated user (Story 1.4).
+- `POST|PUT|DELETE /api/v1/users/me/avatar`
+  - Avatar management endpoints (upload/update/remove avatar). Authentication required.
 
 ### CORS
 

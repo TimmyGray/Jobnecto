@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.TestHost;
+using JobNecto.Application.Interfaces;
 using JobNecto.Infrastructure.Persistance;
+using JobNecto.Tests.API.Fakes;
 
 namespace JobNecto.Tests.API;
 
@@ -40,6 +42,17 @@ public class JobNectoApiFactory : WebApplicationFactory<Program>
             // Replace with isolated InMemory database
             services.AddDbContext<AppDbContext>(options =>
                 options.UseInMemoryDatabase(_databaseName));
+
+            // Replace external avatar storage dependency with in-memory fake.
+            var avatarStorageDescriptor = services.FirstOrDefault(d =>
+                d.ServiceType == typeof(IAvatarStorageService));
+
+            if (avatarStorageDescriptor != null)
+            {
+                services.Remove(avatarStorageDescriptor);
+            }
+
+            services.AddSingleton<IAvatarStorageService, FakeAvatarStorageService>();
         });
     }
 }

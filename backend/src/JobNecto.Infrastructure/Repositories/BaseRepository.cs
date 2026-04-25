@@ -107,7 +107,7 @@ public abstract class BaseRepository<T> : IRepository<T>
 
     public virtual async Task<T> GetByIdAsync(Guid id, CancellationToken ct)
     {
-        var entity = await _dbSet.FindAsync([id], ct);
+        var entity = await _dbSet.FirstOrDefaultAsync(e => e.Id == id, ct);
         if (entity == null)
         {
             throw new NotFoundException($"Entity with id {id} not found");

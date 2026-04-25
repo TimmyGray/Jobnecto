@@ -44,6 +44,17 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Creat
             throw new ConflictException($"User with login '{request.LoginName}' already exists.");
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Phone))
+        {
+            request.Phone = request.Phone.Trim();
+
+            var existingByPhone = await _unitOfWork.UserRepository.GetByPhoneAsync(request.Phone, cancellationToken);
+            if (existingByPhone != null)
+            {
+                throw new ConflictException($"User with phone '{request.Phone}' already exists.");
+            }
+        }
+
         // Hash password before mapping to persistence entity.
         var hashedPassword = _passwordHasher.HashPassword(request.Password);
 
