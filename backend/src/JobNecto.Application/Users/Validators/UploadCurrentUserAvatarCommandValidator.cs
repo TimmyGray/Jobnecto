@@ -7,14 +7,14 @@ namespace JobNecto.Application.Users.Validators;
 /// </summary>
 public class UploadCurrentUserAvatarCommandValidator : AbstractValidator<UploadCurrentUserAvatarCommand>
 {
-    private static readonly HashSet<string> AllowedContentTypes =
-    [
+    private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
         "image/jpeg",
         "image/jpg",
         "image/png",
         "image/webp",
         "image/gif"
-    ];
+    };
 
     public UploadCurrentUserAvatarCommandValidator()
     {
@@ -28,16 +28,19 @@ public class UploadCurrentUserAvatarCommandValidator : AbstractValidator<UploadC
             .WithMessage("contentType must be one of: image/jpeg, image/jpg, image/png, image/webp, image/gif.");
 
         RuleFor(x => x.Content)
-            .NotNull()
-            .Must(content => content.Length > 0)
+            .Cascade(CascadeMode.Stop)
+            .NotEmpty()
             .WithMessage("avatar file content is required.")
-            .Must(content => content.Length <= 5 * 1024 * 1024)
-            .WithMessage("avatar file size must be less than or equal to 5 MB.");
+            .Must((UploadCurrentUserAvatarCommand command, byte[]? content) => content != null && content.Length <= 5 * 1024 * 1024)
+            .WithMessage("avatar file size must be less than or equal to 5 MB.")
+            ;
 
+        // Attach signature validation to a named property so failures appear under a stable field name
         RuleFor(x => x)
             .Must(HasMatchingContentSignature)
             .When(x => x.Content is { Length: > 0 } && !string.IsNullOrWhiteSpace(x.ContentType))
-            .WithMessage("avatar file signature does not match contentType.");
+            .WithMessage("avatar file signature does not match contentType.")
+            .WithName(nameof(UploadCurrentUserAvatarCommand.Content));
     }
 
     /// <summary>
