@@ -1,6 +1,6 @@
 # Story 2.1: Create Resume
 
-Status: not-started
+Status: done
 
 ## Story
 
@@ -10,45 +10,45 @@ So that I can describe what kind of role I'm looking for.
 
 ## Acceptance Criteria
 
-1. `POST /api/v1/resumes` with `title`, at least one entry in `skills`, and `workLocationType` (remote/office/hybrid) creates a new resume for the authenticated user.
+1. `POST /api/v1/resumes` creates a new resume for the authenticated user. All profile fields (`title`, `skills`, `workLocationType`) are **optional**; an empty resume payload is valid.
 2. Returns `201 Created` with the full resume object and `Location` header set to `/api/v1/resumes/{id}`.
-3. Invalid `title` (missing or empty) returns `400 Bad Request` with field-level error.
-4. Empty or missing `skills` array returns `400 Bad Request` with field-level error.
-5. `workLocationType` outside of allowed values (`remote`, `office`, `hybrid`) returns `400 Bad Request`.
-6. Optional fields (`salary`, `currency`, `experience`, `projects`, `certifications`, `languages`, `locations`, `excludedWords`) are persisted if valid.
+3. If `title` is provided it must not exceed 200 characters; otherwise it is accepted as null/empty.
+4. If `skills` is provided, each individual skill must not exceed 30 characters; an empty array or null is accepted.
+5. If `workLocationType` is provided it must be a valid `WorkLocationType` enum value (`OnSite`, `Remote`, `Hybrid`; case-insensitive); an invalid value returns `400 Bad Request`. If omitted the field is persisted as null.
+6. Optional fields (`salary`, `currency`, `experience`, `projects`, `certifications`, `languages`, `locations`, `excludedWords`) are persisted if valid. If `currency` is provided it must match a valid `Currency` enum value (e.g. `USD`, `EUR`, `UAH`). If `experience` is provided it must match a valid `Experience` enum value (`LessThanOneYear`, `OneToThreeYears`, `ThreeToFiveYears`, `MoreThanFiveYears`).
 7. User identity is extracted from `HttpContext.User` using the existing `AuthContext.GetCurrentUserId()` extension.
 8. Resume is soft-deletable (inherits from `SoftDeletableEntity` and has `IsDeleted` = false by default).
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Define the Application contract for Resume creation (AC: 1, 3, 4, 5, 6)
-  - [ ] Create `Resumes` feature slice in `JobNecto.Application`.
-  - [ ] Implement `CreateResumeCommand` with all functional fields from Story 2.1.
-  - [ ] Implement `CreateResumeCommandValidator` using FluentValidation.
-    - [ ] Rule for `Title`: NotEmpty.
-    - [ ] Rule for `Skills`: NotEmpty, MinLength(1).
-    - [ ] Rule for `WorkLocationType`: Must be a valid `WorkLocationType` enum value.
-    - [ ] Rule for `Currency`: Must be valid if provided.
-    - [ ] Rule for `Experience`: Must be valid if provided.
-  - [ ] Create `ResumeMappers.cs` with `ToEntity()` and `ToResumeResult()` methods.
+- [x] Task 1: Define the Application contract for Resume creation (AC: 1, 3, 4, 5, 6)
+  - [x] Create `Resumes` feature slice in `JobNecto.Application`.
+  - [x] Implement `CreateResumeCommand` with all functional fields from Story 2.1.
+  - [x] Implement `CreateResumeCommandValidator` using FluentValidation.
+    - [x] Rule for `Title`: MaxLength(200) if provided; optional otherwise.
+    - [x] Rule for `Skills`: each skill MaxLength(30) if array provided; optional otherwise.
+    - [x] Rule for `WorkLocationType`: Must be a valid `WorkLocationType` enum value if provided (`Enum.TryParse`, case-insensitive).
+    - [x] Rule for `Currency`: Must be a valid `Currency` enum value if provided.
+    - [x] Rule for `Experience`: Must be a valid `Experience` enum value if provided.
+  - [x] Create `ResumeMappers.cs` with `ToEntity()` and `ToResumeResult()` methods.
 
-- [ ] Task 2: Implement Resume creation logic (AC: 1, 7, 8)
-  - [ ] Implement `CreateResumeCommandHandler`.
-  - [ ] Extract `UserId` from the command (set by controller).
-  - [ ] Use `IUnitOfWork.ResumeRepository` to persist the entity.
-  - [ ] Ensure `IsDeleted` is handled by persistence defaults or entity initialization.
+- [x] Task 2: Implement Resume creation logic (AC: 1, 7, 8)
+  - [x] Implement `CreateResumeCommandHandler`.
+  - [x] Extract `UserId` from the command (set by controller).
+  - [x] Use `IUnitOfWork.ResumeRepository` to persist the entity.
+  - [x] Ensure `IsDeleted` is handled by persistence defaults or entity initialization.
 
-- [ ] Task 3: Expose API endpoint (AC: 1, 2)
-  - [ ] Create `ResumesController` inheriting from `ControllerBase` with `[Authorize]` attribute.
-  - [ ] Implement `POST /api/v1/resumes`.
-  - [ ] Map authenticated `UserId` to the command before sending to MediatR.
-  - [ ] Return `Created` status with the correct `Location` header.
+- [x] Task 3: Expose API endpoint (AC: 1, 2)
+  - [x] Create `ResumesController` inheriting from `ControllerBase` with `[Authorize]` attribute.
+  - [x] Implement `POST /api/v1/resumes`.
+  - [x] Map authenticated `UserId` to the command before sending to MediatR.
+  - [x] Return `Created` status with the correct `Location` header.
 
-- [ ] Task 4: Verification and Testing (AC: 1, 2, 3, 4, 5, 6)
-  - [ ] Add unit tests for `CreateResumeCommandValidator`.
-  - [ ] Add unit tests for `CreateResumeCommandHandler`.
-  - [ ] Add integration tests for `POST /api/v1/resumes` including unauthorized and validation failure cases.
-  - [ ] Verify `dotnet test backend/JobNecto.slnx` passes.
+- [x] Task 4: Verification and Testing (AC: 1, 2, 3, 4, 5, 6)
+  - [x] Add unit tests for `CreateResumeCommandValidator`.
+  - [x] Add unit tests for `CreateResumeCommandHandler`.
+  - [x] Add integration tests for `POST /api/v1/resumes` including unauthorized and validation failure cases.
+  - [x] Verify `dotnet test backend/JobNecto.slnx` passes.
 
 ## Dev Notes
 

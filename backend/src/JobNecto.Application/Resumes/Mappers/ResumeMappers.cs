@@ -23,14 +23,20 @@ public static class ResumeMappers
             UserId = command.UserId,
             Title = command.Title,
             Salary = command.Salary,
-            Currency = string.IsNullOrWhiteSpace(command.Currency) 
-                ? null 
-                : Enum.Parse<Currency>(command.Currency, true),
+            Currency = string.IsNullOrWhiteSpace(command.Currency)
+                ? null
+                : Enum.TryParse<Currency>(command.Currency, true, out var parsedCurrency)
+                    ? parsedCurrency
+                    : null,
             Skills = command.Skills,
-            WorkLocationType = Enum.Parse<WorkLocationType>(command.WorkLocationType, true),
-            Experience = string.IsNullOrWhiteSpace(command.Experience) 
-                ? null 
-                : Enum.Parse<Experience>(command.Experience, true),
+            WorkLocationType = Enum.TryParse<WorkLocationType>(command.WorkLocationType, true, out var parsedWlt)
+                ? parsedWlt
+                : null,
+            Experience = string.IsNullOrWhiteSpace(command.Experience)
+                ? null
+                : Enum.TryParse<Experience>(command.Experience, true, out var parsedExp)
+                    ? parsedExp
+                    : null,
             Projects = command.Projects,
             Certifications = command.Certifications,
             Languages = command.Languages,
@@ -53,10 +59,10 @@ public static class ResumeMappers
             UserId = resume.UserId,
             Title = resume.Title ?? string.Empty,
             Salary = resume.Salary,
-            Currency = resume.Currency?.ToString().ToLower() ?? string.Empty,
+            Currency = resume.Currency?.ToString() ?? string.Empty,
             Skills = resume.Skills ?? Array.Empty<string>(),
-            WorkLocationType = resume.WorkLocationType.ToString().ToLower(),
-            Experience = resume.Experience?.ToString().ToLower() ?? string.Empty,
+            WorkLocationType = resume.WorkLocationType?.ToString() ?? string.Empty,
+            Experience = resume.Experience?.ToString() ?? string.Empty,
             Projects = resume.Projects,
             Certifications = resume.Certifications,
             Languages = resume.Languages,

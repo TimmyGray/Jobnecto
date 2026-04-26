@@ -37,15 +37,15 @@ public class CreateResumeCommandValidator : AbstractValidator<CreateResumeComman
         When(x => !string.IsNullOrEmpty(x.Currency), () =>
         {
             RuleFor(x => x.Currency!)
-                .Must(currency => currency == "USD" || currency == "EUR" || currency == "UAH")
-                .WithMessage("currency must be a valid Currency enum value.");
+                .Must(currency => IsExisingEnumValue<Currency>(currency))
+                .WithMessage("currency must be a valid Currency enum value (e.g. USD, EUR, UAH).");
         });
 
         When(x => !string.IsNullOrEmpty(x.Experience), () =>
         {
             RuleFor(x => x.Experience!)
-                .Must(experience => experience == "none" || experience == "junior" || experience == "middle" || experience == "senior")
-                .WithMessage("experience must be a valid Experience enum value (none, junior, middle, senior).");
+                .Must(experience => IsExisingEnumValue<Experience>(experience))
+                .WithMessage("experience must be a valid Experience enum value (e.g. LessThanOneYear, OneToThreeYears, ThreeToFiveYears, MoreThanFiveYears).");
         });
 
         RuleFor(x => x.Salary)
