@@ -36,7 +36,7 @@ public class ResumesApiTests
         {
             Title = "Fullstack Developer",
             Skills = new[] { "React", "Node.js", "C#" },
-            WorkLocationType = "remote",
+            WorkLocationType = "Remote",
             Salary = 90000,
             Currency = "EUR"
         };
@@ -69,7 +69,7 @@ public class ResumesApiTests
         {
             Title = "", // Allowed by current validator logic
             Skills = new[] { "C#" },
-            WorkLocationType = "remote"
+            WorkLocationType = "Remote"
         };
 
         var response = await client.PostAsJsonAsync("/api/v1/resumes", resumeCmd);
@@ -87,7 +87,7 @@ public class ResumesApiTests
         {
             Title = "Dev",
             Skills = new[] { "C#" },
-            WorkLocationType = "remote"
+            WorkLocationType = "Remote"
         };
 
         var response = await client.PostAsJsonAsync("/api/v1/resumes", resumeCmd);

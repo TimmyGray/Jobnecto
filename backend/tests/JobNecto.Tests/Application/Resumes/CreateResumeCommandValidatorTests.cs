@@ -16,10 +16,10 @@ public class CreateResumeCommandValidatorTests
             UserId = Guid.NewGuid(),
             Title = "Senior .NET Developer",
             Skills = new[] { "C#", ".NET 10", "EF Core" },
-            WorkLocationType = "remote",
+            WorkLocationType = "Remote",
             Salary = 100000,
             Currency = "USD",
-            Experience = "senior"
+            Experience = "lessThanOneYear",
         };
 
         var result = _validator.Validate(cmd);
@@ -38,7 +38,7 @@ public class CreateResumeCommandValidatorTests
             UserId = Guid.NewGuid(),
             Title = title!, 
             Skills = new[] { "C#" }, 
-            WorkLocationType = "remote" 
+            WorkLocationType = "Remote" 
         };
         
         var result = _validator.Validate(cmd);
@@ -55,7 +55,7 @@ public class CreateResumeCommandValidatorTests
             UserId = Guid.NewGuid(),
             Title = "Title", 
             Skills = Array.Empty<string>(), 
-            WorkLocationType = "remote" 
+            WorkLocationType = "Remote" 
         };
         
         var result = _validator.Validate(cmd);
@@ -114,7 +114,7 @@ public class CreateResumeCommandValidatorTests
             UserId = Guid.NewGuid(),
             Title = "Title", 
             Skills = new[] { "C#" }, 
-            WorkLocationType = "remote",
+            WorkLocationType = "Remote",
             Currency = "INVALID"
         };
         
@@ -132,7 +132,7 @@ public class CreateResumeCommandValidatorTests
             UserId = Guid.NewGuid(),
             Title = "Title", 
             Skills = new[] { "C#" }, 
-            WorkLocationType = "remote",
+            WorkLocationType = "Remote",
             Salary = -1
         };
         
@@ -149,7 +149,7 @@ public class CreateResumeCommandValidatorTests
         { 
             Title = "Title", 
             Skills = new[] { "C#" }, 
-            WorkLocationType = "remote"
+            WorkLocationType = "Remote"
         };
         
         var result = _validator.Validate(cmd);
