@@ -9,14 +9,14 @@
 - **Filter and paginate** vacancies (`VacancyFilter`, `PagedQuery`, `PagedResult`); support **matching** via `Vacancy.MatchScore` (and optional future persisted analysis if the team adds it).
 - **LLM** integration via `JobNecto.Infrastructure.LLM`, `LlmProvider` enum, and `LlmProviderConfig`.
 
-## Implementation snapshot (2026-04-25)
+## Implementation snapshot (2026-04-27)
 
-- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), and `1-5` (password hashing and token policy hardening) are merged to `master`.
-- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`).
+- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), `1-5` (password hashing and token policy hardening), and `2-1` (create resume) are merged to `master`.
+- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`). Story 2.1 adds `POST /api/v1/resumes` for authenticated resume creation.
 - Password persistence uses PBKDF2 (`pbkdf2-sha256`) via `IPasswordHasher` and `Pbkdf2PasswordHasher`, with test coverage for malformed hash formats.
 - CI and PR review automation are active on merge and PR events (`CI` + `PR review (LLM via OpenRouter)`).
 - Repository layer supports UserId-scoped filtering and cursor-based pagination (BaseRepository); ownership filtering is enforced for all user-scoped resources.
-- Product direction: resumes, educations, templates, and cover letters are exposed through separate user-scoped routes with mandatory ownership checks.
+- Product direction: resumes, educations, templates, and cover letters are exposed through separate user-scoped routes with mandatory ownership checks. Resume creation now follows the optional-field contract documented in Story 2.1.
 
 ## Solution layout
 
@@ -36,8 +36,8 @@ Dependencies flow **inward**: API → Application → Domain ← Infrastructure.
 
 | Layer | Project | Status |
 |-------|---------|--------|
-| API | `JobNecto.API` | OpenAPI/Swashbuckle, Serilog, and active user/auth endpoints (`POST /api/v1/users`, `POST /api/v1/users/token/refresh`); `Program.cs` wires infrastructure, JWT auth, CORS, and global exception handling. |
-| Application | `JobNecto.Application` | MediatR handlers and FluentValidation pipeline are active for user creation; repository abstractions and password hasher contract are in use. |
+| API | `JobNecto.API` | OpenAPI/Swashbuckle, Serilog, and active user/auth/resume endpoints (`POST /api/v1/users`, `POST /api/v1/users/token/refresh`, `POST /api/v1/resumes`); `Program.cs` wires infrastructure, JWT auth, CORS, and global exception handling. |
+| Application | `JobNecto.Application` | MediatR handlers and FluentValidation pipeline are active for user creation and resume creation; repository abstractions and password hasher contract are in use. |
 | Domain | `JobNecto.Domain` | Entities, enums, value objects. No separate “vacancy analysis” aggregate today; **`Vacancy.MatchScore`** supports filtering/sorting. Domain events not wired. |
 | Infrastructure | `JobNecto.Infrastructure` | EF Core + Npgsql wired through DI; repositories + `UnitOfWork` transaction API implemented; committed migrations include password hash length hardening. |
 | LLM | `JobNecto.Infrastructure.LLM` | Stub. |
@@ -70,13 +70,13 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 | POST | `/api/v1/vacancies/{id}/cover-letter` | Generate and persist `CoverLetter`. |
 | GET, PATCH | `/api/v1/users/me` | Current user core profile only (`id`, `loginName`, `email`, `phone`, `location`, `about`, `avatar`, timestamps). |
 | GET, POST | `/api/v1/resumes` | User-scoped resume list/create for the authenticated user only. |
-| GET, PUT, DELETE | `/api/v1/resumes/{id}` | User-scoped resume detail/update/soft delete with ownership checks. |
+| GET, PATCH, DELETE | `/api/v1/resumes/{id}` | User-scoped resume detail/update/soft delete with ownership checks. |
 | GET, POST | `/api/v1/educations` | User-scoped education list/create for the authenticated user only. |
-| GET, PUT, DELETE | `/api/v1/educations/{id}` | User-scoped education detail/update/soft delete with ownership checks. |
+| GET, PATCH, DELETE | `/api/v1/educations/{id}` | User-scoped education detail/update/soft delete with ownership checks. |
 | GET, POST | `/api/v1/cover-letter-templates` | User-scoped template list/create for the authenticated user only. |
-| GET, PUT, DELETE | `/api/v1/cover-letter-templates/{id}` | User-scoped template detail/update/soft delete with ownership checks. |
+| GET, PATCH, DELETE | `/api/v1/cover-letter-templates/{id}` | User-scoped template detail/update/soft delete with ownership checks. |
 | GET, POST | `/api/v1/cover-letters` | User-scoped cover letter list/create for the authenticated user only. |
-| GET, PUT, DELETE | `/api/v1/cover-letters/{id}` | User-scoped cover letter detail/update/soft delete with ownership checks. |
+| GET, PATCH, DELETE | `/api/v1/cover-letters/{id}` | User-scoped cover letter detail/update/soft delete with ownership checks. |
 | PUT | `/api/v1/users/me/llm-config` | Store LLM settings (design storage first). |
 | GET, POST | `/api/v1/sources` | List and register job sources / sync metadata (beyond `JobSource` on each vacancy). |
 
@@ -87,6 +87,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 | POST | `/api/v1/users` | Register user, persist password hash, return `201 Created`, and issue HTTP-only auth cookie. |
 | POST | `/api/v1/users/token/refresh` | Refresh JWT for authenticated clients; always renew cookie and return body token only for bearer transport clients. |
 | GET | `/api/v1/users/me` | Return core profile fields for the authenticated user (id, loginName, email, phone, location, about, avatar, timestamps). Requires valid JWT. |
+| POST | `/api/v1/resumes` | Create a resume for the authenticated user and return the created resource with `Location` header. |
 
 ## Tech stack
 
@@ -120,7 +121,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 6. [done] API versioning and first endpoints (controllers under `/api/v1`).
 7. [done] **Users** CRUD with validation (create endpoint implemented; profile update and avatar management implemented in Story 1.4).
 8. [backlog] **Vacancies** list + CRUD.
-9. [backlog] **Resumes**, **educations**, **cover letters** CRUD and relationships via user-scoped routes only (no cross-user list endpoints).
+9. [in-progress] **Resumes**, **educations**, **cover letters** CRUD and relationships via user-scoped routes only (no cross-user list endpoints). Resume creation is merged; remaining list/detail/update/delete work stays in backlog.
 
 ### Phase C — Security
 
@@ -142,4 +143,4 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 ## Tracking
 
 Work is broken into small GitHub issues **#16–#37** (foundation through hardening).
-Story **1-4 update user profile and avatar management** merged on **2026-04-25**.
+Stories **1-4 update user profile and avatar management** and **2-1 create resume** merged on **2026-04-25** and **2026-04-27** respectively.

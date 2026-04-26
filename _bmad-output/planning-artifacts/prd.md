@@ -33,12 +33,12 @@ Jobnecto consolidates this chaos. Users connect their accounts from multiple job
 
 **Phase B Scope:** The HTTP core and API endpoints that power the job seeker's job hunting workflow. Users manage their profiles (education, resumes, cover letters, templates), browse and filter unified vacancies, and send applications to multiple platforms.
 
--## Post-Merge Implementation Status (2026-04-25)
+## Post-Merge Implementation Status (2026-04-27)
 
-- Completed stories now merged on `master`: `1-1-global-exception-handling`, `1-2-create-user-account`, `1-4-update-user-profile`, `1-5-password-hashing-token-policy-hardening`.
-- Implemented API surface includes `POST /api/v1/users` (registration), `POST /api/v1/users/token/refresh` (authenticated token renewal), and the new profile mutation and avatar management endpoints (`PATCH /api/v1/users/me`, `POST/PUT/DELETE /api/v1/users/me/avatar`).
+- Completed stories now merged on `master`: `1-1-global-exception-handling`, `1-2-create-user-account`, `1-3-retrieve-current-user-profile`, `1-4-update-user-profile`, `1-5-password-hashing-token-policy-hardening`, `2-1-create-resume`.
+- Implemented API surface includes `POST /api/v1/users` (registration), `POST /api/v1/users/token/refresh` (authenticated token renewal), the profile mutation and avatar management endpoints (`PATCH /api/v1/users/me`, `POST/PUT/DELETE /api/v1/users/me/avatar`), and authenticated resume creation via `POST /api/v1/resumes`.
 - Password persistence uses PBKDF2 (`pbkdf2-sha256`) through `IPasswordHasher` + `Pbkdf2PasswordHasher`; tokens are renewed through HTTP-only cookie transport and bearer transport support.
-- Scope adjustment: a subset of Phase C security baseline (password hashing + JWT protected refresh route) is already delivered while broader profile/resource endpoints remain in Phase B backlog.
+- Scope adjustment: a subset of Phase C security baseline (password hashing + JWT protected refresh route) is already delivered while broader profile/resource endpoints remain in Phase B backlog. Story 2.1 establishes the resume creation contract with optional `title`, `skills`, and `workLocationType` fields.
 
 ### What Makes This Special
 
@@ -346,22 +346,24 @@ A job seeker can:
 **Feature: Create Resume (POST /api/v1/resumes)**
 
 **Acceptance Criteria:**
-- Create resume with: `title`, `skills` (array), `salary` (optional), `currency` (optional), `workLocationType` (remote/office/hybrid), `experience` (text), `projects` (array), `certifications` (array), `languages` (array), `locations` (array of preferred work locations), `excludedWords` (array of keywords to avoid in LLM generation)
-- All required fields must be present
-- Skills: array of non-empty strings; minimum 1 skill required
-- Salary: if provided, must be positive number; currency required if salary present
-- WorkLocationType: must be one of: `remote`, `office`, `hybrid`
+
+- Create resume with: `title`, `skills` (array), `salary` (optional), `currency` (optional), `workLocationType` (`OnSite`/`Remote`/`Hybrid`, case-insensitive when provided), `experience` (enum text), `projects` (array), `certifications` (array), `languages` (array), `locations` (array of preferred work locations), `excludedWords` (array of keywords to avoid in LLM generation)
+- `title`, `skills`, and `workLocationType` are optional; an empty payload is valid
+- Skills: when provided, each item must be non-empty and at most 30 characters
+- Salary: if provided, must be zero or positive; currency remains optional
+- WorkLocationType: if provided, must match a valid `WorkLocationType` enum value
 - Languages: array of language names (e.g., `["English", "Spanish"]`)
 - Return `201 Created` with resume object including `id`, `createdAt`, `updatedAt`
 - Record association to current user automatically
 
 **Validation Rules:**
-- `title`: Required, 1-100 characters
-- `skills`: Required array, minimum 1 skill, each skill 1-50 characters
-- `salary`: Optional, if present must be > 0
-- `currency`: Optional, if salary present then required (ISO 4217: USD, EUR, etc.)
-- `workLocationType`: Required, enum: remote | office | hybrid
-- `experience`: Optional, text description
+
+- `title`: Optional, maximum 500 characters
+- `skills`: Optional array; when present, each skill must be non-empty and at most 30 characters
+- `salary`: Optional, if present must be >= 0
+- `currency`: Optional, if provided must match a valid `Currency` enum value (e.g. `USD`, `EUR`, `UAH`)
+- `workLocationType`: Optional, enum: `OnSite` | `Remote` | `Hybrid`
+- `experience`: Optional, must match a valid `Experience` enum value when provided
 - `projects`: Optional array
 - `certificates`: Optional array
 - `languages`: Optional array
@@ -369,6 +371,7 @@ A job seeker can:
 - `excludedWords`: Optional array for LLM context
 
 **Edge Cases:**
+
 - User creates multiple resumes (different roles: "Senior Dev", "Tech Lead", "Consultant")
 - Resume with no salary specified (flexible candidate)
 - All locations excluded (truly remote-only candidate)

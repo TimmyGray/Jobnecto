@@ -56,10 +56,10 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **`Program.cs`** wires **`AddInfrastructure()`** and **`AddJwtAuthentication()`** in the API host. For tests, DB wiring/connection scope can be overridden by the test host.
 - When adding Redis/Quartz behavior, align with packages already referenced — avoid duplicate client/scheduler abstractions unless introducing a deliberate replacement.
 
-### Current implementation snapshot (2026-04-23)
+### Current implementation snapshot (2026-04-27)
 
-- Merged stories: `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-5` (password hashing + token policy hardening).
-- Active HTTP endpoints: `POST /api/v1/users`, `POST /api/v1/users/token/refresh`, `GET /api/v1/users/me`.
+- Merged stories: `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile), `1-5` (password hashing + token policy hardening), `2-1` (create resume).
+- Active HTTP endpoints: `POST /api/v1/users`, `POST /api/v1/users/token/refresh`, `GET /api/v1/users/me`, `PATCH /api/v1/users/me`, `POST|PATCH|DELETE /api/v1/users/me/avatar`, `POST /api/v1/resumes`.
 - Password storage uses PBKDF2 (`Pbkdf2PasswordHasher`) behind `IPasswordHasher`.
 - Auth transport policy: browser flows rely on HTTP-only cookie transport; bearer clients can use response-body token on refresh.
 
