@@ -96,14 +96,18 @@ A job seeker can:
 ### Measurable Outcomes
 
 1. All Phase B endpoints implemented:
-  - Users: GET/PUT (current user core profile only; related resources use dedicated endpoints)
-   - Resumes: GET (list), POST (create), GET (single), PUT (update), DELETE (soft)
-   - Educations: GET (list), POST (create), GET (single), PUT (update), DELETE (soft)
-   - Cover Letters: GET (list), POST (create), GET (single), PUT (update), DELETE (soft)
-   - Cover Letter Templates: GET (list), POST (create), GET (single), PUT (update), DELETE (soft)
-   - Vacancies: GET (list), GET (single)
-   - Vacancy Filtering: POST `/api/v1/vacancies/filter` (complex multi-criteria filtering via request body)
-   
+   - Users: GET/PATCH (current user core profile only; related resources use dedicated endpoints)
+   - Resumes: GET (list), POST (create), GET (single), PATCH (update), DELETE (soft)
+   - Education: GET (list), POST (create), GET (single), PATCH (update), DELETE (soft)
+   - Cover Letter Templates: GET (list), POST (create), GET (single), PATCH (update), DELETE (soft)
+   - Vacancies: GET (list), GET (single), POST (filter)
+
+### Decision Log Additions
+
+- **User Resource Boundaries**: `/api/v1/users/me` remains a shallow profile endpoint. All associated collections (Resumes, Education, Letters) are accessed via top-level user-scoped resource routes (e.g., `GET /api/v1/resumes`) rather than nested under `/users/me/resumes`. This improves cacheability and pagination control.
+- **Mapping Consistency**: Standardized the use of `<Entity>Mappers` in Application feature slices to handle DTO↔Entity transformations, ensuring 100% decoupling between API contracts and Domain models.
+- **Generic Repository Usage**: Leveraging `IEditableRepository<T>` for Resume and Education to reuse the established `GetAsync(PagedQuery)` pattern which handles automated `UserId` scoping and soft-delete filtering.
+
 2. ≥ 85% code coverage on Application handlers and validators
 3. Zero breaking changes to Domain model entities post-Phase B
 4. OpenAPI spec includes all endpoints, request/response schemas, status codes (200, 400, 404, 500)
@@ -116,10 +120,10 @@ A job seeker can:
 
 **Core Resources:**
 - **User profiles** — Create profile, retrieve/update current user core fields only (GET `/api/v1/users/me`, PATCH `/api/v1/users/me`)
-- **Resumes** — CRUD operations (GET list, POST create, GET detail, PUT update, DELETE soft)
-- **Educations** — CRUD operations linked to user (GET list, POST create, GET detail, PUT update, DELETE soft)
-- **Cover Letter Templates** — Reusable templates for applications (GET list, POST create, GET detail, PUT update, DELETE soft with pagination/filtration)
-- **Cover Letters** — Job-specific application letters (GET list, POST create, GET detail, PUT update, DELETE soft); linked to Vacancy and Template
+- **Resumes** — CRUD operations (GET list, POST create, GET detail, PATCH update, DELETE soft)
+- **Educations** — CRUD operations linked to user (GET list, POST create, GET detail, PATCH update, DELETE soft)
+- **Cover Letter Templates** — Reusable templates for applications (GET list, POST create, GET detail, PATCH update, DELETE soft with pagination/filtration)
+- **Cover Letters** — Job-specific application letters (GET list, POST create, GET detail, PATCH update, DELETE soft); linked to Vacancy and Template
 - **Vacancies** — Browse and filter all available job openings (GET list, GET single)
   - **Vacancy Filtering** — Complex multi-criteria filtering via POST `/api/v1/vacancies/filter` with request body (skills, location, salary range, work location type, etc.)
 
@@ -175,7 +179,7 @@ A job seeker can:
 1. **List Existing Templates** → GET `/api/v1/cover-letter-templates?page=1&pageSize=10` (see all saved templates)
 2. **Create New Template** → POST `/api/v1/cover-letter-templates` (write reusable generic template)
 3. **Retrieve Template Details** → GET `/api/v1/cover-letter-templates/{id}` (view specific template before using)
-4. **Update Template** → PUT `/api/v1/cover-letter-templates/{id}` (refine template based on feedback or new learned approach)
+4. **Update Template** → PATCH `/api/v1/cover-letter-templates/{id}` (refine template based on feedback or new learned approach)
 5. **Delete Outdated Template** → DELETE `/api/v1/cover-letter-templates/{id}` (soft delete old/unused versions)
 
 **Success:** Job seeker has 2-3 high-quality, reusable cover letter templates ready to be adapted per application.
@@ -223,7 +227,7 @@ A job seeker can:
    ```
    (create instance for this specific vacancy)
 4. **Retrieve Cover Letter** → GET `/api/v1/cover-letters/{letterId}` (review before sending)
-5. **Update Cover Letter** → PUT `/api/v1/cover-letters/{letterId}` (refine based on feedback)
+5. **Update Cover Letter** → PATCH `/api/v1/cover-letters/{letterId}` (refine based on feedback)
 6. **List All Cover Letters** → GET `/api/v1/cover-letters?page=1&pageSize=20` (see all applications created)
 7. **Delete Cover Letter** → DELETE `/api/v1/cover-letters/{letterId}` (soft delete if decided not to apply)
 
@@ -237,11 +241,11 @@ A job seeker can:
 **Goal:** Keep resume and education records up-to-date as credentials and goals evolve
 
 1. **List My Resumes** → GET `/api/v1/resumes?page=1` (see my resume versions)
-2. **Update Resume** → PUT `/api/v1/resumes/{id}` (add new skill, update salary expectation, change work preferences)
+2. **Update Resume** → PATCH `/api/v1/resumes/{id}` (add new skill, update salary expectation, change work preferences)
 3. **List My Educations** → GET `/api/v1/educations` (view my education history)
-4. **Update Education** → PUT `/api/v1/educations/{id}` (add new degree, update specialization)
+4. **Update Education** → PATCH `/api/v1/educations/{id}` (add new degree, update specialization)
 5. **Delete Education** → DELETE `/api/v1/educations/{id}` (soft delete incomplete or irrelevant education)
-6. **Review & Refresh Templates** → GET, PUT `/api/v1/cover-letter-templates/{id}` (keep reusable templates fresh and relevant)
+6. **Review & Refresh Templates** → GET, PATCH `/api/v1/cover-letter-templates/{id}` (keep reusable templates fresh and relevant)
 
 **Success:** Job seeker's profile, resumes, educations, and templates stay current and reflect their latest credentials and career goals.
 
@@ -336,7 +340,7 @@ A job seeker can:
 - `GET /api/v1/resumes` — List all resumes for current user (paginated)
 - `POST /api/v1/resumes` — Create new resume
 - `GET /api/v1/resumes/{id}` — Retrieve single resume detail
-- `PUT /api/v1/resumes/{id}` — Update resume
+- `PATCH /api/v1/resumes/{id}` — Update resume
 - `DELETE /api/v1/resumes/{id}` — Soft delete resume
 
 **Feature: Create Resume (POST /api/v1/resumes)**
@@ -392,7 +396,7 @@ A job seeker can:
 
 ---
 
-**Feature: Update Resume (PUT /api/v1/resumes/{id})**
+**Feature: Update Resume (PATCH /api/v1/resumes/{id})**
 
 **Acceptance Criteria:**
 - Update any resume field
@@ -422,7 +426,7 @@ A job seeker can:
 - `GET /api/v1/educations` — List all educations for current user
 - `POST /api/v1/educations` — Create new education record
 - `GET /api/v1/educations/{id}` — Retrieve single education
-- `PUT /api/v1/educations/{id}` — Update education
+- `PATCH /api/v1/educations/{id}` — Update education
 - `DELETE /api/v1/educations/{id}` — Soft delete education
 
 **Feature: Create Education (POST /api/v1/educations)**
@@ -453,7 +457,7 @@ A job seeker can:
 
 **Acceptance Criteria:** (Similar pattern to Resume)
 - GET `{id}`: return full education record with all fields
-- PUT `{id}`: update any field, re-validate
+- PATCH `{id}`: update any field, re-validate
 - DELETE `{id}`: soft delete
 - 404 if not found
 
@@ -467,7 +471,7 @@ A job seeker can:
 - `GET /api/v1/cover-letter-templates` — List all templates for current user (paginated, filterable)
 - `POST /api/v1/cover-letter-templates` — Create new template
 - `GET /api/v1/cover-letter-templates/{id}` — Retrieve single template
-- `PUT /api/v1/cover-letter-templates/{id}` — Update template
+- `PATCH /api/v1/cover-letter-templates/{id}` — Update template
 - `DELETE /api/v1/cover-letter-templates/{id}` — Soft delete template
 
 **Feature: Create Cover Letter Template (POST /api/v1/cover-letter-templates)**
@@ -500,7 +504,7 @@ A job seeker can:
 
 ---
 
-**Feature: Update Template (PUT /api/v1/cover-letter-templates/{id})**
+**Feature: Update Template (PATCH /api/v1/cover-letter-templates/{id})**
 
 **Acceptance Criteria:**
 - Update `name` or `content` or both
@@ -527,7 +531,7 @@ A job seeker can:
 - `GET /api/v1/cover-letters` — List all cover letters for current user (paginated)
 - `POST /api/v1/cover-letters` — Create new cover letter for a vacancy
 - `GET /api/v1/cover-letters/{id}` — Retrieve single cover letter
-- `PUT /api/v1/cover-letters/{id}` — Update cover letter
+- `PATCH /api/v1/cover-letters/{id}` — Update cover letter
 - `DELETE /api/v1/cover-letters/{id}` — Soft delete cover letter
 
 **Feature: Create Cover Letter (POST /api/v1/cover-letters)**
@@ -562,7 +566,7 @@ A job seeker can:
 
 ---
 
-**Feature: Update Cover Letter (PUT /api/v1/cover-letters/{id})**
+**Feature: Update Cover Letter (PATCH /api/v1/cover-letters/{id})**
 
 **Acceptance Criteria:**
 - Update `content` (cannot change `vacancyId` after creation)
