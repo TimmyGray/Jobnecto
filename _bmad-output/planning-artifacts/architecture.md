@@ -36,7 +36,7 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 - CRUD operations on user-owned resources (User, Resume, Education, Template, Letter)
 - Read-only operations on shared resources (Vacancy browsing and filtering)
 - Filtering: Complex multi-criteria vacancy filtering via POST body (skills, location, salary, work type, etc.)
-- Paginated list operations with configurable page size (default 20, max 100)
+- Paginated list operations with cursor-based pagination (`lastSeenId` + `lastSeenUpdatedAt`); `pageSize` default 20, max 100
 
 **Non-Functional Requirements:**
 
@@ -136,7 +136,7 @@ _This document builds collaboratively through step-by-step discovery. We'll make
 - Vacancy filtering accepts POST body (not query params) to support multi-criteria queries
 - Filter object contains: skills[], location, salaryMin/Max, workLocationType[], etc.
 - AND logic between fields, OR logic within arrays (e.g., matches ANY skill)
-- Pagination included in filter object (page, pageSize)
+- Pagination included in filter object (`pageSize`, `lastSeenId`, `lastSeenUpdatedAt` cursor)
 - Design advantage: No URL length limits; type-safe filtering with request models
 
 **5. Async-First Pattern**
@@ -323,7 +323,7 @@ public interface IResumeRepository
 {
     Task<Resume?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<IEnumerable<Resume>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
-    Task<PagedResult<Resume>> GetPaginatedByUserIdAsync(Guid userId, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<PagedResult<Resume>> GetAsync(PagedQuery pagedQuery, CancellationToken cancellationToken = default);
     Task AddAsync(Resume resume, CancellationToken cancellationToken = default);
     Task UpdateAsync(Resume resume, CancellationToken cancellationToken = default);
 }

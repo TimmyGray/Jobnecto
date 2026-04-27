@@ -382,9 +382,9 @@ A job seeker can:
 
 **Acceptance Criteria:**
 - Return paginated list of user's resumes
-- Query params: `page` (1-indexed), `pageSize` (default 20, max 100)
+- Query params: `pageSize` (default 20, max 100), `lastSeenId` (Guid, optional cursor), `lastSeenUpdatedAt` (DateTime, optional cursor)
 - Return array with: `id`, `title`, `skills` (array), `salary`, `currency`, `workLocationType`, `updatedAt`
-- On success: return `200 OK` with `{ total, page, pageSize, items }`
+- On success: return `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`
 - Order by `updatedAt desc` (newest first)
 
 ---
@@ -491,11 +491,11 @@ A job seeker can:
 
 **Acceptance Criteria:**
 - Return paginated list of user's templates
-- Query params: `page` (1-indexed), `pageSize` (default 20)
+- Query params: `pageSize` (default 20, max 100), `lastSeenId` (Guid, optional cursor), `lastSeenUpdatedAt` (DateTime, optional cursor)
 - Return array with: `id`, `name`, `contentPreview` (first 200 chars), `createdAt`, `updatedAt`
 - Optional filter: `search` query param to search by name
 - Order by `updatedAt desc` (newest first)
-- On success: return `200 OK` with `{ total, page, pageSize, items }`
+- On success: return `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`
 
 ---
 
@@ -553,10 +553,10 @@ A job seeker can:
 
 **Acceptance Criteria:**
 - Return paginated list of user's cover letters
-- Query params: `page` (1-indexed), `pageSize` (default 20)
+- Query params: `pageSize` (default 20, max 100), `lastSeenId` (Guid, optional cursor), `lastSeenUpdatedAt` (DateTime, optional cursor)
 - Return array with: `id`, `vacancyId`, `vacancyTitle` (from linked Vacancy), `contentPreview` (first 200 chars), `createdAt`
 - Order by `createdAt desc` (newest first)
-- On success: return `200 OK` with `{ total, page, pageSize, items }`
+- On success: return `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`
 
 ---
 
@@ -599,10 +599,10 @@ A job seeker can:
 
 **Acceptance Criteria:**
 - Return paginated list of all vacancies (recent first)
-- Query params: `page` (1-indexed), `pageSize` (default 20, max 100)
+- Query params: `pageSize` (default 20, max 100), `lastSeenId` (Guid, optional cursor), `lastSeenUpdatedAt` (DateTime, optional cursor)
 - Return array with: `id`, `title`, `company`, `location`, `jobSource`, `salary`, `currency`, `matchScore`, `createdAt`
 - Order by `createdAt desc` (newest first)
-- On success: return `200 OK` with `{ total, page, pageSize, items }`
+- On success: return `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`
 
 ---
 
@@ -611,9 +611,9 @@ A job seeker can:
 **Acceptance Criteria:**
 - Accept POST request with filter object in body (not query params)
 - Filter criteria: `skills` (array, match any), `location` (string, partial match), `salaryMin` (number), `salaryMax` (number), `workLocationTypes` (array: remote/office/hybrid), `categories` (array), `experienceLevel` (enum), `excludeKeywords` (array)
-- Pagination: `page`, `pageSize` in filter body
+- Pagination: `pageSize`, `lastSeenId`, `lastSeenUpdatedAt` (cursor) in filter body
 - Return results matching ALL provided criteria (AND logic between fields; OR logic within arrays)
-- Return `200 OK` with same shape as List endpoint
+- Return `200 OK` with same shape as List endpoint: `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`
 - Return `400 Bad Request` if filter is malformed
 
 **Sample Request Body:**
@@ -627,8 +627,9 @@ A job seeker can:
   "categories": [],
   "experienceLevel": "mid",
   "excludeKeywords": [],
-  "page": 1,
-  "pageSize": 20
+  "pageSize": 20,
+  "lastSeenId": null,
+  "lastSeenUpdatedAt": null
 }
 ```
 

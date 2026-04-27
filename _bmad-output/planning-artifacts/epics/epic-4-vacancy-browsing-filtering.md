@@ -12,16 +12,16 @@ So that I can scan what's available without filtering.
 
 **Given** a valid JWT token
 **When** `GET /api/v1/vacancies` is called with no params
-**Then** `200 OK` with `{ total, page, pageSize, items }`, ordered by `createdAt desc`, `pageSize` defaulting to 20
+**Then** `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`, ordered by `createdAt desc`, `pageSize` defaulting to 20
 **And** each item includes: `id`, `title`, `company`, `workLocationType`, `location`, `salary`, `currency`, `createdAt`
 
-**Given** `page` and `pageSize` query params are provided
+**Given** `pageSize`, `lastSeenId`, and `lastSeenUpdatedAt` cursor params are provided
 **When** the request is processed
-**Then** correct slice is returned; `pageSize` capped at 100
+**Then** correct cursor window is returned; `pageSize` capped at 100
 
 **Given** no vacancies exist in the DB
 **When** `GET /api/v1/vacancies` is called
-**Then** `200 OK` with `{ total: 0, items: [] }`
+**Then** `200 OK` with `{ totalCount: 0, hasNext: false, items: [] }`
 
 ---
 
@@ -73,4 +73,4 @@ So that I can decide whether to apply.
 **Then** `404 Not Found`
 
 ---
-
+

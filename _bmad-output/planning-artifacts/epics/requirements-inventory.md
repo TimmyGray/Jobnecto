@@ -42,7 +42,7 @@ NFR6: Build must pass: `dotnet build backend/JobNecto.slnx --configuration Relea
 NFR7: All tests must pass: `dotnet test backend/JobNecto.slnx --configuration Release --warnaserror`.
 NFR8: No nullable reference type warnings suppressed without documented justification.
 NFR9: OpenAPI spec auto-generated for all Phase B endpoints with request/response schemas, status codes (200, 201, 204, 400, 404, 409, 422, 500), and example bodies.
-NFR10: Pagination: `pageSize` min 1, max 100, default 20; request body max 1MB.
+NFR10: Pagination: cursor-based (`lastSeenId` + `lastSeenUpdatedAt`); `pageSize` min 1, max 100, default 20. Response shape: `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`. Request body max 1MB.
 NFR11: Zero breaking changes to Domain model entities after Phase B is complete.
 NFR12: Passwords must be stored only as one-way salted hashes; plaintext passwords are never persisted or returned, and any migration/backfill required to reach that state is part of auth readiness.
 NFR13: Any business rule surfaced as `409 Conflict` must be backed by a database-level uniqueness constraint and at least one integration test that exercises concurrent create/update attempts.
