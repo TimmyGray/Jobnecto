@@ -112,6 +112,8 @@ curl -i http://localhost:5000/
   - Creates a resume for the authenticated user and returns `201 Created` with the created resource and `Location` header. `title`, `skills`, and `workLocationType` are optional; when provided, enum and length validation still applies.
 - `GET /api/v1/resumes`
   - Returns a cursor-paginated list of resumes for the authenticated user (`pageSize`, `lastSeenId`, `lastSeenUpdatedAt`).
+- `GET /api/v1/resumes/{id}`
+  - Returns the full detail of a specific resume owned by the authenticated user; returns `404` if not found or not owned by the caller.
 
 ### CORS
 

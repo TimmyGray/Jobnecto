@@ -58,8 +58,8 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### Current implementation snapshot (2026-04-28)
 
-- Merged stories: `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile), `1-5` (password hashing + token policy hardening), `2-1` (create resume), `2-2` (list resumes).
-- Active HTTP endpoints: `POST /api/v1/users`, `POST /api/v1/users/token/refresh`, `GET /api/v1/users/me`, `PATCH /api/v1/users/me`, `POST|PATCH|DELETE /api/v1/users/me/avatar`, `POST /api/v1/resumes`, `GET /api/v1/resumes`.
+- Merged stories: `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile), `1-5` (password hashing + token policy hardening), `2-1` (create resume), `2-2` (list resumes), `2-3` (get resume detail).
+- Active HTTP endpoints: `POST /api/v1/users`, `POST /api/v1/users/token/refresh`, `GET /api/v1/users/me`, `PATCH /api/v1/users/me`, `POST|PATCH|DELETE /api/v1/users/me/avatar`, `POST /api/v1/resumes`, `GET /api/v1/resumes`, `GET /api/v1/resumes/{id}`.
 - Password storage uses PBKDF2 (`Pbkdf2PasswordHasher`) behind `IPasswordHasher`.
 - Auth transport policy: browser flows rely on HTTP-only cookie transport; bearer clients can use response-body token on refresh.
 

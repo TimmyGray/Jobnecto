@@ -11,7 +11,7 @@
 
 ## Implementation snapshot (2026-04-28)
 
-- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), `1-5` (password hashing and token policy hardening), `2-1` (create resume), and `2-2` (list resumes) are merged to `master`.
+- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), `1-5` (password hashing and token policy hardening), `2-1` (create resume), `2-2` (list resumes), and `2-3` (get resume detail) are merged to `master`.
 - Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`). Story 2.1 adds `POST /api/v1/resumes` for authenticated resume creation, and Story 2.2 adds `GET /api/v1/resumes` with cursor pagination.
 - Password persistence uses PBKDF2 (`pbkdf2-sha256`) via `IPasswordHasher` and `Pbkdf2PasswordHasher`, with test coverage for malformed hash formats.
 - CI and PR review automation are active on merge and PR events (`CI` + `PR review (LLM via OpenRouter)`).
@@ -89,6 +89,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 | GET | `/api/v1/users/me` | Return core profile fields for the authenticated user (id, loginName, email, phone, location, about, avatar, timestamps). Requires valid JWT. |
 | POST | `/api/v1/resumes` | Create a resume for the authenticated user and return the created resource with `Location` header. |
 | GET | `/api/v1/resumes` | Return a cursor-paginated list of resumes for the authenticated user. |
+| GET | `/api/v1/resumes/{id}` | Return the full detail of a specific resume owned by the authenticated user; `404` if not found or not owned. |
 
 ## Tech stack
 

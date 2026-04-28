@@ -16,12 +16,12 @@ date: '2026-04-23'
 
 _This document builds collaboratively through step-by-step discovery. We'll make and document architectural decisions together to guide implementation._
 
-## Post-Merge Implementation Status (2026-04-27)
+## Post-Merge Implementation Status (2026-04-28)
 
-- Stories `1-5-password-hashing-token-policy-hardening` and `2-1-create-resume` are merged and active on `master`.
+- Stories `1-5-password-hashing-token-policy-hardening`, `2-1-create-resume`, `2-2-list-resumes`, and `2-3-get-resume-detail` are merged and active on `master`.
 - `Program.cs` now wires infrastructure (`AddInfrastructure`), JWT authentication, CORS, and global exception handling in the HTTP pipeline.
 - Security baseline is implemented with `IPasswordHasher` (`Pbkdf2PasswordHasher`) and authenticated token refresh (`POST /api/v1/users/token/refresh`).
-- The application now has its first resume vertical slice: `POST /api/v1/resumes` with MediatR command handling, FluentValidation, and mapper-based DTO-to-entity conversion.
+- The application now has a complete resume vertical slice: `POST /api/v1/resumes` (create), `GET /api/v1/resumes` (list), and `GET /api/v1/resumes/{id}` (detail with ownership enforcement) with MediatR command/query handling, FluentValidation, ownership-based 404 responses, and mapper-based DTO-to-entity conversion.
 - Token transport policy is explicit: browser flows rely on HTTP-only secure cookies; bearer clients can consume body tokens from refresh responses.
 - Architecture decisions around conflict handling are enforced in production code (`DbUpdateException` unique-constraint mapping to HTTP 409) and concurrency integration tests.
 
