@@ -52,16 +52,16 @@ So that I can track all my job applications.
 
 **Given** a valid JWT token
 **When** `GET /api/v1/cover-letters` is called
-**Then** `200 OK` with `{ total, page, pageSize, items }` — non-deleted cover letters owned by this user, ordered by `createdAt desc`
+**Then** `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }` — non-deleted cover letters owned by this user, ordered by `createdAt desc`
 **And** each item includes: `id`, `vacancyId`, `vacancyTitle` (from linked vacancy), `createdAt`, `updatedAt`
 
-**Given** `page` and `pageSize` are provided
+**Given** `pageSize`, `lastSeenId`, and `lastSeenUpdatedAt` cursor params are provided
 **When** the request is processed
-**Then** correct slice returned; `pageSize` capped at 100
+**Then** correct cursor window returned; `pageSize` capped at 100
 
 **Given** the user has no cover letters
 **When** `GET /api/v1/cover-letters` is called
-**Then** `200 OK` with `{ total: 0, items: [] }`
+**Then** `200 OK` with `{ totalCount: 0, hasNext: false, items: [] }`
 
 ---
 

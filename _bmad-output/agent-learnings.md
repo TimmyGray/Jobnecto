@@ -11,6 +11,36 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-04-28 - Explicitly test DateTime kind/offset behavior for cursor pagination
+
+**Trigger:** User correction
+**Context:** Story 2.2 cursor pagination review surfaced risk around `lastSeenUpdatedAt` DateTime kind normalization.
+**Wrong action:** I validated pagination happy paths and cursor progression but did not include adversarial checks for `DateTimeKind.Unspecified` / local-time cursor inputs.
+**Root cause:** I over-focused on acceptance-criteria coverage and existing repository tests, and under-weighted cross-boundary serialization/timezone edge cases.
+**Correct behavior:** For cursor fields that include timestamps, always add or review tests for kind/offset mismatch and normalize inputs at API boundary when needed.
+**Pattern / trigger:** API cursor parameters containing DateTime combined with strict equality/order comparisons in repository queries.
+**Generalize?** Yes
+
+### 2026-04-28 - Prefer separate handler file when implementing new request handlers
+
+**Trigger:** User correction
+**Context:** Story 2.2 implementation for list resumes used `ListResumesQuery` and `ListResumesQueryHandler` in one file.
+**Wrong action:** I kept query + handler together in a single file instead of splitting handler into a dedicated file.
+**Root cause:** I followed the story wording (`same file or sibling`) and optimized for minimal churn, but did not prioritize long-term maintainability/readability preference.
+**Correct behavior:** Prefer separate files for non-trivial handlers (e.g., `ListResumesQuery.cs` + `ListResumesHandler.cs`) unless there is an explicit convention to keep them together.
+**Pattern / trigger:** New feature slice adds MediatR request + handler and the handler contains business mapping/paging logic.
+**Generalize?** Yes
+
+### 2026-04-28 - Avoid escaped quotes inside C# interpolation expressions
+
+**Trigger:** Test failure
+**Context:** Added cursor-pagination integration test in `backend/tests/JobNecto.Tests/API/ResumesControllerTests.cs`.
+**Wrong action:** I inserted `ToString(\"o\")` inside a C# interpolated expression, producing invalid syntax and compile-time failures.
+**Root cause:** I carried patch-string escaping into target C# code instead of writing the literal as `ToString("o")`.
+**Correct behavior:** When patching source code, verify language-level string literals directly in the target file and avoid transport-layer escaping artifacts.
+**Pattern / trigger:** Any patch that injects nested string literals inside interpolation or lambda expressions.
+**Generalize?** Yes
+
 ### 2026-04-25 - Verify review findings against concrete code paths
 
 **Trigger:** User correction

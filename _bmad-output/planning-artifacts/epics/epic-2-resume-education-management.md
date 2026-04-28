@@ -47,15 +47,15 @@ So that I can quickly navigate to the one I need.
 
 **Given** a valid JWT token
 **When** `GET /api/v1/resumes` is called with no query params
-**Then** `200 OK` with `{ total, page, pageSize, items }` - only this user's non-deleted resumes, ordered by `updatedAt desc`, `pageSize` defaulting to 20
+**Then** `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }` - only this user's non-deleted resumes, ordered by `updatedAt desc`, `pageSize` defaulting to 20
 
-**Given** `page` and `pageSize` query params are provided
+**Given** `pageSize`, `lastSeenId`, and `lastSeenUpdatedAt` cursor params are provided
 **When** the request is processed
-**Then** the correct slice is returned; `pageSize` is capped at 100
+**Then** the correct cursor window is returned; `pageSize` is capped at 100
 
 **Given** the user has no resumes
 **When** `GET /api/v1/resumes` is called
-**Then** `200 OK` with `{ total: 0, items: [] }`
+**Then** `200 OK` with `{ totalCount: 0, hasNext: false, items: [] }`
 
 **Given** another user's resume exists in the DB
 **When** this user calls `GET /api/v1/resumes`

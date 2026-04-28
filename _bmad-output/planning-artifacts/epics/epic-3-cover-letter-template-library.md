@@ -48,16 +48,16 @@ So that I can find the right template for a job application.
 
 **Given** a valid JWT token
 **When** `GET /api/v1/cover-letter-templates` is called with no query params
-**Then** `200 OK` with `{ total, page, pageSize, items }` - non-deleted templates owned by this user, ordered by `updatedAt desc`
+**Then** `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }` - non-deleted templates owned by this user, ordered by `updatedAt desc`
 **And** each item includes `id`, `name`, `createdAt`, `updatedAt`, and `contentPreview` (first 200 chars of `content`)
 
 **Given** `search` query param is provided (e.g., `?search=senior`)
 **When** the request is processed
 **Then** only templates whose `name` contains the search term (case-insensitive) are returned
 
-**Given** `pageSize` and `page` params are provided
+**Given** `pageSize`, `lastSeenId`, and `lastSeenUpdatedAt` cursor params are provided
 **When** the request is processed
-**Then** the correct slice is returned; `pageSize` capped at 100
+**Then** the correct cursor window is returned; `pageSize` capped at 100
 
 ---
 

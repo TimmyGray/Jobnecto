@@ -20,6 +20,22 @@ JobNecto is a .NET 10 backend API for job vacancy aggregation and matching. Clea
 - No user-facing routes exist yet; 404 on root is expected.
 
 
+### Key Reference Files — When to Read Them
+
+| File | Read when |
+|------|----------|
+| `_bmad-output/planning-artifacts/prd.md` | Implementing a feature; clarifying what a feature must do; writing or reviewing stories |
+| `_bmad-output/planning-artifacts/architecture.md` | Designing new components; choosing patterns, abstractions, or infrastructure; validating Clean Architecture boundaries |
+| `_bmad-output/planning-artifacts/epics/requirements-inventory.md` | Checking non-functional requirements (security, performance, pagination, validation rules) before implementation |
+| `_bmad-output/agent-learnings.md` | Starting any non-trivial task; before writing tests; when a mistake was made — check if a lesson already covers it |
+
+### Agent Pushback Rule
+
+- Do **not** agree with every user suggestion. Only agree when the suggestion is technically sound and consistent with the project's architecture, conventions, and requirements.
+- If a user suggestion is clearly wrong, introduces a regression, violates Clean Architecture, or contradicts a documented decision — **say so explicitly** before proceeding. Provide a brief, direct reason.
+- Do not silently implement something incorrect just to comply. A short correction is always preferable to silent wrong work.
+- If the user insists after being informed, acknowledge the override and proceed, but note any risks.
+
 ### Custom Agent Skills
 
 - **Function Comments**: Use the `@[/function-comments]` skill from `.agents/skills/function-comments/SKILL.md` to add C# XML docs (`/// <summary>`, `<param>`, `<returns>`) to functions that benefit from documentation. Skip trivial code per the skill.
@@ -134,9 +150,10 @@ After a feature is implemented and merged, the agent **MUST** update the followi
 1. **`JOBNECTO_BACKEND_ROADMAP.md`** — Update completed features, mark as done, adjust timeline for remaining items.
 2. **`_bmad-output/planning-artifacts/prd.md`** — Reflect completed features, update feature status, adjust scope if needed.
 3. **`_bmad-output/planning-artifacts/architecture.md`** — Update if implementation changed from design, document any architectural decisions made during implementation.
-4. **`_bmad-output/implementation-artifacts/sprint-status.yaml`** — Mark completed stories/epics as done, update sprint metrics, remove merged items.
-5. **`README.md`** — Update feature list, API capabilities, or usage examples if the new feature is user-facing.
-6. **Project context files** (`_bmad-output/project-context.md`, etc.) — Update project state, completed features, and current status.
+4. **`_bmad-output/planning-artifacts/epics/requirements-inventory.md`** — Update if NFRs changed or new constraints were introduced during implementation.
+5. **`_bmad-output/implementation-artifacts/sprint-status.yaml`** — Mark completed stories/epics as done, update sprint metrics, remove merged items.
+6. **`README.md`** — Update feature list, API capabilities, or usage examples if the new feature is user-facing.
+7. **Project context files** (`_bmad-output/project-context.md`, etc.) — Update project state, completed features, and current status.
 
 ### Update Procedure
 

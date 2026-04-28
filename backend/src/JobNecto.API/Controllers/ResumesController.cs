@@ -1,5 +1,6 @@
 using JobNecto.API.Infrastructure;
 using JobNecto.Application.Resumes;
+using JobNecto.Domain.ValueObjects;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -51,5 +52,46 @@ public class ResumesController : ControllerBase
         // 4. Return 201 Created with Location header
         // Following the API pattern: /api/v1/resumes/{id}
         return Created($"/api/v1/resumes/{result.Id}", result);
+    }
+
+    /// <summary>
+    /// Returns a cursor-paginated list of resumes belonging to the current authenticated user.
+    /// </summary>
+    /// <param name="pageSize">Number of items per page (default 20, max 100).</param>
+    /// <param name="lastSeenId">Cursor: ID of the last seen resume from the previous page.</param>
+    /// <param name="lastSeenUpdatedAt">Cursor: UpdatedAt of the last seen resume from the previous page.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Paginated list of resumes for the current user.</returns>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<ResumeResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<PagedResult<ResumeResult>>> ListAsync(
+        [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? lastSeenId = null,
+        [FromQuery] DateTime? lastSeenUpdatedAt = null,
+        CancellationToken cancellationToken = default)
+    {
+        var userIdValue = HttpContext.GetCurrentUserId();
+        if (!Guid.TryParse(userIdValue, out var userId))
+            return Unauthorized();
+
+        if (lastSeenUpdatedAt.HasValue)
+        {
+            lastSeenUpdatedAt = lastSeenUpdatedAt.Value.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(lastSeenUpdatedAt.Value, DateTimeKind.Utc)
+                : lastSeenUpdatedAt.Value.ToUniversalTime();
+        }
+
+        var query = new ListResumesQuery
+        {
+            UserId = userId,
+            PageSize = pageSize,
+            LastSeenId = lastSeenId,
+            LastSeenUpdatedAt = lastSeenUpdatedAt,
+        };
+
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
     }
 }
