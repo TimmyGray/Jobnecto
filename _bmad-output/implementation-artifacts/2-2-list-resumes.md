@@ -12,7 +12,7 @@ So that I can quickly navigate to the one I need.
 
 1. `GET /api/v1/resumes` requires a valid JWT token. Unauthenticated requests return `401 Unauthorized`.
 2. Returns `200 OK` with a paginated response: `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }` — only the current user's non-deleted resumes, ordered by `updatedAt desc`, `pageSize` defaulting to 20.
-3. The `pageSize` query param (optional) configures page size; capped at 100. Values < 1 or invalid are treated as default (20).
+3. The `pageSize` query param (optional) configures page size; capped at 100. Values < 1 are treated as default (20). Non-numeric/invalid format values (e.g., `pageSize=abc`) return `400 Bad Request` via automatic model binding validation.
 4. Cursor-based pagination: optional `lastSeenId` (Guid) and `lastSeenUpdatedAt` (DateTime) query params are passed to advance the page window.
 5. If the user has no resumes, returns `200 OK` with `{ totalCount: 0, items: [] }`.
 6. Resumes belonging to a different user are **never** returned regardless of cursor or page size.
@@ -47,6 +47,7 @@ So that I can quickly navigate to the one I need.
     - [x] Test: `GET /api/v1/resumes` with valid token and no resumes returns `200` with `{ totalCount: 0, items: [] }`.
     - [x] Test: `GET /api/v1/resumes` returns only the authenticated user's resumes (not another user's).
     - [x] Test: `pageSize` query param is respected (returns correct count).
+    - [x] Test: non-numeric `pageSize` returns `400 Bad Request`.
     - [x] Test: `pageSize` > 100 is capped (response `pageSize` ≤ 100).
   - [x] Verify `dotnet test backend/JobNecto.slnx` passes.
 
@@ -99,7 +100,8 @@ public class ListResumesQueryHandler : IRequestHandler<ListResumesQuery, PagedRe
 
     public async Task<PagedResult<ResumeResult>> Handle(ListResumesQuery request, CancellationToken cancellationToken)
     {
-        var cappedPageSize = Math.Min(Math.Max(1, request.PageSize), 100);
+        var normalizedPageSize = request.PageSize < 1 ? 20 : request.PageSize;  
+        var cappedPageSize = Math.Min(normalizedPageSize, 100);  
 
         var pagedQuery = new PagedQuery
         {
@@ -261,7 +263,7 @@ GitHub Copilot (Claude Sonnet 4.6)
 ### Completion Notes List
 
 - Implemented `ListResumesQuery` + `ListResumesQueryHandler` in a single file (`ListResumesQuery.cs`), following the existing feature-slice pattern.
-- `pageSize` is clamped to `[1, 100]` using `Math.Min(Math.Max(1, pageSize), 100)` in the handler.
+- In the handler, `pageSize` values below 1 default to 20; otherwise `pageSize` is capped at 100.
 - Added `ListAsync` GET action to existing `ResumesController` — no new controller created.
 - Added `using JobNecto.Domain.ValueObjects;` import to `ResumesController.cs` for `PagedResult<T>`.
 - 6 unit tests covering: query forwarding, pageSize capping (above 100 and below 1), empty result, entity→DTO projection, metadata preservation.

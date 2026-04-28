@@ -64,6 +64,7 @@ public class ResumesController : ControllerBase
     /// <returns>Paginated list of resumes for the current user.</returns>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<ResumeResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<PagedResult<ResumeResult>>> ListAsync(
         [FromQuery] int pageSize = 20,

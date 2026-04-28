@@ -202,6 +202,26 @@ public class ResumesControllerTests
     }
 
     // ──────────────────────────────────────────────────────────────────
+    //  AC 3: non-numeric pageSize returns 400 (ApiController model binding)
+    // ──────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task List_WithInvalidPageSizeFormat_Returns400()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var resp = await GetResumesAsync(client, authCookie, "?pageSize=abc");
+
+        resp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
     //  AC 3: pageSize > 100 is capped
     // ──────────────────────────────────────────────────────────────────
 
