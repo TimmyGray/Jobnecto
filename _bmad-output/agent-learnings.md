@@ -11,6 +11,16 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-04-28 - Avoid escaped quotes inside C# interpolation expressions
+
+**Trigger:** Test failure
+**Context:** Added cursor-pagination integration test in `backend/tests/JobNecto.Tests/API/ResumesControllerTests.cs`.
+**Wrong action:** I inserted `ToString(\"o\")` inside a C# interpolated expression, producing invalid syntax and compile-time failures.
+**Root cause:** I carried patch-string escaping into target C# code instead of writing the literal as `ToString("o")`.
+**Correct behavior:** When patching source code, verify language-level string literals directly in the target file and avoid transport-layer escaping artifacts.
+**Pattern / trigger:** Any patch that injects nested string literals inside interpolation or lambda expressions.
+**Generalize?** Yes
+
 ### 2026-04-25 - Verify review findings against concrete code paths
 
 **Trigger:** User correction
