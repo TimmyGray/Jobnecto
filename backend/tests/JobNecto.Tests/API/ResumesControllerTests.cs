@@ -5,6 +5,7 @@ using FluentAssertions;
 using JobNecto.Application.Resumes;
 using JobNecto.Application.Users;
 using JobNecto.Domain.ValueObjects;
+using Microsoft.AspNetCore.Mvc;
 
 namespace JobNecto.Tests.API;
 
@@ -436,6 +437,46 @@ public class ResumesControllerTests
         var resp = await GetResumeByIdAsync(client, cookieB, created!.Id);
 
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetById_NonExistentAndCrossUser_ReturnIdenticalNotFoundProblemDetails()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        // User A creates a resume.
+        var ownerCookie = await CreateUserAndGetCookieAsync(client, NewUserCommand("owner_equal_404"));
+        var createReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/resumes")
+        {
+            Content = JsonContent.Create(NewResumeCommand("Owner Resume"))
+        };
+        createReq.Headers.TryAddWithoutValidation("Cookie", ownerCookie);
+
+        var createResp = await client.SendAsync(createReq);
+        createResp.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResp.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+        created.Should().NotBeNull();
+
+        // Scenario 1: non-existent resume id.
+        var nonExistentResp = await GetResumeByIdAsync(client, ownerCookie, Guid.NewGuid());
+        nonExistentResp.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var nonExistentBody = await nonExistentResp.Content.ReadFromJsonAsync<ProblemDetails>(JsonOpts);
+        nonExistentBody.Should().NotBeNull();
+
+        // Scenario 2: cross-user access to existing resume id.
+        var attackerCookie = await CreateUserAndGetCookieAsync(client, NewUserCommand("attacker_equal_404"));
+        var crossUserResp = await GetResumeByIdAsync(client, attackerCookie, created!.Id);
+        crossUserResp.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var crossUserBody = await crossUserResp.Content.ReadFromJsonAsync<ProblemDetails>(JsonOpts);
+        crossUserBody.Should().NotBeNull();
+
+        // Both 404 paths must be indistinguishable to avoid existence leakage.
+        crossUserBody!.Title.Should().Be(nonExistentBody!.Title);
+        crossUserBody.Detail.Should().Be(nonExistentBody.Detail);
     }
 }
 

@@ -61,10 +61,11 @@ public class GlobalExceptionHandler : IExceptionHandler
                 problemDetails.Extensions["errors"] = errors;
                 break;
 
-            case NotFoundException notFoundException:
+            case NotFoundException:
                 problemDetails.Status = StatusCodes.Status404NotFound;
                 problemDetails.Title = "Resource not found";
-                problemDetails.Detail = notFoundException.Message;
+                // Keep 404 details generic to avoid leaking existence information.
+                problemDetails.Detail = "Resource not found.";
                 break;
 
             case ForbiddenException forbiddenException:
