@@ -110,6 +110,8 @@ curl -i http://localhost:5000/
   - Avatar management endpoints (upload/update/remove avatar). Authentication required.
 - `POST /api/v1/resumes`
   - Creates a resume for the authenticated user and returns `201 Created` with the created resource and `Location` header. `title`, `skills`, and `workLocationType` are optional; when provided, enum and length validation still applies.
+- `GET /api/v1/resumes`
+  - Returns a cursor-paginated list of resumes for the authenticated user (`pageSize`, `lastSeenId`, `lastSeenUpdatedAt`).
 
 ### CORS
 
