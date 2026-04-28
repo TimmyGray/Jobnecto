@@ -94,4 +94,27 @@ public class ResumesController : ControllerBase
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Returns the full detail of a specific resume owned by the current authenticated user.
+    /// </summary>
+    /// <param name="id">The resume ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The resume detail, or 404 if not found or not owned by the caller.</returns>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ResumeResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ResumeResult>> GetAsync(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var userIdValue = HttpContext.GetCurrentUserId();
+        if (!Guid.TryParse(userIdValue, out var userId))
+            return Unauthorized();
+
+        var query = new GetResumeQuery { ResumeId = id, UserId = userId };
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
 }

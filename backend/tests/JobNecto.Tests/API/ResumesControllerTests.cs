@@ -331,4 +331,111 @@ public class ResumesControllerTests
 
         result!.PageSize.Should().Be(100);
     }
+
+    // ──────────────────────────────────────────────────────────────────
+    //  Story 2.3: GET /api/v1/resumes/{id}
+    // ──────────────────────────────────────────────────────────────────
+
+    /// <summary>Sends an authenticated GET to /api/v1/resumes/{id}.</summary>
+    private static async Task<HttpResponseMessage> GetResumeByIdAsync(
+        HttpClient client, string authCookie, Guid id)
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/resumes/{id}");
+        req.Headers.TryAddWithoutValidation("Cookie", authCookie);
+        return await client.SendAsync(req);
+    }
+
+    [Fact]
+    public async Task GetById_WithoutToken_Returns401()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient();
+
+        var resp = await client.GetAsync($"/api/v1/resumes/{Guid.NewGuid()}");
+
+        resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GetById_OwnedResume_Returns200WithFullResumeResult()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        // Create a resume
+        var cmd = NewResumeCommand("My Test Resume");
+        var createReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/resumes")
+        {
+            Content = JsonContent.Create(cmd)
+        };
+        createReq.Headers.TryAddWithoutValidation("Cookie", authCookie);
+        var createResp = await client.SendAsync(createReq);
+        createResp.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var created = await createResp.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+        created.Should().NotBeNull();
+
+        // Get by ID
+        var getResp = await GetResumeByIdAsync(client, authCookie, created!.Id);
+
+        getResp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await getResp.Content.ReadAsStringAsync();
+        var result = JsonSerializer.Deserialize<ResumeResult>(body, JsonOpts);
+
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(created.Id);
+        result.Title.Should().Be("My Test Resume");
+    }
+
+    [Fact]
+    public async Task GetById_NonExistentId_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var resp = await GetResumeByIdAsync(client, authCookie, Guid.NewGuid());
+
+        resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetById_ResumeBelongingToDifferentUser_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        // User A creates a resume
+        var cookieA = await CreateUserAndGetCookieAsync(client, NewUserCommand("owner_a"));
+        var cmd = NewResumeCommand("Owner A Resume");
+        var createReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/resumes")
+        {
+            Content = JsonContent.Create(cmd)
+        };
+        createReq.Headers.TryAddWithoutValidation("Cookie", cookieA);
+        var createResp = await client.SendAsync(createReq);
+        createResp.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var created = await createResp.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+        created.Should().NotBeNull();
+
+        // User B tries to access User A's resume — should get 404, not 403
+        var cookieB = await CreateUserAndGetCookieAsync(client, NewUserCommand("attacker_b"));
+        var resp = await GetResumeByIdAsync(client, cookieB, created!.Id);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }
+

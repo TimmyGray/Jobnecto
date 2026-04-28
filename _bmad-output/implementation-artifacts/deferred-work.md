@@ -13,6 +13,11 @@
 - **`loginName` min-length 3 vs AC wording** — Consistent with account-creation convention; update spec wording if minimum length is intended.
 - **Phone unique-index rollout policy** — Story 1.4 migration adds unique non-null `Users.Phone` index without inline legacy-data cleanup; release rollout should require pre-deploy duplicate-phone detection/remediation before applying migration in production.
 
+## Deferred from: code review of 2-3-get-resume-detail (2026-04-28)
+
+- **AC 4 soft-delete integration test** — No integration test verifies `GET /api/v1/resumes/{id}` returns 404 for a soft-deleted resume; deferred to story 2.5 because no DELETE endpoint exists yet to set up the scenario.
+- **Entity fetched before ownership check in handler** — `GetResumeQueryHandler` calls `GetByIdAsync` (loads full entity from DB) before the `UserId` ownership guard, so cross-user probes incur a full DB read that is then discarded. Fix requires ownership-aware `GetByIdAsync` overload or a combined ownership query on `ResumeRepository`; deferred as pre-existing repository pattern outside this story's scope.
+
 ## Deferred from: code review of 2-2-list-resumes (2026-04-28)
 
 - **W1 — Cursor pagination end-to-end test** — No integration test seeds N resumes, passes a cursor, and asserts the next page is correct (AC 4). Current coverage lives in `ResumeRepositoryTests`; deferred as pre-existing test strategy.
