@@ -11,6 +11,16 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-04-28 - Prefer separate handler file when implementing new request handlers
+
+**Trigger:** User correction
+**Context:** Story 2.2 implementation for list resumes used `ListResumesQuery` and `ListResumesQueryHandler` in one file.
+**Wrong action:** I kept query + handler together in a single file instead of splitting handler into a dedicated file.
+**Root cause:** I followed the story wording (`same file or sibling`) and optimized for minimal churn, but did not prioritize long-term maintainability/readability preference.
+**Correct behavior:** Prefer separate files for non-trivial handlers (e.g., `ListResumesQuery.cs` + `ListResumesHandler.cs`) unless there is an explicit convention to keep them together.
+**Pattern / trigger:** New feature slice adds MediatR request + handler and the handler contains business mapping/paging logic.
+**Generalize?** Yes
+
 ### 2026-04-28 - Avoid escaped quotes inside C# interpolation expressions
 
 **Trigger:** Test failure
