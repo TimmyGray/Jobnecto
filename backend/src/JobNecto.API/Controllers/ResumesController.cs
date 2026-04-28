@@ -76,6 +76,13 @@ public class ResumesController : ControllerBase
         if (!Guid.TryParse(userIdValue, out var userId))
             return Unauthorized();
 
+        if (lastSeenUpdatedAt.HasValue)
+        {
+            lastSeenUpdatedAt = lastSeenUpdatedAt.Value.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(lastSeenUpdatedAt.Value, DateTimeKind.Utc)
+                : lastSeenUpdatedAt.Value.ToUniversalTime();
+        }
+
         var query = new ListResumesQuery
         {
             UserId = userId,

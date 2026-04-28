@@ -220,6 +220,47 @@ public class ResumesControllerTests
         secondPageIds.Intersect(firstPageIds).Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task List_WithCursorTimestampWithoutTimezone_ReturnsNextSlice()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        await SeedResumesAsync(client, authCookie, 5);
+
+        var firstPageResponse = await GetResumesAsync(client, authCookie, "?pageSize=2");
+        firstPageResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var firstPageBody = await firstPageResponse.Content.ReadAsStringAsync();
+        var firstPage = JsonSerializer.Deserialize<PagedResult<ResumeResult>>(firstPageBody, JsonOpts);
+
+        firstPage.Should().NotBeNull();
+        firstPage!.Items.Should().HaveCount(2);
+        firstPage.LastSeenId.Should().NotBeNull();
+        firstPage.LastSeenUpdatedAt.Should().NotBeNull();
+
+        var timestampWithoutTimezone = firstPage.LastSeenUpdatedAt!.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffffff");
+        var cursorQuery =
+            $"?pageSize=2&lastSeenId={firstPage.LastSeenId}&lastSeenUpdatedAt={Uri.EscapeDataString(timestampWithoutTimezone)}";
+
+        var secondPageResponse = await GetResumesAsync(client, authCookie, cursorQuery);
+        secondPageResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var secondPageBody = await secondPageResponse.Content.ReadAsStringAsync();
+        var secondPage = JsonSerializer.Deserialize<PagedResult<ResumeResult>>(secondPageBody, JsonOpts);
+
+        secondPage.Should().NotBeNull();
+        secondPage!.Items.Should().HaveCount(2);
+
+        var firstPageIds = firstPage.Items.Select(x => x.Id).ToHashSet();
+        var secondPageIds = secondPage.Items.Select(x => x.Id).ToHashSet();
+        secondPageIds.Intersect(firstPageIds).Should().BeEmpty();
+    }
+
     // ──────────────────────────────────────────────────────────────────
     //  AC 3: pageSize < 1 treated as default (20)
     // ──────────────────────────────────────────────────────────────────
