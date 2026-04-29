@@ -117,4 +117,33 @@ public class ResumesController : ControllerBase
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Updates one or more fields of an existing resume owned by the current authenticated user.
+    /// </summary>
+    /// <param name="id">The resume ID.</param>
+    /// <param name="command">Resume update payload.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The updated resume detail.</returns>
+    [HttpPatch("{id:guid}")]
+    [ProducesResponseType(typeof(ResumeResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ResumeResult>> UpdateAsync(
+        [FromRoute] Guid id,
+        UpdateResumeCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        var userIdValue = HttpContext.GetCurrentUserId();
+        if (!Guid.TryParse(userIdValue, out var userId))
+            return Unauthorized();
+
+        command.ResumeId = id;
+        command.UserId = userId;
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
 }

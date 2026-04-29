@@ -4,8 +4,11 @@ using System.Text.Json;
 using FluentAssertions;
 using JobNecto.Application.Resumes;
 using JobNecto.Application.Users;
+using JobNecto.Infrastructure.Persistance;
 using JobNecto.Domain.ValueObjects;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace JobNecto.Tests.API;
 
@@ -73,6 +76,38 @@ public class ResumesControllerTests
 
     private static readonly JsonSerializerOptions JsonOpts =
         new() { PropertyNameCaseInsensitive = true };
+
+    private static async Task<ResumeResult> CreateResumeAsync(HttpClient client, string authCookie, string title)
+    {
+        var cmd = NewResumeCommand(title);
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/resumes")
+        {
+            Content = JsonContent.Create(cmd)
+        };
+        request.Headers.TryAddWithoutValidation("Cookie", authCookie);
+
+        var response = await client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var created = await response.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+        created.Should().NotBeNull();
+        return created!;
+    }
+
+    private static async Task<HttpResponseMessage> UpdateResumeAsync(
+        HttpClient client,
+        string authCookie,
+        Guid resumeId,
+        object payload)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/resumes/{resumeId}")
+        {
+            Content = JsonContent.Create(payload)
+        };
+        request.Headers.TryAddWithoutValidation("Cookie", authCookie);
+
+        return await client.SendAsync(request);
+    }
 
     // ──────────────────────────────────────────────────────────────────
     //  AC 1: Authentication required
@@ -477,6 +512,165 @@ public class ResumesControllerTests
         // Both 404 paths must be indistinguishable to avoid existence leakage.
         crossUserBody!.Title.Should().Be(nonExistentBody!.Title);
         crossUserBody.Detail.Should().Be(nonExistentBody.Detail);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    //  Story 2.4: PATCH /api/v1/resumes/{id}
+    // ──────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Update_WithoutToken_Returns401()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.PatchAsJsonAsync($"/api/v1/resumes/{Guid.NewGuid()}", new { title = "Updated" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Update_OwnedResume_Returns200WithUpdatedFieldsAndUpdatedAt()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var created = await CreateResumeAsync(client, authCookie, "Original Title");
+
+        var response = await UpdateResumeAsync(client, authCookie, created.Id, new
+        {
+            title = "Updated Title",
+            skills = new[] { "C#", "EF Core", "SQL" },
+            workLocationType = "hybrid"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(created.Id);
+        result.Title.Should().Be("Updated Title");
+        result.Skills.Should().BeEquivalentTo(new[] { "C#", "EF Core", "SQL" });
+        result.WorkLocationType.Should().Be("Hybrid");
+        result.UpdatedAt.Should().BeAfter(created.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task Update_NonExistentId_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var response = await UpdateResumeAsync(client, authCookie, Guid.NewGuid(), new
+        {
+            title = "Updated"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Update_SoftDeletedResume_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var created = await CreateResumeAsync(client, authCookie, "Delete Me");
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var resume = await dbContext.Resumes
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(r => r.Id == created.Id);
+
+            resume.Should().NotBeNull();
+            resume!.IsDeleted = true;
+            resume.DeletedAt = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync();
+        }
+
+        var response = await UpdateResumeAsync(client, authCookie, created.Id, new
+        {
+            title = "Should not update"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Update_ResumeBelongingToDifferentUser_Returns403()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var ownerCookie = await CreateUserAndGetCookieAsync(client, NewUserCommand("owner_update"));
+        var created = await CreateResumeAsync(client, ownerCookie, "Owner Resume");
+
+        var attackerCookie = await CreateUserAndGetCookieAsync(client, NewUserCommand("attacker_update"));
+        var response = await UpdateResumeAsync(client, attackerCookie, created.Id, new
+        {
+            title = "Malicious"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Update_EmptySkills_Returns400WithValidationErrors()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var created = await CreateResumeAsync(client, authCookie, "Original");
+
+        var response = await UpdateResumeAsync(client, authCookie, created.Id, new
+        {
+            skills = Array.Empty<string>()
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("Skills");
+    }
+
+    [Fact]
+    public async Task Update_NoFieldsProvided_Returns400WithValidationErrors()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var created = await CreateResumeAsync(client, authCookie, "Original");
+
+        var response = await UpdateResumeAsync(client, authCookie, created.Id, new { });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("At least one updatable field must be provided.");
     }
 }
 

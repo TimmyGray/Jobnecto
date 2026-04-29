@@ -72,4 +72,86 @@ public static class ResumeMappers
             UpdatedAt = resume.UpdatedAt
         };
     }
+
+    /// <summary>
+    /// Applies provided update fields to an existing <see cref="Resume"/> entity.
+    /// Omitted fields are left unchanged.
+    /// </summary>
+    /// <param name="resume">Target entity to update.</param>
+    /// <param name="command">Update payload.</param>
+    public static void ApplyUpdates(this Resume resume, UpdateResumeCommand command)
+    {
+        if (resume == null)
+            throw new ArgumentNullException(nameof(resume));
+
+        if (command == null)
+            throw new ArgumentNullException(nameof(command));
+
+        if (command.Title != null)
+        {
+            resume.Title = command.Title;
+        }
+
+        if (command.Salary.HasValue)
+        {
+            resume.Salary = command.Salary.Value;
+        }
+
+        if (command.Currency != null)
+        {
+            resume.Currency = string.IsNullOrWhiteSpace(command.Currency)
+                ? null
+                : Enum.TryParse<Currency>(command.Currency, true, out var parsedCurrency)
+                    ? parsedCurrency
+                    : null;
+        }
+
+        if (command.Skills != null)
+        {
+            resume.Skills = command.Skills;
+        }
+
+        if (command.WorkLocationType != null)
+        {
+            resume.WorkLocationType = string.IsNullOrWhiteSpace(command.WorkLocationType)
+                ? null
+                : Enum.TryParse<WorkLocationType>(command.WorkLocationType, true, out var parsedWorkLocationType)
+                    ? parsedWorkLocationType
+                    : null;
+        }
+
+        if (command.Experience != null)
+        {
+            resume.Experience = string.IsNullOrWhiteSpace(command.Experience)
+                ? null
+                : Enum.TryParse<Experience>(command.Experience, true, out var parsedExperience)
+                    ? parsedExperience
+                    : null;
+        }
+
+        if (command.Projects != null)
+        {
+            resume.Projects = command.Projects;
+        }
+
+        if (command.Certifications != null)
+        {
+            resume.Certifications = command.Certifications;
+        }
+
+        if (command.Languages != null)
+        {
+            resume.Languages = command.Languages;
+        }
+
+        if (command.Locations != null)
+        {
+            resume.Locations = command.Locations;
+        }
+
+        if (command.ExcludedWords != null)
+        {
+            resume.ExcludedWords = command.ExcludedWords;
+        }
+    }
 }
