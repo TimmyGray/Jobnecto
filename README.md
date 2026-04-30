@@ -114,6 +114,10 @@ curl -i http://localhost:5000/
   - Returns a cursor-paginated list of resumes for the authenticated user (`pageSize`, `lastSeenId`, `lastSeenUpdatedAt`).
 - `GET /api/v1/resumes/{id}`
   - Returns the full detail of a specific resume owned by the authenticated user; returns `404` if not found or not owned by the caller.
+- `PUT /api/v1/resumes/{id}`
+  - Updates an existing resume for the authenticated user; return `200 OK`; `404` if not found or not owned.
+- `DELETE /api/v1/resumes/{id}`
+  - Soft-deletes a resume owned by the authenticated user; returns `204 No Content`.
 
 ### CORS
 
