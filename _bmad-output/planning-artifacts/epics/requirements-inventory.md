@@ -8,7 +8,7 @@ FR3: User can update profile fields (`email`, `loginName`, `phone`, `location`, 
 FR4: User can create a resume with `title`, `skills` (array, min 1), `workLocationType` (enum: remote/office/hybrid), and optional fields (`salary`, `currency`, `experience`, `projects`, `certifications`, `languages`, `locations`, `excludedWords`) via `POST /api/v1/resumes`; returns `201 Created`.
 FR5: User can list their own resumes (paginated: default 20, max 100, ordered by `updatedAt desc`) via `GET /api/v1/resumes`; returns `200 OK` with `{ total, page, pageSize, items }`.
 FR6: User can retrieve a single resume with all fields via `GET /api/v1/resumes/{id}`; returns `404` if not found.
-FR7: User can update any resume field via `PUT /api/v1/resumes/{id}`; returns `200 OK`; `404` if not found.
+FR7: User can update any resume field via `PATCH /api/v1/resumes/{id}`; returns `200 OK`; `404` if not found.
 FR8: User can soft-delete a resume via `DELETE /api/v1/resumes/{id}`; returns `204 No Content`; resume disappears from list endpoints.
 FR9: User can create an education record with `title`, `specialization`, `degree` (enum: bachelor/master/phd/certificate), and optional fields (`institution`, `graduationYear`, `gpa`) via `POST /api/v1/educations`; returns `201 Created`.
 FR10: User can list their own education records (non-paginated, ordered by `graduationYear desc`) via `GET /api/v1/educations`; returns `200 OK`.
