@@ -14,8 +14,13 @@ public class UpdateResumeCommandValidator : AbstractValidator<UpdateResumeComman
     public UpdateResumeCommandValidator()
     {
         RuleFor(x => x)
-            .Must(HasAtLeastOneUpdatableField)
-            .WithMessage("At least one updatable field must be provided.");
+            .Custom((command, context) =>
+            {
+                if (!HasAtLeastOneUpdatableField(command))
+                {
+                    context.AddFailure(nameof(UpdateResumeCommand.Title), "At least one updatable field must be provided.");
+                }
+            });
 
         RuleFor(x => x.ResumeId)
             .NotEmpty().WithMessage("resumeId is required.");

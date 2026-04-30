@@ -81,12 +81,6 @@ public static class ResumeMappers
     /// <param name="command">Update payload.</param>
     public static void ApplyUpdates(this Resume resume, UpdateResumeCommand command)
     {
-        if (resume == null)
-            throw new ArgumentNullException(nameof(resume));
-
-        if (command == null)
-            throw new ArgumentNullException(nameof(command));
-
         if (command.Title != null)
         {
             resume.Title = command.Title;

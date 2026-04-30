@@ -10,8 +10,8 @@ so that I can keep my skills and preferences current.
 
 ## Acceptance Criteria
 
-1. `PUT /api/v1/resumes/{id}` requires a valid JWT token. Unauthenticated requests return `401 Unauthorized`.
-2. Given a valid JWT token and `PUT /api/v1/resumes/{id}` with one or more fields, returns `200 OK` with fully updated resume and refreshed `updatedAt`.
+1. `PATCH /api/v1/resumes/{id}` requires a valid JWT token. Unauthenticated requests return `401 Unauthorized`.
+2. Given a valid JWT token and `PATCH /api/v1/resumes/{id}` with one or more fields, returns `200 OK` with fully updated resume and refreshed `updatedAt`.
 3. If the resume does not exist or is soft-deleted, returns `404 Not Found`.
 4. If the resume belongs to a different user, returns `403 Forbidden`.
 5. If `skills` is provided but empty, returns `400 Bad Request` with a field-level error on `skills`.
@@ -46,7 +46,7 @@ so that I can keep my skills and preferences current.
 
 - [x] Task 3: Expose HTTP endpoint (AC: 1, 2, 3, 4, 5, 6)
   - [x] Update `backend/src/JobNecto.API/Controllers/ResumesController.cs` with:
-    - [x] `[HttpPut("{id:guid}")]` action `UpdateAsync([FromRoute] Guid id, UpdateResumeCommand command, CancellationToken cancellationToken = default)`.
+    - [x] `[HttpPATCH("{id:guid}")]` action `UpdateAsync([FromRoute] Guid id, UpdateResumeCommand command, CancellationToken cancellationToken = default)`.
     - [x] `[ProducesResponseType(typeof(ResumeResult), 200)]`, `[ProducesResponseType(400)]`, `[ProducesResponseType(401)]`, `[ProducesResponseType(403)]`, `[ProducesResponseType(404)]`.
     - [x] Extract `UserId` via `HttpContext.GetCurrentUserId()` + `Guid.TryParse`; return `Unauthorized()` on parse failure.
     - [x] Set `command.ResumeId = id` and `command.UserId = userId` before dispatching via MediatR.
@@ -64,7 +64,7 @@ so that I can keep my skills and preferences current.
     - [x] Missing/soft-deleted resume path propagates `NotFoundException`.
     - [x] Cross-user update throws `ForbiddenException`.
   - [x] Extend integration tests in `backend/tests/JobNecto.Tests/API/ResumesControllerTests.cs`:
-    - [x] `PUT /api/v1/resumes/{id}` without token -> `401`.
+    - [x] `PATCH /api/v1/resumes/{id}` without token -> `401`.
     - [x] Owned resume update -> `200` and response reflects updated fields and refreshed `updatedAt`.
     - [x] Non-existent resume id -> `404`.
     - [x] Soft-deleted resume -> `404` (seed resume, mark `IsDeleted=true` via `AppDbContext` with `IgnoreQueryFilters()`, then call endpoint).

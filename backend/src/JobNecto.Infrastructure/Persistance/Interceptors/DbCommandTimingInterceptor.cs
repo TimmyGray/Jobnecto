@@ -77,6 +77,9 @@ public sealed class DbCommandTimingInterceptor : DbCommandInterceptor
 
     public override void CommandFailed(DbCommand command, CommandErrorEventData eventData)
     {
+        if (!_logger.IsEnabled(LogLevel.Warning))
+            return;
+
         _logger.LogWarning(
             eventData.Exception,
             "DB command failed after {DurationMs:0.###} ms | Sql={Sql}",
@@ -96,6 +99,9 @@ public sealed class DbCommandTimingInterceptor : DbCommandInterceptor
 
     private void LogCommandExecuted(DbCommand command, CommandExecutedEventData eventData, string kind)
     {
+        if (!_logger.IsEnabled(LogLevel.Information))
+            return;
+
         _logger.LogInformation(
             "DB {Kind} executed in {DurationMs:0.###} ms | Sql={Sql}",
             kind,
