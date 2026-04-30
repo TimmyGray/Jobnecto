@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using JobNecto.Application.Interfaces;
 using JobNecto.Infrastructure.Configuration;
 using JobNecto.Infrastructure.Persistance;
+using JobNecto.Infrastructure.Persistance.Interceptors;
 using JobNecto.Infrastructure.Services;
 using Npgsql;
 
@@ -25,11 +26,15 @@ public static class InfrastructureCollectionExtensions
         var connectionString = configuration.GetConnectionString("Postgres");
         EnsureValidPostgresConnectionString(connectionString);
 
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(
-                connectionString,
-                o => o.MigrationsAssembly("JobNecto.Infrastructure")
-            )
+        services.AddScoped<DbCommandTimingInterceptor>();
+
+        services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+            options
+                .UseNpgsql(
+                    connectionString,
+                    o => o.MigrationsAssembly("JobNecto.Infrastructure")
+                )
+                .AddInterceptors(serviceProvider.GetRequiredService<DbCommandTimingInterceptor>())
         );
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -53,7 +58,7 @@ public static class InfrastructureCollectionExtensions
                 try
                 {
                     using var sp = services.BuildServiceProvider();
-                    var loggerFactory = sp.GetService<Microsoft.Extensions.Logging.ILoggerFactory>();
+                    var loggerFactory = sp.GetService<ILoggerFactory>();
                     if (loggerFactory != null)
                     {
                         var logger = loggerFactory.CreateLogger(typeof(InfrastructureCollectionExtensions).FullName ?? "JobNecto.Infrastructure.DI");

@@ -8,6 +8,12 @@
 ## Deferred from: code review of 1-4-update-user-profile (2026-04-25)
 
 - **Cloudinary-not-configured handling policy** — Avatar endpoints currently fail with `InvalidOperationException` and return 500; decide whether this should remain fail-fast (500), become feature-unavailable (503), or become a business validation response.
+
+## Deferred from: code review of 2-4-update-resume (2026-04-28)
+
+- **`ApplyUpdates` null argument guards are dead code** — `resume == null` and `command == null` checks at the top of `ResumeMappers.ApplyUpdates` are unreachable from the handler (`GetByIdAsync` throws `NotFoundException` rather than returning null). Harmless but could be cleaned up project-wide.
+- **`RuleFor(x => x).Must(...)` produces empty-string `PropertyName`** — The "at least one field" validator rule uses `RuleFor(x => x)` which yields `PropertyName = ""` in `ValidationResult`. This is a common FV cross-field pattern and AC intent (structured 400 response) is met, but the error is not technically keyed to a named field.
+- **Empty string `Title` accepted on update** — `UpdateResumeCommandValidator` has no `NotEmpty()` rule on `Title`; `title: ""` passes validation and is persisted. Consistent with `CreateResumeCommandValidator`. Consider adding `NotEmpty()` when `Title != null` in a future validator hardening pass.
 - **Conflict response detail includes submitted identifiers** — Existing cross-endpoint behavior returns login/email/phone values in `ProblemDetails.detail`; treat as a broader API security/privacy policy decision.
 - **Empty-string `phone` clears value** — Design intent remains null/empty = clear field for partial-update semantics. Revisit if spec tightens empty-vs-null distinction.
 - **`loginName` min-length 3 vs AC wording** — Consistent with account-creation convention; update spec wording if minimum length is intended.
