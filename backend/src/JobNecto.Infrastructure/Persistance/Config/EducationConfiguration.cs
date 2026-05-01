@@ -14,7 +14,7 @@ public class EducationConfiguration : IEntityTypeConfiguration<Education>
 
         builder.Property(e => e.Title).IsRequired().HasMaxLength(100);
 
-        builder.Property(e => e.Specialization).HasMaxLength(100);
+        builder.Property(e => e.Specialization).IsRequired().HasMaxLength(100);
 
         builder.Property(e => e.Degree).HasConversion<string>().IsRequired();
 

@@ -50,7 +50,7 @@ development_status:
   2-3-get-resume-detail: done
   2-4-update-resume: done
   2-5-delete-resume: done
-  2-6-create-education-record: backlog
+  2-6-create-education-record: review
   2-7-list-education-records: backlog
   2-8-get-update-delete-education-records: backlog
   epic-2-retrospective: optional
