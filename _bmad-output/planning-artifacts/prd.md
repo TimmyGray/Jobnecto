@@ -33,10 +33,10 @@ Jobnecto consolidates this chaos. Users connect their accounts from multiple job
 
 **Phase B Scope:** The HTTP core and API endpoints that power the job seeker's job hunting workflow. Users manage their profiles (education, resumes, cover letters, templates), browse and filter unified vacancies, and send applications to multiple platforms.
 
-## Post-Merge Implementation Status (2026-04-30)
+## Post-Merge Implementation Status (2026-05-01)
 
-- Completed stories now merged on `master`: `1-1-global-exception-handling`, `1-2-create-user-account`, `1-3-retrieve-current-user-profile`, `1-4-update-user-profile`, `1-5-password-hashing-token-policy-hardening`, `2-1-create-resume`, `2-2-list-resumes`, `2-3-get-resume-detail`, and `2-4-update-resume`.
-- Implemented API surface includes `POST /api/v1/users` (registration), `POST /api/v1/users/token/refresh` (authenticated token renewal), the profile mutation and avatar management endpoints (`PATCH /api/v1/users/me`, `POST/PUT/DELETE /api/v1/users/me/avatar`), authenticated resume creation via `POST /api/v1/resumes`, cursor-paginated resume listing via `GET /api/v1/resumes`, resume detail retrieval with ownership enforcement via `GET /api/v1/resumes/{id}`, and resume update via `PATCH /api/v1/resumes/{id}`.
+- Completed stories now merged on `master`: `1-1-global-exception-handling`, `1-2-create-user-account`, `1-3-retrieve-current-user-profile`, `1-4-update-user-profile`, `1-5-password-hashing-token-policy-hardening`, `2-1-create-resume`, `2-2-list-resumes`, `2-3-get-resume-detail`, `2-4-update-resume`, and `2-5-delete-resume`.
+- Implemented API surface includes `POST /api/v1/users` (registration), `POST /api/v1/users/token/refresh` (authenticated token renewal), the profile mutation and avatar management endpoints (`PATCH /api/v1/users/me`, `POST/PUT/DELETE /api/v1/users/me/avatar`), authenticated resume creation via `POST /api/v1/resumes`, cursor-paginated resume listing via `GET /api/v1/resumes`, resume detail retrieval with ownership enforcement via `GET /api/v1/resumes/{id}`, resume update via `PATCH /api/v1/resumes/{id}`, and soft-delete via `DELETE /api/v1/resumes/{id}`.
 - Password persistence uses PBKDF2 (`pbkdf2-sha256`) through `IPasswordHasher` + `Pbkdf2PasswordHasher`; tokens are renewed through HTTP-only cookie transport and bearer transport support.
 - Scope adjustment: a subset of Phase C security baseline (password hashing + JWT protected refresh route) is already delivered while broader profile/resource endpoints remain in Phase B backlog. Job-scoped resume delete is also merged as part of previous sprints to establish the soft-delete pattern. Story 2.1 established the resume creation contract with optional `title`, `skills`, and `workLocationType` fields.
 
@@ -95,9 +95,8 @@ A job seeker can:
 
 ### Measurable Outcomes
 
-1. All Phase B endpoints implemented:
-   - Users: GET/PATCH (current user core profile only; related resources use dedicated endpoints)
-   - Resumes: GET (list), POST (create), GET (single), PATCH (update), DELETE (soft)
+1. All Phase B resume endpoints implemented:
+   - Resumes: GET (list), POST (create), GET (single), PATCH (update), DELETE (soft-delete with 204 response)
    - Education: GET (list), POST (create), GET (single), PATCH (update), DELETE (soft)
    - Cover Letter Templates: GET (list), POST (create), GET (single), PATCH (update), DELETE (soft)
    - Vacancies: GET (list), GET (single), POST (filter)

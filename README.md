@@ -117,7 +117,7 @@ curl -i http://localhost:5000/
 - `PATCH /api/v1/resumes/{id}`
   - Updates an existing resume for the authenticated user; return `200 OK`; `404` if not found or not owned.
 - `DELETE /api/v1/resumes/{id}`
-  - Soft-deletes a resume owned by the authenticated user; returns `204 No Content`.
+  - Soft-deletes a resume owned by the authenticated user; returns `204 No Content`. Excluded from list and detail queries after deletion.
 
 ### CORS
 
