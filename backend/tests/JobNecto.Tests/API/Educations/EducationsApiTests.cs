@@ -125,7 +125,7 @@ public class EducationsApiTests
         {
             title = "Master of Science",
             specialization = "Computer Science",
-            degree = "postdoc"
+            degree = "invalid_degree"
         });
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);

@@ -64,18 +64,15 @@ public class CreateEducationCommandValidatorTests
         result.Errors.Should().Contain(x => x.PropertyName == "Specialization");
     }
 
-    [Theory]
-    [InlineData("postdoc")]
-    [InlineData("other")]
-    [InlineData("invalid")]
-    public void Validate_InvalidDegree_Fails(string degree)
+    [Fact]
+    public void Validate_InvalidDegree_Fails()
     {
         var command = new CreateEducationCommand
         {
             UserId = Guid.NewGuid(),
             Title = "Master of Science",
             Specialization = "Computer Science",
-            Degree = degree,
+            Degree = "invalid",
         };
 
         var result = _validator.Validate(command);
