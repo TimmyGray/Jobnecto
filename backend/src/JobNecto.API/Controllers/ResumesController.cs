@@ -146,4 +146,34 @@ public class ResumesController : ControllerBase
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Soft-deletes an existing resume owned by the current authenticated user.
+    /// </summary>
+    /// <param name="id">The resume ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>No content when delete succeeds.</returns>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteAsync(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var userIdValue = HttpContext.GetCurrentUserId();
+        if (!Guid.TryParse(userIdValue, out var userId))
+            return Unauthorized();
+
+        var command = new DeleteResumeCommand
+        {
+            ResumeId = id,
+            UserId = userId,
+        };
+
+        await _mediator.Send(command, cancellationToken);
+        return NoContent();
+    }
 }
