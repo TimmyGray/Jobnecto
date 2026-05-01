@@ -109,6 +109,17 @@ public class ResumesControllerTests
         return await client.SendAsync(request);
     }
 
+    private static async Task<HttpResponseMessage> DeleteResumeAsync(
+        HttpClient client,
+        string authCookie,
+        Guid resumeId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/resumes/{resumeId}");
+        request.Headers.TryAddWithoutValidation("Cookie", authCookie);
+
+        return await client.SendAsync(request);
+    }
+
     // ──────────────────────────────────────────────────────────────────
     //  AC 1: Authentication required
     // ──────────────────────────────────────────────────────────────────
@@ -671,6 +682,103 @@ public class ResumesControllerTests
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var body = await response.Content.ReadAsStringAsync();
         body.Should().Contain("At least one updatable field must be provided.");
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    //  Story 2.5: DELETE /api/v1/resumes/{id}
+    // ──────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Delete_WithoutToken_Returns401()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.DeleteAsync($"/api/v1/resumes/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Delete_OwnedResume_Returns204_AndDeletedResumeIsHiddenFromListAndDetail()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var created = await CreateResumeAsync(client, authCookie, "Delete Me");
+
+        var deleteResponse = await DeleteResumeAsync(client, authCookie, created.Id);
+
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var detailResponse = await GetResumeByIdAsync(client, authCookie, created.Id);
+        detailResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var listResponse = await GetResumesAsync(client, authCookie);
+        listResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await listResponse.Content.ReadAsStringAsync();
+        var result = JsonSerializer.Deserialize<PagedResult<ResumeResult>>(body, JsonOpts);
+
+        result.Should().NotBeNull();
+        result!.Items.Should().NotContain(x => x.Id == created.Id);
+    }
+
+    [Fact]
+    public async Task Delete_NonExistentId_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var response = await DeleteResumeAsync(client, authCookie, Guid.NewGuid());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_EmptyResumeId_Returns400WithValidationErrors()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var response = await DeleteResumeAsync(client, authCookie, Guid.Empty);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("resumeId is required.");
+    }
+
+    [Fact]
+    public async Task Delete_ResumeBelongingToDifferentUser_Returns403()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var ownerCookie = await CreateUserAndGetCookieAsync(client, NewUserCommand("owner_delete"));
+        var created = await CreateResumeAsync(client, ownerCookie, "Owner Resume");
+
+        var attackerCookie = await CreateUserAndGetCookieAsync(client, NewUserCommand("attacker_delete"));
+        var response = await DeleteResumeAsync(client, attackerCookie, created.Id);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }
 
