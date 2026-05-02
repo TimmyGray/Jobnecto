@@ -411,5 +411,8 @@ appsettings.Development.json
 /.cursor/
 /.github/skills/
 /.roo/
+# Claude AI local settings (user-specific)
+/.claude/
+.claude/settings.local.json
 
 /backend/src/JobNecto.API/appsettings.Local.json
