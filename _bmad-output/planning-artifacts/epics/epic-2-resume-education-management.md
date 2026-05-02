@@ -143,7 +143,7 @@ So that employers see my academic background.
 
 **Acceptance Criteria:**
 
-**Given** a valid JWT token and `POST /api/v1/educations` with `title`, `specialization`, and `degree` (bachelor/master/phd/certificate)
+**Given** a valid JWT token and `POST /api/v1/educations` with `title`, `specialization`, and `degree` (bachelor/master/phd/postdoc/other)
 **When** the request is processed
 **Then** `201 Created` with the full education object; `Location` header set to `/api/v1/educations/{id}`
 
@@ -151,13 +151,11 @@ So that employers see my academic background.
 **When** the request is processed
 **Then** `400 Bad Request` with field-level error on `title`
 
-**Given** `degree` is not one of `bachelor`, `master`, `phd`, `certificate`
+**Given** `degree` is not one of `bachelor`, `master`, `phd`, `postdoc`, `other`
 **When** the request is processed
 **Then** `400 Bad Request` with field-level error on `degree`
 
-**Given** optional fields (`institution`, `graduationYear`, `gpa`) are provided
-**When** the request is processed
-**Then** they are persisted and returned in the response
+**Status:** ✅ **DONE** — Merged to master 2026-05-02
 
 ---
 

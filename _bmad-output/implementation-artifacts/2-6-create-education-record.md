@@ -1,6 +1,6 @@
 # Story 2.6: Create Education Record
 
-Status: review
+Status: done
 
 ## Story
 
