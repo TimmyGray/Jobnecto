@@ -19,15 +19,16 @@ JobNecto is a .NET 10 backend API for job vacancy aggregation and matching. Clea
 - The API serves OpenAPI spec at `GET /openapi/v1.json`.
 - No user-facing routes exist yet; 404 on root is expected.
 
-
 ### Key Reference Files — When to Read Them
 
 | File | Read when |
 |------|----------|
 | `_bmad-output/planning-artifacts/prd.md` | Implementing a feature; clarifying what a feature must do; writing or reviewing stories |
-| `_bmad-output/planning-artifacts/architecture.md` | Designing new components; choosing patterns, abstractions, or infrastructure; validating Clean Architecture boundaries |
+| `_bmad-output/planning-artifacts/architecture/index.md` | Designing new components; choosing patterns, abstractions, or infrastructure; validating Clean Architecture boundaries (see **Architecture shards** below) |
 | `_bmad-output/planning-artifacts/epics/requirements-inventory.md` | Checking non-functional requirements (security, performance, pagination, validation rules) before implementation |
 | `_bmad-output/agent-learnings.md` | Starting any non-trivial task; before writing tests; when a mistake was made — check if a lesson already covers it |
+
+**Architecture shards:** Technical architecture is split across `_bmad-output/planning-artifacts/architecture/`. **Always read `architecture/index.md` first** — it is the navigation index (table of contents). Use it to decide which topical `.md` files in that same folder you need (for example detailed decisions versus summaries versus implementation checklist). Older docs that cite `architecture.md` refer to this folder. Add or rename shards by updating relevant files and keeping `index.md` in sync when the TOC or layout changes.
 
 ### Agent Pushback Rule
 
@@ -44,6 +45,7 @@ JobNecto is a .NET 10 backend API for job vacancy aggregation and matching. Clea
 ### Agent Routing Instructions
 
 When a user request requires specific workflows, code generation, or role-playing, you must determine the intent and call or recommend the appropriate BMad agent skill:
+
 - **Code Generation & Development**: If the user asks to write code, build, fix, tweak, refactor, add or modify any code/component, you must call the `@[/bmad-quick-dev]` skill (or `@[/bmad-agent-dev]` for story execution).
 - **Product Management & Requirements**: If the user requests a product manager, PRD creation, or requirements discovery, you must call the `@[/bmad-agent-pm]` skill.
 - **Architecture & System Design**: If the user requests an architect, technical design guidance, or a solution design, you must call the `@[/bmad-agent-architect]` skill.
@@ -81,7 +83,6 @@ When a user request requires specific workflows, code generation, or role-playin
 - This rule applies to all agent outputs: PRDs, architecture docs, stories, code comments, README files, and any generated content.
 
 ### Gotchas
-
 
 - The root `.sln` (`Jobnecto.sln`) uses Windows-style backslash paths and does not include the test project. Always use `backend/JobNecto.slnx` for builds and tests.
 - Docker files (`docker/Dockerfile`, `docker/docker-compose.yml`) are empty placeholders.
@@ -149,7 +150,7 @@ After a feature is implemented and merged, the agent **MUST** update the followi
 
 1. **`JOBNECTO_BACKEND_ROADMAP.md`** — Update completed features, mark as done, adjust timeline for remaining items.
 2. **`_bmad-output/planning-artifacts/prd.md`** — Reflect completed features, update feature status, adjust scope if needed.
-3. **`_bmad-output/planning-artifacts/architecture.md`** — Update if implementation changed from design, document any architectural decisions made during implementation.
+3. **`_bmad-output/planning-artifacts/architecture/`** — Update if implementation changed from design: edit the relevant **shard(s)** under that folder (for example decisions, summaries, implementation status); adjust **`architecture/index.md`** if the TOC or shard layout changes so agents can still navigate the split document.
 4. **`_bmad-output/planning-artifacts/epics/requirements-inventory.md`** — Update if NFRs changed or new constraints were introduced during implementation.
 5. **`_bmad-output/implementation-artifacts/sprint-status.yaml`** — Mark completed stories/epics as done, update sprint metrics, remove merged items.
 6. **`README.md`** — Update feature list, API capabilities, or usage examples if the new feature is user-facing.

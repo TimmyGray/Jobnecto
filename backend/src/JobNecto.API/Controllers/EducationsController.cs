@@ -1,5 +1,6 @@
 using JobNecto.API.Infrastructure;
 using JobNecto.Application.Educations;
+using JobNecto.Domain.ValueObjects;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace JobNecto.API.Controllers;
 
 /// <summary>
-/// Controller for creating user education records.
+/// Controller for managing user education records.
 /// </summary>
 [ApiController]
 [Route("api/v1/educations")]
@@ -37,7 +38,8 @@ public class EducationsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<EducationResult>> Create(
         CreateEducationCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var userIdValue = HttpContext.GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userIdValue) || !Guid.TryParse(userIdValue, out var userId))
@@ -47,5 +49,48 @@ public class EducationsController : ControllerBase
 
         var result = await _mediator.Send(command, cancellationToken);
         return Created($"/api/v1/educations/{result.Id}", result);
+    }
+
+    /// <summary>
+    /// Returns a cursor-paginated list of education records belonging to the current authenticated user.
+    /// </summary>
+    /// <param name="pageSize">Number of items per page (default 20, max 100).</param>
+    /// <param name="lastSeenId">Cursor: ID of the last seen education record from the previous page.</param>
+    /// <param name="lastSeenUpdatedAt">Cursor: UpdatedAt of the last seen education record from the previous page.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Paginated list of education records for the current user.</returns>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<EducationResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<PagedResult<EducationResult>>> ListAsync(
+        [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? lastSeenId = null,
+        [FromQuery] DateTime? lastSeenUpdatedAt = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var userIdValue = HttpContext.GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(userIdValue) || !Guid.TryParse(userIdValue, out var userId))
+            return Unauthorized();
+
+        if (lastSeenUpdatedAt.HasValue)
+        {
+            lastSeenUpdatedAt =
+                lastSeenUpdatedAt.Value.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(lastSeenUpdatedAt.Value, DateTimeKind.Utc)
+                    : lastSeenUpdatedAt.Value.ToUniversalTime();
+        }
+
+        var query = new ListEducationsQuery
+        {
+            UserId = userId,
+            PageSize = pageSize,
+            LastSeenId = lastSeenId,
+            LastSeenUpdatedAt = lastSeenUpdatedAt,
+        };
+
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
     }
 }
