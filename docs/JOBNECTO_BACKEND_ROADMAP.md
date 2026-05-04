@@ -9,9 +9,9 @@
 - **Filter and paginate** vacancies (`VacancyFilter`, `PagedQuery`, `PagedResult`); support **matching** via `Vacancy.MatchScore` (and optional future persisted analysis if the team adds it).
 - **LLM** integration via `JobNecto.Infrastructure.LLM`, `LlmProvider` enum, and `LlmProviderConfig`.
 
-## Implementation snapshot (2026-05-01)
+## Implementation snapshot (2026-05-04)
 
-- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), `1-5` (password hashing and token policy hardening), `2-1` (create resume), `2-2` (list resumes), `2-3` (get resume detail), `2-4` (update resume), and `2-5` (soft-delete resume) are merged to `master`.
+- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), `1-5` (password hashing and token policy hardening), `2-1` (create resume), `2-2` (list resumes), `2-3` (get resume detail), `2-4` (update resume), `2-5` (soft-delete resume), `2-6` (create education record), and `2-7` (list education records) are merged to `master`.
 - Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`). Story 2.1 adds `POST /api/v1/resumes` for authenticated resume creation, and Story 2.2 adds `GET /api/v1/resumes` with cursor pagination.
 - Password persistence uses PBKDF2 (`pbkdf2-sha256`) via `IPasswordHasher` and `Pbkdf2PasswordHasher`, with test coverage for malformed hash formats.
 - CI and PR review automation are active on merge and PR events (`CI` + `PR review (LLM via OpenRouter)`).
@@ -87,9 +87,15 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 | POST | `/api/v1/users` | Register user, persist password hash, return `201 Created`, and issue HTTP-only auth cookie. |
 | POST | `/api/v1/users/token/refresh` | Refresh JWT for authenticated clients; always renew cookie and return body token only for bearer transport clients. |
 | GET | `/api/v1/users/me` | Return core profile fields for the authenticated user (id, loginName, email, phone, location, about, avatar, timestamps). Requires valid JWT. |
+| PATCH | `/api/v1/users/me` | Update current user profile fields (email, phone, location, about, avatar). |
+| POST/PUT/DELETE | `/api/v1/users/me/avatar` | Create, update, or delete user avatar. |
 | POST | `/api/v1/resumes` | Create a resume for the authenticated user and return the created resource with `Location` header. |
 | GET | `/api/v1/resumes` | Return a cursor-paginated list of resumes for the authenticated user. |
 | GET | `/api/v1/resumes/{id}` | Return the full detail of a specific resume owned by the authenticated user; `404` if not found or not owned. |
+| PATCH | `/api/v1/resumes/{id}` | Update a resume owned by the authenticated user. |
+| DELETE | `/api/v1/resumes/{id}` | Soft-delete a resume owned by the authenticated user. |
+| POST | `/api/v1/educations` | Create an education record for the authenticated user and return the created resource with `Location` header. |
+| GET | `/api/v1/educations` | Return a cursor-paginated list of education records for the authenticated user. |
 
 ## Tech stack
 

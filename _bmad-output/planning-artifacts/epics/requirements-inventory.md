@@ -11,7 +11,7 @@ FR6: User can retrieve a single resume with all fields via `GET /api/v1/resumes/
 FR7: User can update any resume field via `PATCH /api/v1/resumes/{id}`; returns `200 OK`; `404` if not found.
 FR8: User can soft-delete a resume via `DELETE /api/v1/resumes/{id}`; returns `204 No Content`; resume disappears from list endpoints.
 FR9: User can create an education record with `title`, `specialization`, `degree` (enum: bachelor/master/phd/certificate), and optional fields (`institution`, `graduationYear`, `gpa`) via `POST /api/v1/educations`; returns `201 Created`.
-FR10: User can list their own education records (non-paginated, ordered by `graduationYear desc`) via `GET /api/v1/educations`; returns `200 OK`.
+FR10: User can list their own education records (paginated: default 20, max 100, ordered by `updatedAt desc`) via `GET /api/v1/educations`; returns `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`.
 FR11: User can retrieve a single education record via `GET /api/v1/educations/{id}`; returns `404` if not found.
 FR12: User can update any education field via `PUT /api/v1/educations/{id}`; returns `200 OK`; `404` if not found.
 FR13: User can soft-delete an education record via `DELETE /api/v1/educations/{id}`; returns `204 No Content`.

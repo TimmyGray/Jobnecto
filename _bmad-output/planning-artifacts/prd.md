@@ -448,10 +448,12 @@ A job seeker can:
 **Feature: List Educations (GET /api/v1/educations)**
 
 **Acceptance Criteria:**
-- Return all educations for current user (no pagination needed, typically < 10 records)
-- Return array with: `id`, `title`, `specialization`, `degree`, `institution`, `graduationYear`
-- Order by `graduationYear desc` (most recent first)
-- On success: return `200 OK`
+- Return paginated list of user's education records
+- Query params: `pageSize` (default 20, max 100), `lastSeenId` (Guid, optional cursor), `lastSeenUpdatedAt` (DateTime, optional cursor)
+- Return array with: `id`, `title`, `specialization`, `degree`, `createdAt`, `updatedAt`
+- Order by `updatedAt desc` (newest updates first)
+- On success: return `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`
+- **Note:** `graduationYear` field was removed in Story 2.6 rework to focus on core education metadata
 
 ---
 
