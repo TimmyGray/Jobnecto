@@ -31,6 +31,25 @@ public static class EducationMappers
     }
 
     /// <summary>
+    /// Applies non-null fields from an update command onto an existing education entity.
+    /// Null fields are left unchanged (partial update semantics).
+    /// </summary>
+    /// <param name="education">Target entity to update.</param>
+    /// <param name="command">Update payload.</param>
+    public static void ApplyUpdates(this Education education, UpdateEducationCommand command)
+    {
+        if (command.Title != null)
+            education.Title = command.Title;
+
+        if (command.Specialization != null)
+            education.Specialization = command.Specialization;
+
+        // Safe: validator already confirmed Degree is a valid enum value when non-null
+        if (command.Degree != null)
+            education.Degree = Enum.Parse<Degree>(command.Degree, ignoreCase: true);
+    }
+
+    /// <summary>
     /// Maps a domain education entity to response DTO.
     /// </summary>
     /// <param name="education">Persisted education entity.</param>

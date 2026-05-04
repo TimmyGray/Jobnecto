@@ -8,7 +8,13 @@
       "Bash(dotnet test *)",
       "Bash(dotnet build *)",
       "Read(//dev/**)",
-      "Bash(gh pr *)"
+      "Bash(gh pr *)",
+      "Bash(nCo-Authored-By: Claude Haiku 4.5)",
+      "Bash(git commit *)",
+      "Bash(python3 e:/apps/Jobnecto/_bmad/scripts/resolve_customization.py --skill \"e:/apps/Jobnecto/.claude/skills/bmad-agent-dev\" --key agent)",
+      "Bash(python e:/apps/Jobnecto/_bmad/scripts/resolve_customization.py --skill \"e:/apps/Jobnecto/.claude/skills/bmad-agent-dev\" --key agent)",
+      "PowerShell(python e:/apps/Jobnecto/_bmad/scripts/resolve_customization.py --skill \"e:/apps/Jobnecto/.claude/skills/bmad-agent-dev\" --key agent 2>&1)",
+      "PowerShell(python e:/apps/Jobnecto/_bmad/scripts/resolve_customization.py --skill \"e:/apps/Jobnecto/.claude/skills/bmad-agent-dev\" --key agent; Write-Host \"Exit code: $LASTEXITCODE\")"
     ]
   }
 }
