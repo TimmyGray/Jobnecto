@@ -29,13 +29,13 @@ public class UpdateEducationCommandValidator : AbstractValidator<UpdateEducation
 
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("title must not be empty when provided.")
-            .Must(title => !string.IsNullOrWhiteSpace(title)).WithMessage("title must not be whitespace-only.")
+            .NotWhitespaceOnly()
             .MaximumLength(100).WithMessage("title must be at most 100 characters long.")
             .When(x => x.Title != null);
 
         RuleFor(x => x.Specialization)
             .NotEmpty().WithMessage("specialization must not be empty when provided.")
-            .Must(spec => !string.IsNullOrWhiteSpace(spec)).WithMessage("specialization must not be whitespace-only.")
+            .NotWhitespaceOnly()
             .MaximumLength(100).WithMessage("specialization must be at most 100 characters long.")
             .When(x => x.Specialization != null);
 
