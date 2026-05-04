@@ -24,6 +24,9 @@ public class CreateEducationCommandHandler : IRequestHandler<CreateEducationComm
     public async Task<EducationResult> Handle(CreateEducationCommand request, CancellationToken cancellationToken)
     {
         var education = request.ToEntity();
+        var now = DateTime.UtcNow;
+        education.CreatedAt = now;
+        education.UpdatedAt = now;
 
         await _unitOfWork.EducationRepository.CreateAsync(education, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -11,6 +11,26 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-05-05 - Set entity timestamps in handlers, not only DB defaults
+
+**Trigger:** Test failure
+**Context:** Story 2.8 CI test `Get_OwnedRecord_Returns200WithAllFields` failed because `CreatedAt` deserialized as default.
+**Wrong action:** I assumed database defaults would always populate `CreatedAt`/`UpdatedAt` for new education records.
+**Root cause:** In test/in-memory execution paths, relying on DB-side defaults is not deterministic when entity fields are inserted with default values.
+**Correct behavior:** Set `CreatedAt` and `UpdatedAt` explicitly in create handlers (UTC now) so behavior is provider-agnostic and tests are stable.
+**Pattern / trigger:** Tests assert non-default timestamps on newly created entities while creation code does not assign timestamps directly.
+**Generalize?** Yes
+
+### 2026-05-05 - Answer direct questions before taking actions
+
+**Trigger:** User correction
+**Context:** User asked why I made a separate PR and later asked an explicit direct question, but I proceeded with implementation actions.
+**Wrong action:** I executed fixes, branch/PR adjustments, and builds without first answering the user's explicit question-only prompt.
+**Root cause:** I over-applied action-oriented autonomy and treated the conversation as execution-first instead of intent-first for explicit questions.
+**Correct behavior:** When the user asks a direct question (especially all-caps clarification), respond directly first and perform no extra actions unless explicitly requested.
+**Pattern / trigger:** Prompts like "why", "what should you do", or explicit statements such as "I ask you a question" / "I don't ask you to fix anything".
+**Generalize?** Yes
+
 ### 2026-04-28 - Explicitly test DateTime kind/offset behavior for cursor pagination
 
 **Trigger:** User correction

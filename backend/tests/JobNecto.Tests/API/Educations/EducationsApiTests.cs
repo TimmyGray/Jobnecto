@@ -264,6 +264,340 @@ public class EducationsApiTests
         result.Items.Select(i => i.Title).Should().Contain(["BSc CS", "MSc AI"]);
     }
 
+    private static async Task<HttpResponseMessage> GetEducationAsync(
+        HttpClient client,
+        string authCookie,
+        Guid id
+    )
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/educations/{id}");
+        request.Headers.TryAddWithoutValidation("Cookie", authCookie);
+        return await client.SendAsync(request);
+    }
+
+    private static async Task<HttpResponseMessage> PatchEducationAsync(
+        HttpClient client,
+        string authCookie,
+        Guid id,
+        object payload
+    )
+    {
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/educations/{id}")
+        {
+            Content = JsonContent.Create(payload),
+        };
+        request.Headers.TryAddWithoutValidation("Cookie", authCookie);
+        return await client.SendAsync(request);
+    }
+
+    private static async Task<HttpResponseMessage> DeleteEducationAsync(
+        HttpClient client,
+        string authCookie,
+        Guid id
+    )
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/educations/{id}");
+        request.Headers.TryAddWithoutValidation("Cookie", authCookie);
+        return await client.SendAsync(request);
+    }
+
+    // --- GET /api/v1/educations/{id} ---
+
+    [Fact]
+    public async Task Get_WithoutToken_Returns401()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync($"/api/v1/educations/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Get_OwnedRecord_Returns200WithAllFields()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var createResponse = await PostEducationAsync(client, authCookie, NewEducationCommand());
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<EducationResultDto>(JsonOptions);
+
+        var response = await GetEducationAsync(client, authCookie, created!.Id);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<EducationResultDto>(JsonOptions);
+        result.Should().NotBeNull();
+        // AC2: Verify all seven required fields are returned
+        result!.Id.Should().Be(created.Id);
+        result.UserId.Should().NotBeEmpty();
+        result.Title.Should().Be(NewEducationCommand().Title);
+        result.Specialization.Should().Be(NewEducationCommand().Specialization);
+        result.Degree.Should().Be("bachelor");
+        result.CreatedAt.Should().NotBe(default(DateTime));
+        result.UpdatedAt.Should().NotBe(default(DateTime));
+    }
+
+    [Fact]
+    public async Task Get_NonExistentId_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var response = await GetEducationAsync(client, authCookie, Guid.NewGuid());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Get_AnotherUsersRecord_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var cookieA = await CreateUserAndGetCookieAsync(client, NewUserCommand("user_a_"));
+        var cookieB = await CreateUserAndGetCookieAsync(client, NewUserCommand("user_b_"));
+
+        var createResponse = await PostEducationAsync(client, cookieA, NewEducationCommand());
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<EducationResultDto>(JsonOptions);
+
+        // User B attempts to GET user A's record — must get 404, not 403
+        var response = await GetEducationAsync(client, cookieB, created!.Id);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    // --- PATCH /api/v1/educations/{id} ---
+
+    [Fact]
+    public async Task Patch_WithoutToken_Returns401()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.PatchAsJsonAsync($"/api/v1/educations/{Guid.NewGuid()}", new { title = "x" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Patch_OwnedRecord_ValidPayload_Returns200WithUpdatedFields()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var createResponse = await PostEducationAsync(client, authCookie, NewEducationCommand());
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<EducationResultDto>(JsonOptions);
+
+        var response = await PatchEducationAsync(client, authCookie, created!.Id, new
+        {
+            title = "Master of Science",
+            degree = "master",
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<EducationResultDto>(JsonOptions);
+        result.Should().NotBeNull();
+        result!.Title.Should().Be("Master of Science");
+        result.Degree.Should().Be("master");
+        // Specialization not updated — must remain unchanged
+        result.Specialization.Should().Be(NewEducationCommand().Specialization);
+        // AC5: Verify updatedAt is refreshed after patch
+        result.UpdatedAt.Should().BeAfter(created.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task Patch_AnotherUsersRecord_Returns403()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var cookieA = await CreateUserAndGetCookieAsync(client, NewUserCommand("user_a_"));
+        var cookieB = await CreateUserAndGetCookieAsync(client, NewUserCommand("user_b_"));
+
+        var createResponse = await PostEducationAsync(client, cookieA, NewEducationCommand());
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<EducationResultDto>(JsonOptions);
+
+        var response = await PatchEducationAsync(client, cookieB, created!.Id, new { title = "Attack" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Patch_NonExistentId_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var response = await PatchEducationAsync(client, authCookie, Guid.NewGuid(), new { title = "X" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Patch_EmptyBody_Returns400()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var createResponse = await PostEducationAsync(client, authCookie, NewEducationCommand());
+        var created = await createResponse.Content.ReadFromJsonAsync<EducationResultDto>(JsonOptions);
+
+        // Send body with no updatable fields
+        var response = await PatchEducationAsync(client, authCookie, created!.Id, new { });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Patch_InvalidDegree_Returns400WithFieldError()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var createResponse = await PostEducationAsync(client, authCookie, NewEducationCommand());
+        var created = await createResponse.Content.ReadFromJsonAsync<EducationResultDto>(JsonOptions);
+
+        var response = await PatchEducationAsync(client, authCookie, created!.Id, new { degree = "invalid_degree" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("Degree");
+    }
+
+    // --- DELETE /api/v1/educations/{id} ---
+
+    [Fact]
+    public async Task Delete_WithoutToken_Returns401()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.DeleteAsync($"/api/v1/educations/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Delete_OwnedRecord_Returns204()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var createResponse = await PostEducationAsync(client, authCookie, NewEducationCommand());
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<EducationResultDto>(JsonOptions);
+
+        var response = await DeleteEducationAsync(client, authCookie, created!.Id);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task Delete_OwnedRecord_RecordNoLongerInList()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var createResponse = await PostEducationAsync(client, authCookie, NewEducationCommand());
+        var created = await createResponse.Content.ReadFromJsonAsync<EducationResultDto>(JsonOptions);
+
+        await DeleteEducationAsync(client, authCookie, created!.Id);
+
+        var listResponse = await GetEducationsAsync(client, authCookie);
+        listResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var list = await listResponse.Content.ReadFromJsonAsync<PagedResultDto>(JsonOptions);
+        list!.TotalCount.Should().Be(0);
+        list.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Delete_OwnedRecord_GetReturns404After()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var createResponse = await PostEducationAsync(client, authCookie, NewEducationCommand());
+        var created = await createResponse.Content.ReadFromJsonAsync<EducationResultDto>(JsonOptions);
+
+        await DeleteEducationAsync(client, authCookie, created!.Id);
+
+        var getResponse = await GetEducationAsync(client, authCookie, created.Id);
+        getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_AnotherUsersRecord_Returns403()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var cookieA = await CreateUserAndGetCookieAsync(client, NewUserCommand("user_a_"));
+        var cookieB = await CreateUserAndGetCookieAsync(client, NewUserCommand("user_b_"));
+
+        var createResponse = await PostEducationAsync(client, cookieA, NewEducationCommand());
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<EducationResultDto>(JsonOptions);
+
+        var response = await DeleteEducationAsync(client, cookieB, created!.Id);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Delete_NonExistentId_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { HandleCookies = false }
+        );
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var response = await DeleteEducationAsync(client, authCookie, Guid.NewGuid());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     // Minimal DTO for deserialising PagedResult envelope from the API
     private class PagedResultDto
     {

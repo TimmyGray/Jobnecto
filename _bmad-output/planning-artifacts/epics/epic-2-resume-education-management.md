@@ -200,10 +200,10 @@ So that I can keep my academic history accurate.
 
 ---
 
-**PUT /api/v1/educations/{id}**
+**PATCH /api/v1/educations/{id}**
 
 **Given** a valid JWT and one or more fields to update
-**When** `PUT /api/v1/educations/{id}` is called
+**When** `PATCH /api/v1/educations/{id}` is called
 **Then** `200 OK` with updated record
 
 **Given** the record belongs to another user

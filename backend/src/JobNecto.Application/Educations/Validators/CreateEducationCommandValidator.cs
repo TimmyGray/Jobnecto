@@ -20,10 +20,12 @@ public class CreateEducationCommandValidator : AbstractValidator<CreateEducation
     {
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("title is required.")
+            .NotWhitespaceOnly()
             .MaximumLength(100).WithMessage("title must be at most 100 characters long.");
 
         RuleFor(x => x.Specialization)
             .NotEmpty().WithMessage("specialization is required.")
+            .NotWhitespaceOnly()
             .MaximumLength(100).WithMessage("specialization must be at most 100 characters long.");
 
         RuleFor(x => x.Degree)
