@@ -9,10 +9,10 @@
 - **Filter and paginate** vacancies (`VacancyFilter`, `PagedQuery`, `PagedResult`); support **matching** via `Vacancy.MatchScore` (and optional future persisted analysis if the team adds it).
 - **LLM** integration via `JobNecto.Infrastructure.LLM`, `LlmProvider` enum, and `LlmProviderConfig`.
 
-## Implementation snapshot (2026-05-04)
+## Implementation snapshot (2026-05-05)
 
-- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), `1-5` (password hashing and token policy hardening), `2-1` (create resume), `2-2` (list resumes), `2-3` (get resume detail), `2-4` (update resume), `2-5` (soft-delete resume), `2-6` (create education record), and `2-7` (list education records) are merged to `master`.
-- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`). Story 2.1 adds `POST /api/v1/resumes` for authenticated resume creation, and Story 2.2 adds `GET /api/v1/resumes` with cursor pagination.
+- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), `1-5` (password hashing and token policy hardening), `2-1` (create resume), `2-2` (list resumes), `2-3` (get resume detail), `2-4` (update resume), `2-5` (soft-delete resume), `2-6` (create education record), `2-7` (list education records), and `2-8` (get/update/delete education records) are merged to `master`.
+- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`). Resume create/list/detail/update/delete and education create/list/detail/update/delete endpoints are merged.
 - Password persistence uses PBKDF2 (`pbkdf2-sha256`) via `IPasswordHasher` and `Pbkdf2PasswordHasher`, with test coverage for malformed hash formats.
 - CI and PR review automation are active on merge and PR events (`CI` + `PR review (LLM via OpenRouter)`).
 - Repository layer supports UserId-scoped filtering and cursor-based pagination (BaseRepository); ownership filtering is enforced for all user-scoped resources.
@@ -96,6 +96,9 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 | DELETE | `/api/v1/resumes/{id}` | Soft-delete a resume owned by the authenticated user. |
 | POST | `/api/v1/educations` | Create an education record for the authenticated user and return the created resource with `Location` header. |
 | GET | `/api/v1/educations` | Return a cursor-paginated list of education records for the authenticated user. |
+| GET | `/api/v1/educations/{id}` | Return a single education record owned by the authenticated user; `404` if not found or not owned. |
+| PATCH | `/api/v1/educations/{id}` | Update an education record owned by the authenticated user. |
+| DELETE | `/api/v1/educations/{id}` | Soft-delete an education record owned by the authenticated user. |
 
 ## Tech stack
 
@@ -129,7 +132,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 6. [done] API versioning and first endpoints (controllers under `/api/v1`).
 7. [done] **Users** CRUD with validation (create endpoint implemented; profile update and avatar management implemented in Story 1.4).
 8. [backlog] **Vacancies** list + CRUD.
-9. [in-progress] **Resumes**, **educations**, **cover letters** CRUD and relationships via user-scoped routes only (no cross-user list endpoints). Resume create/list are merged; remaining detail/update/delete work stays in backlog.
+9. [in-progress] **Resumes**, **educations**, **cover letters** CRUD and relationships via user-scoped routes only (no cross-user list endpoints). Resume and education CRUD are merged; cover letter work remains in backlog.
 
 ### Phase C — Security
 
@@ -151,4 +154,4 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 ## Tracking
 
 Work is broken into small GitHub issues **#16–#37** (foundation through hardening).
-Stories **1-4 update user profile and avatar management**, **2-1 create resume**, **2-2 list resumes**, and **2-4 update resume** merged on **2026-04-25**, **2026-04-27**, **2026-04-28**, and **2026-04-30** respectively.
+Stories **1-4 update user profile and avatar management**, **2-1 create resume**, **2-2 list resumes**, **2-4 update resume**, and **2-8 get/update/delete education records** merged on **2026-04-25**, **2026-04-27**, **2026-04-28**, **2026-04-30**, and **2026-05-05** respectively.

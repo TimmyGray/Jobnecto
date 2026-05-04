@@ -434,12 +434,10 @@ A job seeker can:
 **Feature: Create Education (POST /api/v1/educations)**
 
 **Acceptance Criteria:**
-- Create with: `title` (degree name), `specialization` (field of study), `degree` (enum: bachelor, master, phd, certificate), `institution` (optional), `graduationYear` (optional), `gpa` (optional)
+- Create with: `title` (degree name), `specialization` (field of study), `degree` (enum: bachelor, master, phd, postdoc, other)
 - Title: required, 1-100 characters
 - Specialization: required, 1-100 characters
-- Degree: required, must be one of: `bachelor`, `master`, `phd`, `certificate`
-- Institution: optional, 1-100 characters
-- GraduationYear: optional, must be valid 4-digit year (1950-2050)
+- Degree: required, must be one of: `bachelor`, `master`, `phd`, `postdoc`, `other`
 - Return `201 Created` with education object including `id`, `userId`, `createdAt`, `updatedAt`
 - Can be linked to resumes via `ResumeEducations` join table (Phase B: link relationship exists in domain)
 

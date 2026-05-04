@@ -118,6 +118,16 @@ curl -i http://localhost:5000/
   - Updates an existing resume for the authenticated user; return `200 OK`; `404` if not found or not owned.
 - `DELETE /api/v1/resumes/{id}`
   - Soft-deletes a resume owned by the authenticated user; returns `204 No Content`. Excluded from list and detail queries after deletion.
+- `POST /api/v1/educations`
+  - Creates an education record for the authenticated user and returns `201 Created` with the created resource and `Location` header.
+- `GET /api/v1/educations`
+  - Returns a cursor-paginated list of education records for the authenticated user (`pageSize`, `lastSeenId`, `lastSeenUpdatedAt`).
+- `GET /api/v1/educations/{id}`
+  - Returns a single education record owned by the authenticated user; returns `404` if not found or not owned by the caller.
+- `PATCH /api/v1/educations/{id}`
+  - Updates one or more fields on an owned education record; returns `200 OK`, `400` for invalid or empty payloads, `403` for cross-user access, and `404` if missing.
+- `DELETE /api/v1/educations/{id}`
+  - Soft-deletes an owned education record; returns `204 No Content`. Excluded from list and detail queries after deletion.
 
 ### CORS
 

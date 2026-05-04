@@ -10,11 +10,11 @@ FR5: User can list their own resumes (paginated: default 20, max 100, ordered by
 FR6: User can retrieve a single resume with all fields via `GET /api/v1/resumes/{id}`; returns `404` if not found.
 FR7: User can update any resume field via `PATCH /api/v1/resumes/{id}`; returns `200 OK`; `404` if not found.
 FR8: User can soft-delete a resume via `DELETE /api/v1/resumes/{id}`; returns `204 No Content`; resume disappears from list endpoints.
-FR9: User can create an education record with `title`, `specialization`, `degree` (enum: bachelor/master/phd/certificate), and optional fields (`institution`, `graduationYear`, `gpa`) via `POST /api/v1/educations`; returns `201 Created`.
+FR9: User can create an education record with `title`, `specialization`, `degree` (enum: bachelor/master/phd/postdoc/other) via `POST /api/v1/educations`; returns `201 Created`.
 FR10: User can list their own education records (paginated: default 20, max 100, ordered by `updatedAt desc`) via `GET /api/v1/educations`; returns `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`.
 FR11: User can retrieve a single education record via `GET /api/v1/educations/{id}`; returns `404` if not found.
-FR12: User can update any education field via `PUT /api/v1/educations/{id}`; returns `200 OK`; `404` if not found.
-FR13: User can soft-delete an education record via `DELETE /api/v1/educations/{id}`; returns `204 No Content`.
+FR12: User can update education fields via `PATCH /api/v1/educations/{id}`; returns `200 OK`; `400` for invalid or empty payloads; `403` if the record belongs to another user; `404` if not found.
+FR13: User can soft-delete an education record via `DELETE /api/v1/educations/{id}`; returns `204 No Content`; deleted records disappear from list and detail endpoints.
 FR14: User can create a cover letter template with `name` (unique per user) and `content` (50-10000 chars) via `POST /api/v1/cover-letter-templates`; returns `201 Created`.
 FR15: User can list their cover letter templates (paginated, searchable by `name`, ordered by `updatedAt desc`) via `GET /api/v1/cover-letter-templates`; returns `200 OK` with content preview (first 200 chars).
 FR16: User can retrieve a single cover letter template with full `content` via `GET /api/v1/cover-letter-templates/{id}`; returns `404` if not found.

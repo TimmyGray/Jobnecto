@@ -1,5 +1,5 @@
 # generated: 2026-04-18T00:00:00.000Z
-# last_updated: 2026-05-04T13:00:00Z
+# last_updated: 2026-05-04T22:05:00Z
 # project: Jobnecto
 # project_key: NOKEY
 # tracking_system: file-system
@@ -52,7 +52,7 @@ development_status:
   2-5-delete-resume: done
   2-6-create-education-record: done
   2-7-list-education-records: done
-  2-8-get-update-delete-education-records: review
+  2-8-get-update-delete-education-records: done
   epic-2-retrospective: optional
 
   # --- Epic 3: Cover Letter Template Library ---
