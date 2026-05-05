@@ -7,4 +7,6 @@
 - Token transport policy is explicit: browser flows rely on HTTP-only secure cookies; bearer clients can consume body tokens from refresh responses.
 - Architecture decisions around conflict handling are enforced in production code (`DbUpdateException` unique-constraint mapping to HTTP 409) and concurrency integration tests.
 - DB Command Timing: Added `DbCommandTimingInterceptor` to JobNecto.Infrastructure to monitor and log slow database queries (merged in story 2-4).
+- Epic 2 retrospective is complete and identifies the architecture as stable, with follow-up decisions needed for ownership-aware single-record reads, timestamp/clock policy, validator edge-case policy, and database-backed uniqueness for Epic 3 cover letter templates.
+- Current verification caveat: the Epic 2 retrospective recorded local `dotnet test backend/JobNecto.slnx` and Release build attempts failing without useful diagnostics. Treat implementation logs as positive evidence, but diagnose local solution-runner behavior before relying on a fresh green gate.
 

@@ -59,7 +59,7 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Creat
         // Handler receives already-validated request from pipeline
         // Handler focuses on business logic, not validation
         var user = new User { /* ... */ };
-        _unitOfWork.Users.Add(user);
+        await _unitOfWork.UserRepository.CreateAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return new CreateUserResponse { Id = user.Id };
     }
@@ -70,7 +70,9 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Creat
 
 ### Decision 2: Validation Pipeline
 
-**Decision:** Two-layer validation: **FluentValidation (field-level) → Handler (business rules)**
+**Decision:** Two-layer validation: **FluentValidation (field-level) -> Handler (business rules)**
+
+**Epic 2 implementation note:** Validator behavior is correct enough for shipped Resume/Education endpoints, but deferred work identified repeated edge cases. For new stories, validators must explicitly decide null, empty-string, and whitespace semantics; cross-field rules should use stable client-facing error keys when the API contract requires structured field errors.
 
 **Layer 1: FluentValidation (pre-handler)**
 
@@ -108,9 +110,8 @@ public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
 public async Task<CreateUserResponse> Handle(CreateUserCommand request, CancellationToken ct)
 {
     // Check uniqueness (requires DB query)
-    var existingUser = await _unitOfWork.Users
-        .FirstOrDefaultAsync(u => u.Email == request.Email, ct);
-    if (existingUser != null)
+    var emailExists = await _unitOfWork.UserRepository.ExistsByEmailAsync(request.Email, ct);
+    if (emailExists)
         throw new DuplicateEmailException(request.Email);
     
     // Create user...
@@ -119,6 +120,8 @@ public async Task<CreateUserResponse> Handle(CreateUserCommand request, Cancella
 ```
 
 **Error Response Format (from validation failures):**
+
+**Uniqueness rule:** Any uniqueness rule exposed to clients as `409 Conflict` must be backed by a database unique constraint. Handler pre-checks and validators may improve error messages, but they are not sufficient for race-prone create/update paths.
 
 ```json
 {
@@ -137,82 +140,53 @@ public async Task<CreateUserResponse> Handle(CreateUserCommand request, Cancella
 
 ### Decision 3: Repository Pattern
 
-**Decision:** Repository interfaces defined in Application layer; implementations in Infrastructure. Repositories encapsulate query logic.
+**Decision:** Repository interfaces are defined in the Application layer; implementations live in Infrastructure. The current Epic 2 baseline uses generic repository abstractions for common CRUD/list behavior, with specialized repository interfaces only where a resource needs distinct query behavior.
 
-**Application Layer (Interfaces):**
+**Epic 2 implementation note:** Earlier architecture text described one bespoke repository interface per aggregate. The implemented code now uses `IRepository<T>` and `IEditableRepository<T>` for Resume, Education, and similar editable resources. `IUserRepository` and `IVacancyRepository` remain specialized because they need user lookup and vacancy filtering behavior.
 
-```csharp
-namespace JobNecto.Application.Repositories;
-
-public interface IUserRepository
-{
-    Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
-    Task<User?> GetByLoginNameAsync(string loginName, CancellationToken cancellationToken = default);
-    Task AddAsync(User user, CancellationToken cancellationToken = default);
-    Task UpdateAsync(User user, CancellationToken cancellationToken = default);
-}
-
-public interface IResumeRepository
-{
-    Task<Resume?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Resume>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
-    Task<PagedResult<Resume>> GetAsync(PagedQuery pagedQuery, CancellationToken cancellationToken = default);
-    Task AddAsync(Resume resume, CancellationToken cancellationToken = default);
-    Task UpdateAsync(Resume resume, CancellationToken cancellationToken = default);
-}
-
-// Similar for Education, CoverLetterTemplate, CoverLetter, Vacancy repositories
-```
-
-**Infrastructure Layer (Implementation Pattern):**
+**Current Application Layer Interfaces:**
 
 ```csharp
-namespace JobNecto.Infrastructure.Repositories;
-
-public class UserRepository : IUserRepository
+public interface IRepository<T>
+    where T : BaseEntity
 {
-    private readonly AppDbContext _context;
-    
-    public UserRepository(AppDbContext context) => _context = context;
-    
-    public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        return await _context.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
-    }
-    
-    public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
-    {
-        return await _context.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
-    }
-    
-    public async Task AddAsync(User user, CancellationToken cancellationToken = default)
-    {
-        // No need for explicit add; UnitOfWork tracks changes
-        await _context.Users.AddAsync(user, cancellationToken);
-    }
+    Task<T> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<PagedResult<T>> GetAsync(PagedQuery pagedQuery, CancellationToken ct);
+    Task<T> CreateAsync(T entity, CancellationToken ct);
+    Task<Guid> DeleteAsync(Guid id, CancellationToken ct);
+    Task<bool> IsExistsAsync(Guid id, CancellationToken ct);
+}
+
+public interface IEditableRepository<T> : IRepository<T>
+    where T : BaseEntity
+{
+    Task<T> UpdateAsync(T entity, CancellationToken ct);
 }
 ```
 
-**UnitOfWork Integration:**
+**Current UnitOfWork exposure after Epic 2:**
 
 ```csharp
 public interface IUnitOfWork : IAsyncDisposable
 {
-    IUserRepository Users { get; }
-    IResumeRepository Resumes { get; }
-    IEducationRepository Educations { get; }
-    ICoverLetterTemplateRepository CoverLetterTemplates { get; }
-    ICoverLetterRepository CoverLetters { get; }
-    IVacancyRepository Vacancies { get; }
-    
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    IUserRepository UserRepository { get; }
+    IVacancyRepository VacancyRepository { get; }
+    IEditableRepository<CoverLetter> CoverLetterRepository { get; }
+    IEditableRepository<Resume> ResumeRepository { get; }
+    IEditableRepository<Education> EducationRepository { get; }
+
+    Task<int> SaveChangesAsync(CancellationToken ct);
+    Task BeginTransactionAsync(CancellationToken ct);
+    Task CommitTransactionAsync(CancellationToken ct);
+    Task RollbackTransactionAsync(CancellationToken ct);
 }
 ```
+
+**Current Pagination/User-Scoping Pattern:**
+
+`PagedQuery.UserId` is the current mechanism for user-scoped list queries. `BaseRepository<T>.GetAsync` detects a `UserId` property and applies the filter when present. This is accepted for the current codebase, but it is also listed in deferred work because it mixes ownership filtering into a Domain value object.
+
+For Epic 3 and later, prefer the generic repository path unless the resource needs a real specialized query. Do not introduce bespoke repository interfaces only for naming symmetry.
 
 **Handler Usage (UnitOfWork hides repositories):**
 
@@ -220,13 +194,13 @@ public interface IUnitOfWork : IAsyncDisposable
 public async Task<CreateResumeResponse> Handle(CreateResumeCommand req, CancellationToken ct)
 {
     // Verify ownership
-    var user = await _unitOfWork.Users.GetByIdAsync(req.UserId, ct);
-    if (user == null)
-        throw new UserNotFoundException(req.UserId);
+    var userExists = await _unitOfWork.UserRepository.IsExistsAsync(req.UserId, ct);
+    if (!userExists)
+        throw new NotFoundException($"User with id {req.UserId} not found");
     
     // Create resume
     var resume = new Resume { UserId = req.UserId, Title = req.Title, /* ... */ };
-    await _unitOfWork.Resumes.AddAsync(resume, ct);
+    await _unitOfWork.ResumeRepository.CreateAsync(resume, ct);
     await _unitOfWork.SaveChangesAsync(ct);
     
     return new CreateResumeResponse { Id = resume.Id };
@@ -336,7 +310,7 @@ public class ExceptionHandlingMiddleware
 public async Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken)
 {
     // Pass cancellationToken to all async operations
-    var user = await _unitOfWork.Users.GetByIdAsync(id, cancellationToken);
+    var user = await _unitOfWork.UserRepository.GetByIdAsync(id, cancellationToken);
     await _unitOfWork.SaveChangesAsync(cancellationToken);
 }
 ```
@@ -388,6 +362,8 @@ public async Task Handle_ValidRequest_CreatesUser()
 
 **Decision:** EF Core global query filters to exclude soft-deleted records from all queries; PostgreSQL cascade rules enforce referential integrity; logging on hard-deletes for audit.
 
+**Epic 2 implementation note:** Resume and Education soft deletes are implemented by setting `IsDeleted = true` and `DeletedAt = DateTime.UtcNow`, then relying on EF Core global query filters for exclusion. RowVersion/optimistic locking is not part of the current entity model and should be treated as future hardening, not as completed Phase B infrastructure.
+
 **Entity Pattern (Domain Layer):**
 
 ```csharp
@@ -401,8 +377,6 @@ public class Resume : SoftDeletableEntity
 {
     public Guid UserId { get; set; }
     public string Title { get; set; } = string.Empty;
-    [Timestamp] // Optimistic locking for Phase C concurrency safety
-    public byte[] RowVersion { get; set; }
     // other properties...
 }
 ```
@@ -433,19 +407,26 @@ public class AppDbContext : DbContext
             .HasQueryFilter(v => !v.IsDeleted);
         
         // PostgreSQL cascade rules for hard-deletes
-        // User → Resume cascade hard-delete
+        // User -> Resume cascade hard-delete
         modelBuilder.Entity<Resume>()
             .HasOne<User>()
             .WithMany()
             .HasForeignKey(r => r.UserId)
             .OnDelete(DeleteBehavior.Cascade); // Hard-delete when User is deleted
-        
-        // Resume → CoverLetter cascade hard-delete
-        modelBuilder.Entity<CoverLetter>()
-            .HasOne<Resume>()
+
+        // User -> Education cascade hard-delete
+        modelBuilder.Entity<Education>()
+            .HasOne<User>()
             .WithMany()
-            .HasForeignKey(cl => cl.ResumeId)
-            .OnDelete(DeleteBehavior.Cascade); // Hard-delete when Resume is hard-deleted
+            .HasForeignKey(e => e.UserId)
+            .OnDelete(DeleteBehavior.Cascade); // Hard-delete when User is deleted
+        
+        // User -> CoverLetter cascade hard-delete
+        modelBuilder.Entity<CoverLetter>()
+            .HasOne<User>()
+            .WithMany()
+            .HasForeignKey(cl => cl.UserId)
+            .OnDelete(DeleteBehavior.Cascade); // Hard-delete when User is deleted
     }
 }
 ```
@@ -455,26 +436,17 @@ public class AppDbContext : DbContext
 ```csharp
 public async Task<Unit> Handle(DeleteResumeCommand request, CancellationToken cancellationToken)
 {
-    var resume = await _unitOfWork.Resumes.GetByIdAsync(request.Id, cancellationToken);
-    if (resume == null)
-        throw new ResumeNotFoundException(request.Id);
+    var resume = await _unitOfWork.ResumeRepository.GetByIdAsync(request.ResumeId, cancellationToken);
     
     // Verify ownership
     if (resume.UserId != request.UserId)
-        throw new UnauthorizedAccessException();
+        throw new ForbiddenException("You do not have permission to delete this resume.");
     
     // Soft delete: mark as deleted and timestamp for TTL grace period
     resume.IsDeleted = true;
     resume.DeletedAt = DateTime.UtcNow;
     
-    // Cascade soft-delete to related CoverLetters
-    var relatedLetters = await _unitOfWork.CoverLetters.GetByResumeIdAsync(request.Id, cancellationToken);
-    foreach (var letter in relatedLetters.Where(l => !l.IsDeleted))
-    {
-        letter.IsDeleted = true;
-        letter.DeletedAt = DateTime.UtcNow;
-    }
-    
+    await _unitOfWork.ResumeRepository.UpdateAsync(resume, cancellationToken);
     await _unitOfWork.SaveChangesAsync(cancellationToken);
     
     return Unit.Value;
@@ -486,17 +458,15 @@ public async Task<Unit> Handle(DeleteResumeCommand request, CancellationToken ca
 ```csharp
 public async Task<Unit> Handle(HardDeleteUserCommand request, CancellationToken cancellationToken)
 {
-    var user = await _unitOfWork.Users.GetByIdAsync(request.UserId, cancellationToken);
-    if (user == null)
-        throw new UserNotFoundException(request.UserId);
+    var user = await _unitOfWork.UserRepository.GetByIdAsync(request.UserId, cancellationToken);
     
     // Log hard-delete for audit
     _logger.LogInformation(
         "Hard-deleting user {UserId} ({Email}). Cascade will delete all resumes, educations, and cover letters.",
         user.Id, user.Email);
     
-    // PostgreSQL cascade rules will hard-delete all related Resumes, CoverLetters automatically
-    _unitOfWork.Users.Remove(user);
+    // Future account-deletion stories must add the explicit hard-delete repository path.
+    await _unitOfWork.UserRepository.DeleteAsync(user.Id, cancellationToken);
     await _unitOfWork.SaveChangesAsync(cancellationToken);
     
     _logger.LogInformation("User {UserId} and all related data hard-deleted successfully.", user.Id);
@@ -509,11 +479,11 @@ public async Task<Unit> Handle(HardDeleteUserCommand request, CancellationToken 
 
 | Delete Type | Entity | Behavior | Cascades |
 |-------------|--------|----------|----------|
-| Soft Delete | Resume | Mark IsDeleted=true, set DeletedAt | CoverLetters soft-delete |
-| Soft Delete | Education | Mark IsDeleted=true, set DeletedAt | None (orphaned join table entries) |
+| Soft Delete | Resume | Mark IsDeleted=true, set DeletedAt | None in current Epic 2 implementation |
+| Soft Delete | Education | Mark IsDeleted=true, set DeletedAt | None |
 | Soft Delete | CoverLetter | Mark IsDeleted=true, set DeletedAt | None |
-| Hard Delete | Resume | Remove from DB (DELETE) | CoverLetters hard-delete (PostgreSQL FK) |
-| Hard Delete | User | Remove from DB (DELETE) | Resumes hard-delete (PostgreSQL FK); cascades to CoverLetters |
+| Hard Delete | User | Remove from DB (DELETE) | Resumes, Educations, CoverLetters, and CoverLetterTemplates hard-delete through PostgreSQL FK cascades |
+| Hard Delete | Vacancy | Remove from DB (DELETE) | CoverLetters hard-delete through PostgreSQL FK cascade |
 
 **Logging Strategy:**
 
@@ -535,22 +505,29 @@ public async Task<Unit> Handle(HardDeleteUserCommand request, CancellationToken 
 
 **Decision:** Handlers verify ownership before mutations; repository layer enforces user-scoped queries.
 
+**Epic 2 implementation note:** List queries are user-scoped through `PagedQuery.UserId` and `BaseRepository<T>.GetAsync`. Single-record handlers currently call `GetByIdAsync` first and then verify ownership in the handler. This preserves current contracts, but ownership-aware single-record access is a recommended Epic 3 decision before template detail/update/delete patterns multiply.
+
+**Response semantics after Epic 2:**
+
+- Cross-user detail reads should return `404 Not Found` when the API should not reveal existence.
+- Cross-user update/delete operations should return `403 Forbidden` when the story acceptance criteria require explicit forbidden mutation behavior.
+- User-owned list endpoints must always include the authenticated user ID from controller auth context.
+
 **Pattern: Ownership Check in Handler**
 
 ```csharp
 public async Task<Unit> Handle(UpdateResumeCommand request, CancellationToken ct)
 {
-    var resume = await _unitOfWork.Resumes.GetByIdAsync(request.Id, ct);
-    if (resume == null)
-        throw new ResumeNotFoundException(request.Id);
+    var resume = await _unitOfWork.ResumeRepository.GetByIdAsync(request.Id, ct);
     
     // CRITICAL: Verify ownership before mutation
     if (resume.UserId != request.UserId)
-        throw new UnauthorizedAccessException($"User {request.UserId} cannot modify resume {request.Id}");
+        throw new ForbiddenException($"User {request.UserId} cannot modify resume {request.Id}");
     
     // Update allowed
     resume.Title = request.Title;
     resume.Skills = request.Skills;
+    await _unitOfWork.ResumeRepository.UpdateAsync(resume, ct);
     await _unitOfWork.SaveChangesAsync(ct);
     
     return Unit.Value;
@@ -563,12 +540,16 @@ public async Task<Unit> Handle(UpdateResumeCommand request, CancellationToken ct
 // Query for lists always includes UserId filter
 public async Task<PagedResult<ResumeDto>> Handle(ListResumesQuery request, CancellationToken ct)
 {
-    // Repository returns only resumes for this user
-    var resumes = await _unitOfWork.Resumes.GetPaginatedByUserIdAsync(
-        request.UserId,  // User must be passed from request context
-        request.Page,
-        request.PageSize,
-        ct);
+    var pagedQuery = new PagedQuery
+    {
+        UserId = request.UserId,
+        LastSeenId = request.LastSeenId,
+        LastSeenUpdatedAt = request.LastSeenUpdatedAt,
+        PageSize = request.PageSize
+    };
+
+    // BaseRepository applies UserId filtering for entities that expose UserId.
+    var resumes = await _unitOfWork.ResumeRepository.GetAsync(pagedQuery, ct);
     
     return resumes;
 }
