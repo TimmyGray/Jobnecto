@@ -122,14 +122,14 @@
 - EF Core async methods: `ToListAsync()`, `FirstOrDefaultAsync()`, `SaveChangesAsync()`
 - Database context should be disposed via `await using` in tests
 
-**5a. Timestamp Policy**
+**6. Timestamp Policy**
 
 - Current implementation uses `DateTime` and direct `DateTime.UtcNow` in handlers.
 - Persisted timestamps are treated as UTC by convention.
 - Cursor pagination uses `lastSeenUpdatedAt`; timestamp kind/offset normalization is deferred and should be decided before this pattern spreads further.
 - `DateTimeOffset` adoption and injectable clock support are project-level decisions, not story-local changes.
 
-**6. Database Migrations & Relationships**
+**7. Database Migrations & Relationships**
 
 - Migrations live in Infrastructure; tracked via EF Core schema history
 - Entity relationships: 1:N (User -> Resume, User -> Education, User -> CoverLetter, User -> CoverLetterTemplate, Vacancy -> CoverLetter), M:N (Resume <-> Education via join table)
@@ -140,7 +140,7 @@
   - PostgreSQL foreign keys enforce referential integrity; EF tracks related entities
 - ResumeEducations join table: supports M:N linkage without direct references; cascade soft-deletes to join table entries
 
-**7. OpenAPI Documentation**
+**8. OpenAPI Documentation**
 
 - Swashbuckle auto-generates OpenAPI spec from attributes and models
 - Every endpoint must have clear request/response models for auto-documentation

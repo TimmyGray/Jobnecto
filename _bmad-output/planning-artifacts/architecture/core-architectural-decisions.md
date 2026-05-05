@@ -164,6 +164,8 @@ public interface IEditableRepository<T> : IRepository<T>
 }
 ```
 
+**`GetByIdAsync` contract:** Returns `Task<T>` (non-nullable). The repository implementation throws `NotFoundException` when no entity with the given `id` exists. Callers must not null-check the result — the throw guarantee is part of the contract. This is why handler examples do not include `if (entity == null)` guards after `GetByIdAsync` calls.
+
 **Current UnitOfWork exposure after Epic 2:**
 
 ```csharp
@@ -318,11 +320,12 @@ public async Task<TResponse> Handle(TRequest request, CancellationToken cancella
 **Repository Async Pattern:**
 
 ```csharp
-public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+public async Task<User> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
 {
     return await _context.Users
         .AsNoTracking()
-        .FirstOrDefaultAsync(u => u.Id == id, cancellationToken); // Pass token
+        .FirstOrDefaultAsync(u => u.Id == id, cancellationToken)
+        ?? throw new NotFoundException($"User with id {id} not found");
 }
 ```
 
