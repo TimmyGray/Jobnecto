@@ -12,19 +12,19 @@ namespace JobNecto.Tests.Application.Educations;
 public class DeleteEducationCommandHandlerTests
 {
     private readonly Mock<IUnitOfWork> _uowMock;
-    private readonly Mock<IEditableRepository<Education>> _educationRepoMock;
+    private readonly Mock<IMutableRepository<Education>> _educationRepoMock;
     private readonly DeleteEducationCommandHandler _handler;
 
     public DeleteEducationCommandHandlerTests()
     {
         _uowMock = new Mock<IUnitOfWork>();
-        _educationRepoMock = new Mock<IEditableRepository<Education>>();
+        _educationRepoMock = new Mock<IMutableRepository<Education>>();
         _uowMock.Setup(x => x.EducationRepository).Returns(_educationRepoMock.Object);
         _handler = new DeleteEducationCommandHandler(_uowMock.Object);
     }
 
     [Fact]
-    public async Task Handle_OwnedRecord_SetsSoftDeleteFlagsAndPersists()
+    public async Task Handle_OwnedRecord_CallsSoftDeleteAndPersists()
     {
         var userId = Guid.NewGuid();
         var education = new Education
@@ -45,8 +45,13 @@ public class DeleteEducationCommandHandlerTests
             .ReturnsAsync(education);
 
         _educationRepoMock
-            .Setup(x => x.UpdateAsync(It.IsAny<Education>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Education entity, CancellationToken _) => entity);
+            .Setup(x => x.SoftDeleteAsync(It.IsAny<Education>(), It.IsAny<CancellationToken>()))
+            .Callback<Education, CancellationToken>((entity, _) =>
+            {
+                entity.IsDeleted = true;
+                entity.DeletedAt = DateTime.UtcNow;
+            })
+            .Returns(Task.CompletedTask);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -55,7 +60,8 @@ public class DeleteEducationCommandHandlerTests
         education.DeletedAt.Should().NotBeNull();
         education.DeletedAt!.Value.Kind.Should().Be(DateTimeKind.Utc);
 
-        _educationRepoMock.Verify(x => x.UpdateAsync(education, It.IsAny<CancellationToken>()), Times.Once);
+        _educationRepoMock.Verify(x => x.SoftDeleteAsync(education, It.IsAny<CancellationToken>()), Times.Once);
+        _educationRepoMock.Verify(x => x.UpdateAsync(It.IsAny<Education>(), It.IsAny<CancellationToken>()), Times.Never);
         _uowMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -83,7 +89,7 @@ public class DeleteEducationCommandHandlerTests
         var act = () => _handler.Handle(command, CancellationToken.None);
 
         await act.Should().ThrowAsync<ForbiddenException>();
-        _educationRepoMock.Verify(x => x.UpdateAsync(It.IsAny<Education>(), It.IsAny<CancellationToken>()), Times.Never);
+        _educationRepoMock.Verify(x => x.SoftDeleteAsync(It.IsAny<Education>(), It.IsAny<CancellationToken>()), Times.Never);
         _uowMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -100,7 +106,7 @@ public class DeleteEducationCommandHandlerTests
         var act = () => _handler.Handle(command, CancellationToken.None);
 
         await act.Should().ThrowAsync<NotFoundException>();
-        _educationRepoMock.Verify(x => x.UpdateAsync(It.IsAny<Education>(), It.IsAny<CancellationToken>()), Times.Never);
+        _educationRepoMock.Verify(x => x.SoftDeleteAsync(It.IsAny<Education>(), It.IsAny<CancellationToken>()), Times.Never);
         _uowMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

@@ -9,13 +9,13 @@ namespace JobNecto.Tests.Application.Educations;
 public class CreateEducationCommandHandlerTests
 {
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
-    private readonly Mock<IEditableRepository<Education>> _educationRepositoryMock;
+    private readonly Mock<IMutableRepository<Education>> _educationRepositoryMock;
     private readonly CreateEducationCommandHandler _handler;
 
     public CreateEducationCommandHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _educationRepositoryMock = new Mock<IEditableRepository<Education>>();
+        _educationRepositoryMock = new Mock<IMutableRepository<Education>>();
 
         _unitOfWorkMock
             .Setup(x => x.EducationRepository)

@@ -3,7 +3,7 @@ using JobNecto.Domain.Entities;
 
 namespace JobNecto.Infrastructure.Repositories;
 
-public class EducationRepository : EditableRepository<Education>
+public class EducationRepository : SoftDeletableRepository<Education>
 {
     public EducationRepository(AppDbContext context) : base(context)
     {

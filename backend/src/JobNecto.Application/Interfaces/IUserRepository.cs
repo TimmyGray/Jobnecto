@@ -5,9 +5,10 @@ namespace JobNecto.Application.Interfaces;
 /// <summary>
 /// Repository contract for <see cref="User"/> persistence operations that are specific
 /// to the <c>User</c> aggregate and are not covered by the generic <see cref="IRepository{T}"/>.
+/// Extends <see cref="ISoftDeleteRepository{T}"/> to expose soft-delete capability.
 /// Implementations live in the Infrastructure layer and are registered via <c>IUnitOfWork</c>.
 /// </summary>
-public interface IUserRepository : IRepository<User>, IEditableRepository<User>
+public interface IUserRepository : IEditableRepository<User>, ISoftDeleteRepository<User>
 {
     /// <summary>
     /// Retrieves a user by their email address.
