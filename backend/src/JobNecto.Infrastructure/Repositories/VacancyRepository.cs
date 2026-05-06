@@ -6,7 +6,7 @@ using JobNecto.Domain.ValueObjects;
 
 namespace JobNecto.Infrastructure.Repositories;
 
-public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository, ISoftDeleteRepository<Vacancy>
+public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
 {
     public VacancyRepository(AppDbContext context)
         : base(context) { }
