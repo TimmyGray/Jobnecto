@@ -1,5 +1,5 @@
 # generated: 2026-04-18T00:00:00.000Z
-# last_updated: 2026-05-05T00:00:00Z
+# last_updated: 2026-05-06T00:00:00Z
 # project: Jobnecto
 # project_key: NOKEY
 # tracking_system: file-system
@@ -54,6 +54,11 @@ development_status:
   2-7-list-education-records: done
   2-8-get-update-delete-education-records: done
   epic-2-retrospective: done
+
+  # --- Maintenance / Refactoring (GitHub Issues) ---
+  epic-r: in-progress
+  r-1-separate-soft-delete-repository-contract: done
+  epic-r-retrospective: optional
 
   # --- Epic 3: Cover Letter Template Library ---
   epic-3: backlog

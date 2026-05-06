@@ -21,19 +21,19 @@ public interface IUnitOfWork : IAsyncDisposable
     IVacancyRepository VacancyRepository { get; }
 
     /// <summary>
-    /// Repository for cover letters with CRUD/query support.
+    /// Repository for cover letters with full write support (update + soft delete).
     /// </summary>
-    IEditableRepository<CoverLetter> CoverLetterRepository { get; }
+    IMutableRepository<CoverLetter> CoverLetterRepository { get; }
 
     /// <summary>
-    /// Repository for resumes with CRUD/query support.
+    /// Repository for resumes with full write support (update + soft delete).
     /// </summary>
-    IEditableRepository<Resume> ResumeRepository { get; }
+    IMutableRepository<Resume> ResumeRepository { get; }
 
     /// <summary>
-    /// Repository for educations with CRUD/query support.
+    /// Repository for educations with full write support (update + soft delete).
     /// </summary>
-    IEditableRepository<Education> EducationRepository { get; }
+    IMutableRepository<Education> EducationRepository { get; }
 
     /// <summary>
     /// Persists pending changes to the database. Implementations should forward

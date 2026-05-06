@@ -28,10 +28,7 @@ public class DeleteEducationCommandHandler : IRequestHandler<DeleteEducationComm
         if (education.UserId != request.UserId)
             throw new ForbiddenException("You do not have permission to delete this education record.");
 
-        education.IsDeleted = true;
-        education.DeletedAt = DateTime.UtcNow;
-
-        await _unitOfWork.EducationRepository.UpdateAsync(education, cancellationToken);
+        await _unitOfWork.EducationRepository.SoftDeleteAsync(education, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Unit.Value;

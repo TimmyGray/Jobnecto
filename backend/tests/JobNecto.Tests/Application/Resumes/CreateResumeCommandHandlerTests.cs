@@ -9,13 +9,13 @@ namespace JobNecto.Tests.Application.Resumes;
 public class CreateResumeCommandHandlerTests
 {
     private readonly Mock<IUnitOfWork> _uowMock;
-    private readonly Mock<IEditableRepository<Resume>> _resumeRepoMock;
+    private readonly Mock<IMutableRepository<Resume>> _resumeRepoMock;
     private readonly CreateResumeCommandHandler _handler;
 
     public CreateResumeCommandHandlerTests()
     {
         _uowMock = new Mock<IUnitOfWork>();
-        _resumeRepoMock = new Mock<IEditableRepository<Resume>>();
+        _resumeRepoMock = new Mock<IMutableRepository<Resume>>();
         _uowMock.Setup(x => x.ResumeRepository).Returns(_resumeRepoMock.Object);
         _handler = new CreateResumeCommandHandler(_uowMock.Object);
     }

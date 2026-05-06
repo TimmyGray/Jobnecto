@@ -36,6 +36,11 @@
 
 - **Concurrent FK race between validation and persist** — Race where a user may be deleted between validator check and `SaveChangesAsync`, producing FK violations. Deferred: infra/transaction isolation decision required (handle via DB constraint mapping or stronger transactional guarantees).
 
+## Deferred from: code review of r-1-separate-soft-delete-repository-contract (2026-05-06)
+
+- **CancellationToken unused in SoftDeleteAsync** — Both `SoftDeletableRepository<T>.SoftDeleteAsync` and `VacancyRepository.SoftDeleteAsync` accept `ct` but never use it. Pre-existing pattern: `EditableRepository.UpdateAsync` has identical behavior. Revisit when a clock/cancellation hardening pass is done across all repository methods.
+- **`DateTime.UtcNow` hardcoded in SoftDeletableRepository/VacancyRepository** — No clock abstraction; same as pre-existing pattern across all handlers. Already logged from story 2-8.
+
 ## Deferred from: code review of 2-8-get-update-delete-education-records (2026-05-04)
 
 - **EF global query filter bypass** — If `IgnoreQueryFilters()` is ever used or the filter is misconfigured, all three new handlers (`GetEducationQueryHandler`, `UpdateEducationCommandHandler`, `DeleteEducationCommandHandler`) could return soft-deleted records without an explicit `IsDeleted` guard. Deferred: pre-existing architectural assumption shared with Resume handlers.

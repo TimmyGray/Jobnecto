@@ -28,10 +28,7 @@ public class DeleteResumeCommandHandler : IRequestHandler<DeleteResumeCommand, U
         if (resume.UserId != request.UserId)
             throw new ForbiddenException("You do not have permission to delete this resume.");
 
-        resume.IsDeleted = true;
-        resume.DeletedAt = DateTime.UtcNow;
-
-        await _unitOfWork.ResumeRepository.UpdateAsync(resume, cancellationToken);
+        await _unitOfWork.ResumeRepository.SoftDeleteAsync(resume, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Unit.Value;

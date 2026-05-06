@@ -162,20 +162,71 @@ public interface IEditableRepository<T> : IRepository<T>
 {
     Task<T> UpdateAsync(T entity, CancellationToken ct);
 }
+
+// Introduced by GitHub issue #65 (story R.1):
+// Soft delete is expressed as a first-class contract independent of update semantics.
+public interface ISoftDeleteRepository<T> : IRepository<T>
+    where T : SoftDeletableEntity
+{
+    Task SoftDeleteAsync(T entity, CancellationToken ct);
+}
+
+// Role-based composition for entities that support all write operations (update + soft delete).
+// Named by role ("mutable"), not by capability enumeration, so future write-side additions
+// do not require renaming this interface.
+// IEditableRepository<T> alone does NOT imply soft delete capability.
+public interface IMutableRepository<T> : IEditableRepository<T>, ISoftDeleteRepository<T>
+    where T : SoftDeletableEntity
+{
+}
 ```
+
+**Interface hierarchy:**
+
+```text
+IRepository<T>
+├── IEditableRepository<T>             (+ UpdateAsync)   [T : BaseEntity]
+└── ISoftDeleteRepository<T>           (+ SoftDeleteAsync) [T : SoftDeletableEntity]
+    └── IMutableRepository<T>  (composes both)  [T : SoftDeletableEntity]
+```
+
+**Infrastructure class hierarchy:**
+
+```text
+BaseRepository<T>                           (implements IRepository<T>)
+├── EditableRepository<T>                   (implements IEditableRepository<T>)
+│   └── SoftDeletableRepository<T>          (implements IMutableRepository<T>)
+│       ├── ResumeRepository
+│       ├── EducationRepository
+│       ├── CoverLetterRepository
+│       ├── CoverLetterTemplateRepository
+│       └── UserRepository                  (also implements IUserRepository)
+└── VacancyRepository                       (implements IVacancyRepository + SoftDeleteAsync directly)
+```
+
+**All six soft-deletable entity repositories and their final interface types:**
+
+| Repository | Interface in UnitOfWork / Specialized |
+| --- | --- |
+| `ResumeRepository` | `IMutableRepository<Resume>` |
+| `EducationRepository` | `IMutableRepository<Education>` |
+| `CoverLetterRepository` | `IMutableRepository<CoverLetter>` |
+| `CoverLetterTemplateRepository` | `SoftDeletableRepository<CoverLetterTemplate>` (Epic 3 adds to UoW as `IMutableRepository<CoverLetterTemplate>`) |
+| `UserRepository` | `IUserRepository` (extends `IEditableRepository<User>` + `ISoftDeleteRepository<User>`) |
+| `VacancyRepository` | `IVacancyRepository` (extends `IRepository<Vacancy>` + `ISoftDeleteRepository<Vacancy>`) |
 
 **`GetByIdAsync` contract:** Returns `Task<T>` (non-nullable). The repository implementation throws `NotFoundException` when no entity with the given `id` exists. Callers must not null-check the result — the throw guarantee is part of the contract. This is why handler examples do not include `if (entity == null)` guards after `GetByIdAsync` calls.
 
-**Current UnitOfWork exposure after Epic 2:**
+**Current UnitOfWork exposure after story R.1:**
 
 ```csharp
 public interface IUnitOfWork : IAsyncDisposable
 {
-    IUserRepository UserRepository { get; }
-    IVacancyRepository VacancyRepository { get; }
-    IEditableRepository<CoverLetter> CoverLetterRepository { get; }
-    IEditableRepository<Resume> ResumeRepository { get; }
-    IEditableRepository<Education> EducationRepository { get; }
+    IUserRepository UserRepository { get; }          // IUserRepository extends ISoftDeleteRepository<User>
+    IVacancyRepository VacancyRepository { get; }    // IVacancyRepository extends ISoftDeleteRepository<Vacancy>
+    IMutableRepository<CoverLetter> CoverLetterRepository { get; }
+    IMutableRepository<Resume> ResumeRepository { get; }
+    IMutableRepository<Education> EducationRepository { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct);
     Task BeginTransactionAsync(CancellationToken ct);
@@ -434,24 +485,21 @@ public class AppDbContext : DbContext
 }
 ```
 
-**Soft Delete Handler Pattern:**
+**Soft Delete Handler Pattern (after story R.1):**
+
+Soft delete is performed via `SoftDeleteAsync` on `IMutableRepository<T>`. The flag-setting logic (`IsDeleted = true`, `DeletedAt = DateTime.UtcNow`) lives in `SoftDeletableRepository<T>`, not in the handler.
 
 ```csharp
 public async Task<Unit> Handle(DeleteResumeCommand request, CancellationToken cancellationToken)
 {
     var resume = await _unitOfWork.ResumeRepository.GetByIdAsync(request.ResumeId, cancellationToken);
-    
-    // Verify ownership
+
     if (resume.UserId != request.UserId)
         throw new ForbiddenException("You do not have permission to delete this resume.");
-    
-    // Soft delete: mark as deleted and timestamp for TTL grace period
-    resume.IsDeleted = true;
-    resume.DeletedAt = DateTime.UtcNow;
-    
-    await _unitOfWork.ResumeRepository.UpdateAsync(resume, cancellationToken);
+
+    await _unitOfWork.ResumeRepository.SoftDeleteAsync(resume, cancellationToken);
     await _unitOfWork.SaveChangesAsync(cancellationToken);
-    
+
     return Unit.Value;
 }
 ```

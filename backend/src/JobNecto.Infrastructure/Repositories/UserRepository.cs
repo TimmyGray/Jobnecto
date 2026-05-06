@@ -5,7 +5,7 @@ using JobNecto.Domain.Entities;
 
 namespace JobNecto.Infrastructure.Repositories;
 
-public class UserRepository : EditableRepository<User>, IUserRepository
+public class UserRepository : SoftDeletableRepository<User>, IUserRepository
 {
     public UserRepository(AppDbContext context)
         : base(context) { }

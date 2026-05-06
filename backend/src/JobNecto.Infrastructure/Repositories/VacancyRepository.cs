@@ -6,7 +6,7 @@ using JobNecto.Domain.ValueObjects;
 
 namespace JobNecto.Infrastructure.Repositories;
 
-public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
+public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository, ISoftDeleteRepository<Vacancy>
 {
     public VacancyRepository(AppDbContext context)
         : base(context) { }
@@ -176,5 +176,17 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
     public Task<Vacancy> UpdateMatchScoreAsync(Guid id, double matchScore, CancellationToken ct)
     {
         throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Marks <paramref name="entity"/> as soft-deleted and stages the update for the next
+    /// <c>SaveChangesAsync</c> call. 
+    /// </summary>
+    public Task SoftDeleteAsync(Vacancy entity, CancellationToken ct)
+    {
+        entity.IsDeleted = true;
+        entity.DeletedAt = DateTime.UtcNow;
+        _dbSet.Update(entity);
+        return Task.CompletedTask;
     }
 }

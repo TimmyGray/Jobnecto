@@ -13,9 +13,9 @@ public class UnitOfWork : IUnitOfWork
 
     private IUserRepository? _userRepository;
     private IVacancyRepository? _vacancyRepository;
-    private IEditableRepository<CoverLetter>? _coverLetterRepository;
-    private IEditableRepository<Resume>? _resumeRepository;
-    private IEditableRepository<Education>? _educationRepository;
+    private IMutableRepository<CoverLetter>? _coverLetterRepository;
+    private IMutableRepository<Resume>? _resumeRepository;
+    private IMutableRepository<Education>? _educationRepository;
 
     public UnitOfWork(AppDbContext context)
     {
@@ -28,13 +28,13 @@ public class UnitOfWork : IUnitOfWork
     public IVacancyRepository VacancyRepository => 
         _vacancyRepository ??= new VacancyRepository(_context);
 
-    public IEditableRepository<CoverLetter> CoverLetterRepository => 
+    public IMutableRepository<CoverLetter> CoverLetterRepository =>
         _coverLetterRepository ??= new CoverLetterRepository(_context);
 
-    public IEditableRepository<Resume> ResumeRepository => 
+    public IMutableRepository<Resume> ResumeRepository =>
         _resumeRepository ??= new ResumeRepository(_context);
 
-    public IEditableRepository<Education> EducationRepository => 
+    public IMutableRepository<Education> EducationRepository =>
         _educationRepository ??= new EducationRepository(_context);
 
     public async Task BeginTransactionAsync(CancellationToken ct)
