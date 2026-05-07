@@ -1,6 +1,6 @@
 # Story 3.1: Create Cover Letter Template
 
-Status: review-complete
+Status: done
 
 ## Story
 

@@ -128,6 +128,8 @@ curl -i http://localhost:5000/
   - Updates one or more fields on an owned education record; returns `200 OK`, `400` for invalid or empty payloads, `403` for cross-user access, and `404` if missing.
 - `DELETE /api/v1/educations/{id}`
   - Soft-deletes an owned education record; returns `204 No Content`. Excluded from list and detail queries after deletion.
+- `POST /api/v1/cover-letter-templates`
+  - Creates a cover letter template for the authenticated user and returns `201 Created` with the created resource and `Location` header. Requires JWT authentication. Template name must be unique per user (soft-deleted templates allow name reuse). Content must be 50–10,000 characters.
 
 ### CORS
 
