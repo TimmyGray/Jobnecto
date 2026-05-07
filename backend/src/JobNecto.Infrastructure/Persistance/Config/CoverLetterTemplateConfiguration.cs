@@ -12,7 +12,7 @@ public class CoverLetterTemplateConfiguration : IEntityTypeConfiguration<CoverLe
 
         builder.HasKey(clt => clt.Id);
 
-        builder.Property(clt => clt.Name).IsRequired();
+        builder.Property(clt => clt.Name).IsRequired().HasMaxLength(100);
 
         builder.Property(clt => clt.Content).IsRequired();
 
@@ -32,5 +32,9 @@ public class CoverLetterTemplateConfiguration : IEntityTypeConfiguration<CoverLe
             .WithMany()
             .HasForeignKey(clt => clt.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(t => new { t.UserId, t.Name })
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false");
     }
 }
