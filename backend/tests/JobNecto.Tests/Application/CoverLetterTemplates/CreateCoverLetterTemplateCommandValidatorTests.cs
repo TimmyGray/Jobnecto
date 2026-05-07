@@ -124,4 +124,19 @@ public class CreateCoverLetterTemplateCommandValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(x => x.PropertyName == "Content");
     }
+
+    [Fact]
+    public void Validate_ContentExactly10000Chars_Passes()
+    {
+        var command = new CreateCoverLetterTemplateCommand
+        {
+            UserId = Guid.NewGuid(),
+            Name = "My Template",
+            Content = new string('a', 10000),
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeTrue();
+    }
 }

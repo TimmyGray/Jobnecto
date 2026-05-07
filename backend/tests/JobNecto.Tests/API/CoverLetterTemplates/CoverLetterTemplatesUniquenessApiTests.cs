@@ -10,17 +10,26 @@ using Xunit.Abstractions;
 
 namespace JobNecto.Tests.API.CoverLetterTemplates;
 
-public class CoverLetterTemplatesUniquenessApiTests : IClassFixture<CoverLetterTemplatesPostgresFactory>
+public class CoverLetterTemplatesUniquenessApiTests : IAsyncLifetime
 {
-    private readonly CoverLetterTemplatesPostgresFactory _factory;
     private readonly ITestOutputHelper _output;
+    private CoverLetterTemplatesPostgresFactory? _factory;
 
-    public CoverLetterTemplatesUniquenessApiTests(
-        CoverLetterTemplatesPostgresFactory factory,
-        ITestOutputHelper output)
+    public CoverLetterTemplatesUniquenessApiTests(ITestOutputHelper output)
     {
-        _factory = factory;
         _output = output;
+    }
+
+    public async Task InitializeAsync()
+    {
+        _factory = new CoverLetterTemplatesPostgresFactory(_output);
+        await Task.CompletedTask;
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (_factory != null)
+            await _factory.DisposeAsync();
     }
 
     private static string ValidContent() => new string('a', 50);
@@ -42,7 +51,7 @@ public class CoverLetterTemplatesUniquenessApiTests : IClassFixture<CoverLetterT
             return;
         }
 
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var client = _factory!.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
         var authCookie = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand());
 
         var first = await CoverLetterTemplatesApiTests.PostTemplateAsync(client, authCookie, new
@@ -69,7 +78,7 @@ public class CoverLetterTemplatesUniquenessApiTests : IClassFixture<CoverLetterT
             return;
         }
 
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var client = _factory!.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
         var cookieA = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_a_"));
         var cookieB = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_b_"));
 
@@ -97,7 +106,7 @@ public class CoverLetterTemplatesUniquenessApiTests : IClassFixture<CoverLetterT
             return;
         }
 
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var client = _factory!.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
         var authCookie = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand());
 
         var task1 = CoverLetterTemplatesApiTests.PostTemplateAsync(client, authCookie, new { name = "Same Name", content = ValidContent() });
@@ -118,9 +127,12 @@ public sealed class CoverLetterTemplatesPostgresFactory : WebApplicationFactory<
     private readonly string _schemaName;
     private string? _scopedConnectionString;
     private bool _schemaInitialized;
+    private readonly SemaphoreSlim _initLock = new(1, 1);
+    private readonly ITestOutputHelper? _output;
 
-    public CoverLetterTemplatesPostgresFactory()
+    public CoverLetterTemplatesPostgresFactory(ITestOutputHelper? output = null)
     {
+        _output = output;
         _baseConnectionString = Environment.GetEnvironmentVariable("JOBNECTO_TEST_POSTGRES")
             ?? DefaultConnectionString;
         _schemaName = "clt_uniqueness_" + Guid.NewGuid().ToString("N");
@@ -131,8 +143,12 @@ public sealed class CoverLetterTemplatesPostgresFactory : WebApplicationFactory<
         if (_schemaInitialized)
             return true;
 
+        await _initLock.WaitAsync(cancellationToken);
         try
         {
+            if (_schemaInitialized)
+                return true;
+
             await EnsureSchemaExistsAsync(cancellationToken);
 
             var builder = new NpgsqlConnectionStringBuilder(_baseConnectionString)
@@ -154,9 +170,14 @@ public sealed class CoverLetterTemplatesPostgresFactory : WebApplicationFactory<
             _schemaInitialized = true;
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            _output?.WriteLine($"Schema initialization failed: {ex.Message}");
             return false;
+        }
+        finally
+        {
+            _initLock.Release();
         }
     }
 
@@ -198,9 +219,9 @@ public sealed class CoverLetterTemplatesPostgresFactory : WebApplicationFactory<
             command.CommandText = $"DROP SCHEMA IF EXISTS \"{_schemaName}\" CASCADE;";
             await command.ExecuteNonQueryAsync();
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort cleanup only.
+            _output?.WriteLine($"Schema cleanup failed: {ex.Message}");
         }
     }
 }

@@ -1,6 +1,6 @@
 # Story 3.1: Create Cover Letter Template
 
-Status: done
+Status: review-complete
 
 ## Story
 
@@ -379,3 +379,10 @@ No blockers encountered. EF Core InMemory uniqueness limitation resolved by intr
 - [x] [Review][Defer] DI bypass for repository in UnitOfWork [`UnitOfWork.cs:41`] — deferred, pre-existing pattern throughout all repositories
 - [x] [Review][Defer] Hard-coded Location URI string in controller [`CoverLetterTemplatesController.cs:50`] — deferred, pre-existing established pattern per EducationsController
 - [x] [Review][Defer] GetCurrentUserId() returns 401 vs 403 for malformed claim [`CoverLetterTemplatesController.cs:44`] — deferred, matches existing pattern in EducationsController
+
+## Additional Code Review (2026-05-08)
+
+- [x] [Review][Patch] Thread-safety in `TryInitializeSchemaAsync` — fixed: added `SemaphoreSlim _initLock` with double-check pattern in `TryInitializeSchemaAsync`. [`CoverLetterTemplatesUniquenessApiTests.cs:128-145`]
+- [x] [Review][Patch] Missing test for content at exactly 10,000 characters — fixed: added `Validate_ContentExactly10000Chars_Passes()` test. [`CreateCoverLetterTemplateCommandValidatorTests.cs`]
+- [x] [Review][Patch] Exception swallowing in `CoverLetterTemplatesPostgresFactory` — fixed: log exception message to `_output` before returning false. [`CoverLetterTemplatesUniquenessApiTests.cs:154-160`]
+- [x] [Review][Defer] Connection string ordering fragility — `_scopedConnectionString` could be uninitialized if `CreateClient` called before `TryInitializeSchemaAsync`. Current test pattern is safe. [`CoverLetterTemplatesUniquenessApiTests.cs:162-169`]
