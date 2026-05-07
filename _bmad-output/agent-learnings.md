@@ -11,6 +11,16 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-05-08 - Isolate Docker bind mount issues before retry loops
+
+**Trigger:** User correction
+**Context:** Archon container setup repeatedly appeared stuck while trying to recreate the container with port mapping and persistence.
+**Wrong action:** I retried multi-step run/remove commands repeatedly before isolating whether the bind mount itself was the blocker.
+**Root cause:** I optimized for repeating the intended final command instead of minimizing variables; on Windows Docker Desktop, bind mounts can stall container lifecycle operations when file sharing/mount resolution is problematic.
+**Correct behavior:** First run the container without a bind mount to validate baseline startup, then add port and volume flags incrementally to identify the exact failing option.
+**Pattern / trigger:** Container commands hang with objects stuck in `Created`, while daemon health commands still work and simple containers run normally.
+**Generalize?** Yes
+
 ### 2026-05-05 - Set entity timestamps in handlers, not only DB defaults
 
 **Trigger:** Test failure

@@ -36,6 +36,11 @@ public interface IUnitOfWork : IAsyncDisposable
     IMutableRepository<Education> EducationRepository { get; }
 
     /// <summary>
+    /// Repository for cover letter templates with full write support (update + soft delete).
+    /// </summary>
+    IMutableRepository<CoverLetterTemplate> CoverLetterTemplateRepository { get; }
+
+    /// <summary>
     /// Persists pending changes to the database. Implementations should forward
     /// the provided <paramref name="ct"/> to the underlying DbContext save call.
     /// </summary>

@@ -47,3 +47,14 @@
 - **`DateTime.UtcNow` hardcoded** — No clock abstraction in `UpdateEducationCommandHandler` and `DeleteEducationCommandHandler` makes time-sensitive unit tests fragile. Deferred: pre-existing pattern across all handlers in the project.
 - **Non-atomic `UpdateAsync` + `SaveChangesAsync`** — A `SaveChangesAsync` failure leaves the EF change tracker in a dirty state; subsequent operations on the same scope could inadvertently persist partial changes. Deferred: pre-existing pattern across all handlers.
 - **`DeleteEducationCommandValidator` has no unit tests** — Validator is exercised implicitly through the pipeline; route `:guid` constraint prevents `Guid.Empty` from reaching it. Deferred: low-risk, consistent with project convention for simple validators.
+
+## Deferred from: code review of 3-1-create-cover-letter-template (2026-05-07)
+
+- **Unit handler test missing `result.Id != Guid.Empty` assertion** — `CreateCoverLetterTemplateCommandHandlerTests` does not assert the returned Id is populated; integration test covers this via `NotBeEmpty` assertion in `CoverLetterTemplatesApiTests`.
+- **C# clock vs DB clock for timestamps** — `CreateCoverLetterTemplateCommandHandler` sets `CreatedAt`/`UpdatedAt` via `DateTime.UtcNow` rather than letting EF use `HasDefaultValueSql`; by design for EF InMemory test compatibility (documented lesson 2026-05-05).
+- **`TryInitializeSchemaAsync` not thread-safe** — No synchronization guard; concurrent fixture initialization could race if a second test class uses `CoverLetterTemplatesPostgresFactory`. Latent — currently only one fixture class.
+- **`ConfigureWebHost`/`TryInitializeSchemaAsync` ordering fragility** — `_scopedConnectionString` is set by `TryInitializeSchemaAsync` which must be called before `CreateClient()`; relies on `WebApplicationFactory` lazy host construction. Safe with current test pattern.
+- **Exception swallowing in `CoverLetterTemplatesPostgresFactory`** — `catch { return false; }` and `catch { }` discard exceptions silently; CI skips without logging the failure cause. Intentional skip behaviour for environments without Postgres.
+- **DI bypass for repository in `UnitOfWork`** — `new CoverLetterTemplateRepository(_context)` bypasses the DI container; pre-existing pattern across all repositories in `UnitOfWork`.
+- **Hard-coded `Location` URI string in controller** — `Created($"/api/v1/cover-letter-templates/{result.Id}", result)` would silently break on route changes; pre-existing pattern per `EducationsController`.
+- **`GetCurrentUserId()` returns 401 vs 403 for malformed claim** — A valid but malformed JWT claim returns 401 rather than 403; matches existing pattern in `EducationsController`.

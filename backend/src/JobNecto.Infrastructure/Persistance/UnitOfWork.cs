@@ -16,6 +16,7 @@ public class UnitOfWork : IUnitOfWork
     private IMutableRepository<CoverLetter>? _coverLetterRepository;
     private IMutableRepository<Resume>? _resumeRepository;
     private IMutableRepository<Education>? _educationRepository;
+    private IMutableRepository<CoverLetterTemplate>? _coverLetterTemplateRepository;
 
     public UnitOfWork(AppDbContext context)
     {
@@ -36,6 +37,9 @@ public class UnitOfWork : IUnitOfWork
 
     public IMutableRepository<Education> EducationRepository =>
         _educationRepository ??= new EducationRepository(_context);
+
+    public IMutableRepository<CoverLetterTemplate> CoverLetterTemplateRepository =>
+        _coverLetterTemplateRepository ??= new CoverLetterTemplateRepository(_context);
 
     public async Task BeginTransactionAsync(CancellationToken ct)
     {
