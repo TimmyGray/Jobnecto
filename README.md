@@ -263,6 +263,10 @@ The following are **directional** items implied by the solution structure and de
 - `docker/` — Docker-related placeholders (verify before relying on them)
 - `AGENTS.md` — agent and maintainer notes for this repo
 
+## Additional documentation
+
+- [Archon Service Integration Guide](docs/ARCHON_INTEGRATION_GUIDE.md) — detailed setup and usage for Archon workflows, MCP, and agent patterns in this repository.
+
 ## License
 
 No license file is present in this repository at the time of writing; confirm with the maintainers before redistributing or reusing the code.

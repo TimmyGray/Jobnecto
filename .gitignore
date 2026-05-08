@@ -6,6 +6,9 @@ obj/
 bin/
 obj/
 *.user
+
+# Local Archon container environment (contains tokens/secrets)
+docker/.env.archon
 *.suo
 *.userosscache
 *.sln.docstates
@@ -414,5 +417,6 @@ appsettings.Development.json
 # Claude AI local settings (user-specific)
 /.claude/
 .claude/settings.local.json
+.archon/
 
 /backend/src/JobNecto.API/appsettings.Local.json

@@ -11,6 +11,16 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-05-08 - Persist PATH fixes via PowerShell profile for VS Code terminals
+
+**Trigger:** User correction
+**Context:** User still saw `claude` and `archon` as command-not-found after I had fixed PATH and verified in a prior terminal session.
+**Wrong action:** I concluded the environment was fully fixed after updating user PATH and validating in one shell, without hardening startup for new VS Code-integrated terminals inheriting stale process env.
+**Root cause:** I assumed all terminals would immediately pick up user PATH changes; in practice, VS Code process environment can remain stale until reload, causing inconsistent terminal behavior.
+**Correct behavior:** After PATH changes, add a PowerShell profile bootstrap that appends required tool dirs (`~/.local/bin`, `~/.archon/bin`) and sets `CLAUDE_BIN_PATH` on shell startup, then verify command resolution again.
+**Pattern / trigger:** User reports command-not-found in newly opened VS Code terminal even though user PATH and binaries are valid.
+**Generalize?** Yes
+
 ### 2026-05-08 - Isolate Docker bind mount issues before retry loops
 
 **Trigger:** User correction
