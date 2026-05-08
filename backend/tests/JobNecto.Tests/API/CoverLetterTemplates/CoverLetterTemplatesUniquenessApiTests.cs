@@ -45,7 +45,7 @@ public class CoverLetterTemplatesUniquenessApiTests : IAsyncLifetime
     [Fact]
     public async Task Create_DuplicateName_SameUser_Returns409()
     {
-        if (!await _factory.TryInitializeSchemaAsync())
+        if (!await _factory!.TryInitializeSchemaAsync())
         {
             _output.WriteLine("Skipped: PostgreSQL test database was unavailable.");
             return;
@@ -72,7 +72,7 @@ public class CoverLetterTemplatesUniquenessApiTests : IAsyncLifetime
     [Fact]
     public async Task Create_SameName_DifferentUsers_Returns201BothTimes()
     {
-        if (!await _factory.TryInitializeSchemaAsync())
+        if (!await _factory!.TryInitializeSchemaAsync())
         {
             _output.WriteLine("Skipped: PostgreSQL test database was unavailable.");
             return;
@@ -100,7 +100,7 @@ public class CoverLetterTemplatesUniquenessApiTests : IAsyncLifetime
     [Fact]
     public async Task Create_ConcurrentDuplicateName_AtLeastOneReturns409()
     {
-        if (!await _factory.TryInitializeSchemaAsync())
+        if (!await _factory!.TryInitializeSchemaAsync())
         {
             _output.WriteLine("Skipped: PostgreSQL test database was unavailable.");
             return;

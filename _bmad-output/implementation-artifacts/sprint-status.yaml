@@ -1,5 +1,5 @@
 # generated: 2026-04-18T00:00:00.000Z
-# last_updated: 2026-05-08T00:00:00Z
+# last_updated: 2026-05-08T12:00:00Z
 # project: Jobnecto
 # project_key: NOKEY
 # tracking_system: file-system
@@ -63,7 +63,7 @@ development_status:
   # --- Epic 3: Cover Letter Template Library ---
   epic-3: in-progress
   3-1-create-cover-letter-template: done
-  3-2-list-cover-letter-templates: backlog
+  3-2-list-cover-letter-templates: review
   3-3-get-cover-letter-template-detail: backlog
   3-4-update-cover-letter-template: backlog
   3-5-delete-cover-letter-template: backlog

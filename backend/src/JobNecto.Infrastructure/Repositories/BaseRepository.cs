@@ -56,6 +56,8 @@ public abstract class BaseRepository<T> : IRepository<T>
             }
         }
 
+        query = ApplyAdditionalFilters(query, pagedQuery);
+
         var totalCount = await query.CountAsync(ct);
 
         query = query.OrderByDescending(e => e.UpdatedAt).ThenByDescending(e => e.Id);
@@ -113,6 +115,15 @@ public abstract class BaseRepository<T> : IRepository<T>
             throw new NotFoundException($"Entity with id {id} not found");
         }
         return entity;
+    }
+
+    /// <summary>
+    /// Override in a derived repository to apply additional entity-specific filters.
+    /// Called after UserId scoping and before CountAsync/ordering.
+    /// </summary>
+    protected virtual IQueryable<T> ApplyAdditionalFilters(IQueryable<T> query, PagedQuery pagedQuery)
+    {
+        return query;
     }
 
     public virtual async Task<bool> IsExistsAsync(Guid id, CancellationToken ct)
