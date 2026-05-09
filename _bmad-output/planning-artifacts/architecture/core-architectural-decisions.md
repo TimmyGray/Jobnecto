@@ -211,13 +211,13 @@ BaseRepository<T>                           (implements IRepository<T>)
 | `ResumeRepository` | `IMutableRepository<Resume>` |
 | `EducationRepository` | `IMutableRepository<Education>` |
 | `CoverLetterRepository` | `IMutableRepository<CoverLetter>` |
-| `CoverLetterTemplateRepository` | `SoftDeletableRepository<CoverLetterTemplate>` (Epic 3 adds to UoW as `IMutableRepository<CoverLetterTemplate>`) |
+| `CoverLetterTemplateRepository` | `IMutableRepository<CoverLetterTemplate>` |
 | `UserRepository` | `IUserRepository` (extends `IEditableRepository<User>` + `ISoftDeleteRepository<User>`) |
 | `VacancyRepository` | `IVacancyRepository` (extends `IRepository<Vacancy>` + `ISoftDeleteRepository<Vacancy>`) |
 
 **`GetByIdAsync` contract:** Returns `Task<T>` (non-nullable). The repository implementation throws `NotFoundException` when no entity with the given `id` exists. Callers must not null-check the result — the throw guarantee is part of the contract. This is why handler examples do not include `if (entity == null)` guards after `GetByIdAsync` calls.
 
-**Current UnitOfWork exposure after story R.1:**
+**Current UnitOfWork exposure after story 3.3:**
 
 ```csharp
 public interface IUnitOfWork : IAsyncDisposable
@@ -225,6 +225,7 @@ public interface IUnitOfWork : IAsyncDisposable
     IUserRepository UserRepository { get; }          // IUserRepository extends ISoftDeleteRepository<User>
     IVacancyRepository VacancyRepository { get; }    // IVacancyRepository extends ISoftDeleteRepository<Vacancy>
     IMutableRepository<CoverLetter> CoverLetterRepository { get; }
+    IMutableRepository<CoverLetterTemplate> CoverLetterTemplateRepository { get; }
     IMutableRepository<Resume> ResumeRepository { get; }
     IMutableRepository<Education> EducationRepository { get; }
 

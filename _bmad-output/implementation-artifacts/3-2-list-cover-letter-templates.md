@@ -1,6 +1,6 @@
 # Story 3.2: List Cover Letter Templates
 
-Status: review
+Status: done
 
 ## Story
 

@@ -11,6 +11,16 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-05-09 - Run mandatory post-merge docs workflow immediately
+
+**Trigger:** User correction
+**Context:** PR #71 was merged to `master`, but I initially stopped after merge confirmation and did not execute the required documentation updates listed in `AGENTS.md`.
+**Wrong action:** I treated "merge pr" as complete once the merge succeeded and skipped the mandatory post-merge documentation synchronization workflow.
+**Root cause:** I optimized for the explicit merge action and failed to apply the repo-level lifecycle rule that merge completion is not the end state when post-merge workflow steps are mandatory.
+**Correct behavior:** After any successful merge to `master`, immediately run the post-merge workflow: review and update roadmap, PRD, architecture shards (if needed), sprint status, README, and project context, then commit and push docs updates.
+**Pattern / trigger:** User asks to merge a PR in a repository with explicit "Post-Merge / Post-Push Documentation Updates" instructions in `AGENTS.md`.
+**Generalize?** No
+
 ### 2026-05-08 - Persist PATH fixes via PowerShell profile for VS Code terminals
 
 **Trigger:** User correction

@@ -9,10 +9,10 @@
 - **Filter and paginate** vacancies (`VacancyFilter`, `PagedQuery`, `PagedResult`); support **matching** via `Vacancy.MatchScore` (and optional future persisted analysis if the team adds it).
 - **LLM** integration via `JobNecto.Infrastructure.LLM`, `LlmProvider` enum, and `LlmProviderConfig`.
 
-## Implementation snapshot (2026-05-08)
+## Implementation snapshot (2026-05-09)
 
-- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), `1-5` (password hashing and token policy hardening), `2-1` (create resume), `2-2` (list resumes), `2-3` (get resume detail), `2-4` (update resume), `2-5` (soft-delete resume), `2-6` (create education record), `2-7` (list education records), `2-8` (get/update/delete education records), `r-1` (separate soft-delete repository contract), and `3-1` (create cover letter template) are merged to `master`.
-- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`). Resume create/list/detail/update/delete and education create/list/detail/update/delete endpoints are merged. Story 3.1 adds cover letter template creation (`POST /api/v1/cover-letter-templates`) with per-user name uniqueness enforced at the database level.
+- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), `1-5` (password hashing and token policy hardening), `2-1` (create resume), `2-2` (list resumes), `2-3` (get resume detail), `2-4` (update resume), `2-5` (soft-delete resume), `2-6` (create education record), `2-7` (list education records), `2-8` (get/update/delete education records), `r-1` (separate soft-delete repository contract), `3-1` (create cover letter template), `3-2` (list cover letter templates), and `3-3` (get cover letter template detail) are merged to `master`.
+- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`). Resume create/list/detail/update/delete and education create/list/detail/update/delete endpoints are merged. Epic 3 currently includes cover letter template create/list/detail (`POST /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates/{id}`) with per-user ownership and soft-delete semantics.
 - Password persistence uses PBKDF2 (`pbkdf2-sha256`) via `IPasswordHasher` and `Pbkdf2PasswordHasher`, with test coverage for malformed hash formats.
 - CI and PR review automation are active on merge and PR events (`CI` + `PR review (LLM via OpenRouter)`).
 - Repository layer supports UserId-scoped filtering and cursor-based pagination (BaseRepository); ownership filtering is enforced for all user-scoped resources.
@@ -100,6 +100,8 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 | PATCH | `/api/v1/educations/{id}` | Update an education record owned by the authenticated user. |
 | DELETE | `/api/v1/educations/{id}` | Soft-delete an education record owned by the authenticated user. |
 | POST | `/api/v1/cover-letter-templates` | Create a cover letter template for the authenticated user (name unique per user, content 50–10,000 chars); returns `201 Created` with `Location` header. |
+| GET | `/api/v1/cover-letter-templates` | Return a cursor-paginated template library for the authenticated user; supports case-insensitive `search` and returns `contentPreview` only. |
+| GET | `/api/v1/cover-letter-templates/{id}` | Return full detail for an owned template, including `content`; return `404` for missing, soft-deleted, or cross-user records. |
 
 ## Tech stack
 
@@ -133,7 +135,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 6. [done] API versioning and first endpoints (controllers under `/api/v1`).
 7. [done] **Users** CRUD with validation (create endpoint implemented; profile update and avatar management implemented in Story 1.4).
 8. [backlog] **Vacancies** list + CRUD.
-9. [in-progress] **Resumes**, **educations**, **cover letters** CRUD and relationships via user-scoped routes only (no cross-user list endpoints). Resume and education CRUD are merged; cover letter work remains in backlog.
+9. [in-progress] **Resumes**, **educations**, **cover letters** CRUD and relationships via user-scoped routes only (no cross-user list endpoints). Resume and education CRUD are merged; cover letter template create/list/detail are merged; template update/delete and cover letter CRUD remain in backlog.
 
 ### Phase C — Security
 

@@ -132,6 +132,8 @@ curl -i http://localhost:5000/
   - Creates a cover letter template for the authenticated user and returns `201 Created` with the created resource and `Location` header. Requires JWT authentication. Template name must be unique per user (soft-deleted templates allow name reuse). Content must be 50–10,000 characters.
 - `GET /api/v1/cover-letter-templates`
   - Returns a cursor-paginated list of cover letter templates for the authenticated user (`pageSize`, `lastSeenId`, `lastSeenUpdatedAt`). Supports optional case-insensitive name search via `?search=`. Each item includes a `contentPreview` (first 200 characters) instead of full content. Soft-deleted templates are excluded.
+- `GET /api/v1/cover-letter-templates/{id}`
+  - Returns full detail for an owned template, including full `content`; returns `404 Not Found` for missing, soft-deleted, or cross-user templates.
 
 ### CORS
 
