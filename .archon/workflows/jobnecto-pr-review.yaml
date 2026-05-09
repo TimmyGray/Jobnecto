@@ -1,0 +1,150 @@
+name: jobnecto-pr-review
+description: |
+  Parallel adversarial PR review for JobNecto with three specialized sub-agents running
+  simultaneously: Clean Architecture boundary checker, test coverage checker, and API
+  contract checker. Produces a prioritized findings report matching AGENTS.md format.
+
+  Use when: reviewing an existing PR or branch without going through the full story pipeline.
+  Triggers: "review PR", "review branch", "PR review", "code review", "jobnecto pr review".
+  NOT for: new story implementation (use jobnecto-story-dev instead).
+
+  Usage:
+    archon workflow run jobnecto-pr-review --cwd e:/apps/Jobnecto --branch {branch-name} "Review story N.M PR"
+
+provider: claude
+model: sonnet
+
+nodes:
+  - id: review
+    prompt: |
+      Review the current branch changes for JobNecto. Use the Task tool to spawn three
+      sub-agents in parallel — do not wait for one to finish before starting the next.
+
+      Branch/PR context: $ARGUMENTS
+
+      After all sub-agents complete, collect their raw findings and pass them to the
+      synthesize step. Do not summarize or filter yet — include all details.
+    allowed_tools: [Task, Read, Grep, Glob, Bash]
+    agents:
+      boundary-checker:
+        description: Checks Clean Architecture dependency direction in changed files
+        prompt: |
+          Identify all files changed on this branch relative to master:
+            git diff --name-only origin/master...HEAD
+
+          Read each changed source file. Also read:
+            _bmad-output/planning-artifacts/architecture/core-architectural-decisions.md
+
+          Check every changed file for Clean Architecture violations:
+          - Infrastructure layer importing from Application or Domain incorrectly
+          - Application layer importing directly from Infrastructure (must use interfaces)
+          - API layer calling Domain entities without going through Application layer
+          - Namespace declaration that does not match the file's actual folder path
+            (e.g., file at JobNecto.Application/CoverLetterTemplates/ must declare
+             namespace JobNecto.Application.CoverLetterTemplates;)
+
+          For each violation, report:
+            file: <path>
+            line: <line number if identifiable>
+            violation: <description>
+            severity: critical | high | medium | low
+            fix: <concrete recommended change>
+
+          If no violations found, state "No CA violations found" explicitly.
+        model: sonnet
+        tools: [Read, Grep, Glob, Bash]
+
+      test-checker:
+        description: Checks AC coverage and known lesson patterns from agent-learnings
+        prompt: |
+          Identify changed files on this branch:
+            git diff --name-only origin/master...HEAD
+
+          Read any story file in _bmad-output/implementation-artifacts/ referenced by or
+          matching the branch name (to find the acceptance criteria).
+          Read the changed test files.
+          Read _bmad-output/agent-learnings.md for known problem patterns.
+
+          For each acceptance criterion in the story, check:
+          - Happy path covered by at least one test
+          - Each failure case (401, 404, 409, 400) has a corresponding test
+          - If an endpoint creates/updates a resource with a name-uniqueness constraint:
+            is there a concurrent collision test?
+          - If there are DateTime cursor parameters:
+            is DateTimeKind/offset mismatch behavior tested?
+          - Test setup data uses validator-compliant values
+            (no hyphens in loginName, bounded email/content/name lengths)
+          - Soft-deleted resources are not visible in list or detail tests after deletion
+
+          For each gap, report:
+            criterion: <AC description>
+            gap: <what is missing>
+            severity: critical | high | medium | low
+            suggested_test: <concrete test name and scenario>
+
+          If coverage is complete, state "Test coverage complete" explicitly.
+        model: sonnet
+        tools: [Read, Grep, Glob, Bash]
+
+      api-checker:
+        description: Validates API endpoint contracts, auth guards, and documentation
+        prompt: |
+          Identify changed controller files on this branch:
+            git diff --name-only origin/master...HEAD
+
+          Read each changed controller file.
+
+          For each new or modified action method, check:
+          - Auth guard present and correct:
+              var userIdValue = HttpContext.GetCurrentUserId();
+              if (string.IsNullOrWhiteSpace(userIdValue) || !Guid.TryParse(userIdValue, out var userId))
+                  return Unauthorized();
+          - ProducesResponseType attributes cover all status codes this action can return
+            (200/201/204 for success; 400 if validated; 401 always; 403/404 where applicable)
+          - C# XML doc comment (/// <summary>) present on each action method
+          - Location header set in the response for all 201 Created actions
+          - HTTP verb attribute matches intended operation:
+            [HttpGet], [HttpPost], [HttpPatch], [HttpDelete], [HttpPut]
+
+          For each gap, report:
+            file: <path>
+            method: <action method name>
+            missing: <what is absent or wrong>
+            severity: critical | high | medium | low
+            fix: <concrete recommended change>
+
+          If all checks pass, state "All API contract checks passed" explicitly.
+        model: sonnet
+        tools: [Read, Grep, Glob, Bash]
+
+  - id: synthesize
+    prompt: |
+      Produce the final prioritized review report from the sub-agent findings below.
+
+      Raw sub-agent findings:
+      $review.output
+
+      Output structure:
+
+      ## Overall risk assessment
+      Score: N/10  (10 = highest risk)
+      Summary: one sentence on the overall state of this PR.
+
+      ## Findings (prioritized by severity)
+
+      For each finding, use this format:
+        severity: critical | high | medium | low
+        risk_score: N/10
+        impact: what can break and who is affected
+        evidence: file path, symbol, or specific line reference
+        recommended_fix: concrete change
+
+      ## What was checked and found clean
+      Explicitly list each area that was reviewed and had no issues.
+
+      ## Recommended next steps
+      Ordered list of actions before this PR can be merged.
+    allowed_tools: [Read]
+    depends_on: [review]
+    context: fresh
+    model: sonnet

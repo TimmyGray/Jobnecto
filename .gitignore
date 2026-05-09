@@ -417,6 +417,6 @@ appsettings.Development.json
 # Claude AI local settings (user-specific)
 /.claude/
 .claude/settings.local.json
-.archon/
+.archon/.env
 
 /backend/src/JobNecto.API/appsettings.Local.json

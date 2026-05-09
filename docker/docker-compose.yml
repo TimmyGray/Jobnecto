@@ -9,15 +9,16 @@ services:
       - ./.env.archon
     environment:
       PORT: "3090"
+      HOME: /home/appuser
       GH_TOKEN: ${GH_TOKEN}
       GITHUB_TOKEN: ${GITHUB_TOKEN}
       CLAUDE_USE_GLOBAL_AUTH: ${CLAUDE_USE_GLOBAL_AUTH:-true}
       DATABASE_URL: ${DATABASE_URL}
     volumes:
       - archon_data:/home/appuser/.archon
-      - claude_auth:/home/appuser/.claude
+      - ${CLAUDE_CONFIG_PATH}:/home/appuser/.claude
+      - ../.archon:/home/appuser/.archon/workspaces/TimmyGray/Jobnecto/source/.archon
     command: ["serve", "--port", "3090"]
 
 volumes:
   archon_data:
-  claude_auth:

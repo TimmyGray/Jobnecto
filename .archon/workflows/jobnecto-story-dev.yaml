@@ -1,0 +1,299 @@
+name: jobnecto-story-dev
+description: |
+  Full story implementation pipeline for JobNecto.
+  Loads context from story file + architecture + agent-learnings, implements the vertical
+  slice, pauses for code inspection, validates (targeted + full + Release warnaserror),
+  runs parallel review (boundary / test / api), finalizes with doc updates and commits,
+  pauses for PR approval, then opens a GitHub PR.
+
+  Use when: implementing a story from _bmad-output/implementation-artifacts/.
+  Triggers: "dev story", "implement story N.M", "story dev", "jobnecto story dev".
+  NOT for: architecture decisions, story creation, bug fixes without a story file.
+
+  Usage:
+    archon workflow run jobnecto-story-dev --cwd e:/apps/Jobnecto --branch feat/N-M-story-name "Story N.M: <title>"
+
+provider: claude
+model: sonnet
+
+nodes:
+  - id: load-context
+    prompt: |
+      You are preparing to implement a JobNecto API story in an isolated worktree.
+
+      Story reference: $ARGUMENTS
+
+      Read and synthesize the following documents in order:
+
+      1. Locate the story file under _bmad-output/implementation-artifacts/ that matches
+         the story ID in the input (e.g., for "Story 3.4" find 3-4-*.md). Read it fully.
+      2. Read _bmad-output/planning-artifacts/architecture/index.md, then read the specific
+         architecture shards it references that are relevant to this story area.
+      3. Read _bmad-output/agent-learnings.md in full. Note every lesson that applies.
+      4. Read _bmad-output/planning-artifacts/epics/requirements-inventory.md for NFRs.
+
+      Produce a structured implementation briefing with these sections:
+
+      STORY SCOPE
+        - Acceptance criteria (verbatim from story file)
+        - Explicit boundaries: what this story does NOT touch
+
+      FILES TO CREATE
+        - Each new file path and its purpose
+
+      FILES TO MODIFY
+        - Each existing file and what changes are needed
+
+      LESSONS TO APPLY
+        - Each applicable agent-learning entry with one line on how it applies here
+
+      PATTERNS TO FOLLOW
+        - Vertical slice layout, CA layer rules, namespace conventions
+        - Auth guard pattern, ProducesResponseType conventions, XML doc requirements
+        - Test conventions (validator-compliant data, separate handler files, etc.)
+
+      GOTCHAS
+        - Constraints, edge cases, and known risks specific to this feature area
+    allowed_tools: [Read, Glob, Grep]
+
+  - id: implement
+    prompt: |
+      Implement the story using the briefing below. Treat every rule as non-negotiable.
+
+      MANDATORY RULES:
+      - Namespaces must match folder structure exactly
+          Good: namespace JobNecto.Application.CoverLetterTemplates;
+          Bad:  namespace JobNecto.Application;
+      - Separate files for command/query and its handler — never in the same file
+      - All new non-trivial public methods must have C# XML docs:
+          /// <summary>...</summary>, <param name="...">...</param>, <returns>...</returns>
+      - Auth guard in every protected controller action:
+          var userIdValue = HttpContext.GetCurrentUserId();
+          if (string.IsNullOrWhiteSpace(userIdValue) || !Guid.TryParse(userIdValue, out var userId))
+              return Unauthorized();
+      - ProducesResponseType attributes for all status codes the action can return
+      - Location header on all 201 Created responses
+      - Set CreatedAt and UpdatedAt explicitly in create handlers (DateTime.UtcNow)
+      - Cross-user reads return 404 (not 403) to prevent existence leakage
+
+      Implementation briefing:
+      $load-context.output
+    allowed_tools: [Read, Edit, Write, Glob, Grep, Bash]
+    depends_on: [load-context]
+
+  - id: inspect-implementation
+    depends_on: [implement]
+    approval:
+      message: |
+        Implementation complete. Review the changes in the worktree before validation runs.
+        Approve to proceed: targeted tests → full suite → Release warnaserror build + tests.
+        You may add notes here — they will be passed to the validation step.
+        Reject to request implementation changes.
+      capture_response: true
+
+  - id: validate
+    prompt: |
+      Run all validation gates for this story. Fix any failures before moving on.
+
+      Implementation context (use to identify the module name for the targeted test filter):
+      $implement.output
+
+      Inspector notes (if any):
+      $inspect-implementation.output
+
+      Steps — execute in this order:
+      1. From the implementation context, identify the primary module name
+         (e.g., CoverLetterTemplates, Resumes, Educations, Users).
+      2. Run targeted tests:
+           dotnet test backend/JobNecto.slnx --filter "FullyQualifiedName~{module}"
+      3. Run full test suite:
+           dotnet test backend/JobNecto.slnx
+      4. Run Release build with warnings-as-errors:
+           dotnet build backend/JobNecto.slnx --configuration Release --warnaserror
+      5. Run Release tests:
+           dotnet test backend/JobNecto.slnx --configuration Release --no-build --warnaserror
+
+      If any step fails: diagnose the root cause, fix it (using Read/Edit), re-run that step.
+      Do not move to the next step while any failure remains.
+      Report pass/fail and test count for each step.
+    allowed_tools: [Bash, Read, Edit, Grep, Glob]
+    depends_on: [inspect-implementation]
+
+  - id: review
+    prompt: |
+      Review the implemented changes for architecture correctness, test coverage, and API
+      contract compliance. Use the Task tool to spawn three sub-agents in parallel.
+
+      Validation results:
+      $validate.output
+
+      After all sub-agents complete, merge their findings into a single prioritized report.
+      Format each finding as:
+        - severity: critical | high | medium | low
+        - risk_score: 1-10 (10 = highest risk)
+        - impact: what breaks and who is affected
+        - evidence: file path, line reference, or specific symbol
+        - recommended_fix: concrete change
+
+      Critical or high findings must be fixed in the finalize step before the PR is opened.
+      Explicitly state when a sub-agent finds no issues in its area.
+    allowed_tools: [Task, Read, Grep, Glob]
+    agents:
+      boundary-checker:
+        description: Checks Clean Architecture dependency direction in changed files
+        prompt: |
+          Read the changed source files (use git diff --name-only or Glob to find them)
+          and _bmad-output/planning-artifacts/architecture/core-architectural-decisions.md.
+
+          Check for Clean Architecture violations in every changed file:
+          - Infrastructure layer importing from Application or Domain incorrectly
+          - Application layer importing directly from Infrastructure (must use interfaces)
+          - API layer calling Domain entities without going through Application layer
+          - Namespace declaration that does not match the file's actual folder path
+
+          Report each violation with: file path, line, violation type, severity, recommended fix.
+          If no violations found, state "No CA violations found" explicitly.
+        model: haiku
+        tools: [Read, Grep, Glob, Bash]
+
+      test-checker:
+        description: Checks AC coverage and known lesson patterns from agent-learnings
+        prompt: |
+          Read the story's acceptance criteria from the story file in
+          _bmad-output/implementation-artifacts/.
+          Read the test files that were added or modified (use git diff --name-only or Glob).
+          Read _bmad-output/agent-learnings.md for known problem patterns.
+
+          Check the following for each acceptance criterion:
+          - Happy path covered by at least one test
+          - Each failure case (401, 404, 409, 400) has a corresponding test
+          - If the endpoint creates a resource with a name-uniqueness constraint:
+            is there a concurrent collision test?
+          - If there are DateTime cursor parameters:
+            is DateTimeKind/offset mismatch behavior tested?
+          - Test setup data uses validator-compliant values
+            (no hyphens in loginName, bounded email/content lengths)
+          - Soft-deleted resources are not visible in list or detail tests after deletion
+
+          Report gaps with concrete test suggestions. If coverage is complete, state so.
+        model: haiku
+        tools: [Read, Grep, Glob, Bash]
+
+      api-checker:
+        description: Validates API endpoint contracts, auth guards, and documentation
+        prompt: |
+          Read the controller files containing new or modified endpoints
+          (use git diff --name-only or Glob to find them).
+
+          For each new or modified action method, check:
+          - Auth guard present and correct:
+              string.IsNullOrWhiteSpace(userIdValue) || !Guid.TryParse(userIdValue, out var userId)
+              followed immediately by return Unauthorized();
+          - ProducesResponseType attributes cover all status codes this action can return
+          - C# XML doc comment (/// <summary>) present on the action method
+          - Location header set in the response for all 201 Created actions
+          - HTTP verb attribute matches intended operation (HttpGet/HttpPost/HttpPatch/HttpDelete)
+
+          Report each gap with: file path, method name, missing item, recommended fix.
+          If all checks pass, state "All API contract checks passed" explicitly.
+        model: haiku
+        tools: [Read, Grep, Glob, Bash]
+    depends_on: [validate]
+
+  - id: finalize
+    prompt: |
+      Finalize the implementation and update all required project documentation.
+
+      Review findings to address:
+      $review.output
+
+      Steps — complete all of them:
+
+      1. Fix critical and high findings
+         If any critical or high severity findings exist, fix them now and note what changed.
+
+      2. Update sprint-status.yaml
+         File: _bmad-output/implementation-artifacts/sprint-status.yaml
+         Change this story's status to: done
+
+      3. Update the story artifact
+         File: the story's .md file in _bmad-output/implementation-artifacts/
+         - Set Status: done at the top
+         - Add an entry to the Change Log section with today's date and a summary
+         - Fill in the Dev Agent Record section (model used, completion notes, file list)
+
+      4. Update the roadmap
+         File: docs/JOBNECTO_BACKEND_ROADMAP.md
+         - Add this story to the implementation snapshot section as completed
+         - Update the Current HTTP API table with the new endpoint(s)
+
+      5. Update the PRD
+         File: _bmad-output/planning-artifacts/prd.md
+         - Mark the completed feature/story as done
+
+      6. Update project context
+         File: _bmad-output/project-context.md
+         - Update the project state and completed features section
+
+      7. Commit — two separate commits:
+
+         Commit 1 (implementation):
+           feat({scope}): {story-title} (story {N.M})
+
+           - Files created: [list each]
+           - Files modified: [list each]
+           - Brief description of what was implemented
+           - Test count: N tests passing
+
+           Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+         Commit 2 (docs):
+           docs: update after {story-name} implementation
+
+           - List each doc file updated
+
+           Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+    allowed_tools: [Read, Edit, Write, Bash, Glob, Grep]
+    depends_on: [review]
+
+  - id: approve-pr
+    depends_on: [finalize]
+    approval:
+      message: |
+        Implementation committed with documentation updates.
+        Review the commits and verify everything looks correct.
+        Approve to open a GitHub PR. You may add notes here for the PR description.
+        Reject to make final adjustments before the PR is created.
+      capture_response: true
+
+  - id: open-pr
+    prompt: |
+      Open a GitHub PR for this story implementation.
+
+      Review summary:
+      $review.output
+
+      PR notes from approver (if any):
+      $approve-pr.output
+
+      Steps:
+      1. Read the story artifact file to get the exact story title and number.
+      2. Create the PR with gh pr create using this structure:
+
+         Title: {story-title} (story {N.M})
+
+         Body sections:
+         ## Summary
+         [3-5 bullet points of what was implemented]
+
+         ## Review findings
+         [List each finding and its disposition: fixed / dismissed / deferred with reason]
+
+         ## Test plan
+         [Checklist of what was tested — one item per acceptance criterion]
+
+         🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+      3. Report the PR URL.
+    allowed_tools: [Bash, Read]
+    depends_on: [approve-pr]

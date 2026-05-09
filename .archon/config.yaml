@@ -1,0 +1,19 @@
+assistant: claude
+
+assistants:
+  claude:
+    model: sonnet
+    settingSources:
+      - project
+
+worktree:
+  baseBranch: master
+  copyFiles:
+    - backend/src/JobNecto.API/appsettings.Local.json
+
+docs:
+  path: docs
+
+defaults:
+  loadDefaultCommands: true
+  loadDefaultWorkflows: true
