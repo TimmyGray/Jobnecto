@@ -648,4 +648,132 @@ public class CoverLetterTemplatesApiTests
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
+
+    // --- DELETE /api/v1/cover-letter-templates/{id} ---
+
+    private static async Task<HttpResponseMessage> DeleteTemplateAsync(
+        HttpClient client,
+        string authCookie,
+        Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/cover-letter-templates/{id}");
+        request.Headers.TryAddWithoutValidation("Cookie", authCookie);
+        return await client.SendAsync(request);
+    }
+
+    [Fact]
+    public async Task Delete_WithoutToken_Returns401()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.DeleteAsync($"/api/v1/cover-letter-templates/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Delete_OwnedTemplate_Returns204()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var authCookie = await CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_del_"));
+
+        var createResponse = await PostTemplateAsync(client, authCookie, new
+        {
+            name = "Template To Delete",
+            content = ValidContent(),
+        });
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CoverLetterTemplateResultDto>(JsonOptions);
+
+        var response = await DeleteTemplateAsync(client, authCookie, created!.Id);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task Delete_NonExistentId_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var authCookie = await CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_del_"));
+
+        var response = await DeleteTemplateAsync(client, authCookie, Guid.NewGuid());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_AnotherUsersTemplate_Returns403()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var cookieA = await CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_da_"));
+        var cookieB = await CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_db_"));
+
+        var createResponse = await PostTemplateAsync(client, cookieA, new
+        {
+            name = "User A Template",
+            content = ValidContent(),
+        });
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CoverLetterTemplateResultDto>(JsonOptions);
+
+        var response = await DeleteTemplateAsync(client, cookieB, created!.Id);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Delete_OwnedTemplate_ExcludedFromListAfterDeletion()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var authCookie = await CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_dl_"));
+
+        var createResponse = await PostTemplateAsync(client, authCookie, new
+        {
+            name = "Will Be Deleted",
+            content = ValidContent(),
+        });
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CoverLetterTemplateResultDto>(JsonOptions);
+
+        var deleteResponse = await DeleteTemplateAsync(client, authCookie, created!.Id);
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var listResponse = await GetTemplatesAsync(client, authCookie);
+        listResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await listResponse.Content.ReadFromJsonAsync<PagedResultDto>(JsonOptions);
+        result!.TotalCount.Should().Be(0);
+        result.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Delete_OwnedTemplate_DetailReturns404AfterDeletion()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var authCookie = await CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_dd_"));
+
+        var createResponse = await PostTemplateAsync(client, authCookie, new
+        {
+            name = "Will Be Deleted Detail",
+            content = ValidContent(),
+        });
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CoverLetterTemplateResultDto>(JsonOptions);
+
+        var deleteResponse = await DeleteTemplateAsync(client, authCookie, created!.Id);
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var detailResponse = await GetTemplateByIdAsync(client, authCookie, created.Id);
+        detailResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }
