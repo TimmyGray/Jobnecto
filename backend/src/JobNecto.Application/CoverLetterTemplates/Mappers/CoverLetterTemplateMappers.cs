@@ -45,4 +45,28 @@ public static class CoverLetterTemplateMappers
             UpdatedAt = template.UpdatedAt,
         };
     }
+
+    /// <summary>
+    /// Maps a domain entity to the list-item API response DTO.
+    /// Returns a content preview (first 200 chars) instead of the full content.
+    /// </summary>
+    /// <param name="template">Persisted cover letter template entity.</param>
+    /// <returns>API-facing cover letter template list item result.</returns>
+    public static CoverLetterTemplateListItemResult ToCoverLetterTemplateListItemResult(
+        this CoverLetterTemplate template)
+    {
+        if (template == null)
+            throw new ArgumentNullException(nameof(template));
+
+        return new CoverLetterTemplateListItemResult
+        {
+            Id = template.Id,
+            Name = template.Name,
+            ContentPreview = template.Content.Length <= 200
+                ? template.Content
+                : template.Content[..200],
+            CreatedAt = template.CreatedAt,
+            UpdatedAt = template.UpdatedAt,
+        };
+    }
 }

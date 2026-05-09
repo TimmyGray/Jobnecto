@@ -41,6 +41,7 @@ JobNecto is a .NET 10 backend API for job vacancy aggregation and matching. Clea
 
 - **Function Comments**: Use the `@[/function-comments]` skill from `.agents/skills/function-comments/SKILL.md` to add C# XML docs (`/// <summary>`, `<param>`, `<returns>`) to functions that benefit from documentation. Skip trivial code per the skill.
 - **PostgreSQL**: Use the `@[/jobnecto-postgresql]` skill from `.agents/skills/jobnecto-postgresql/SKILL.md` when querying the DB, running migrations, or working with local Postgres databases.
+- **Archon (Workflow Orchestration)**: The `@[/jobnecto-archon]` skill provides worktree isolation, MCP context (GitHub + PostgreSQL schema), parallel sub-agents, and repeatable quality gates. Before starting a non-trivial task, consider whether any of these capabilities would reduce risk or add value — if so, use Archon.
 
 ### Agent Routing Instructions
 
@@ -52,6 +53,7 @@ When a user request requires specific workflows, code generation, or role-playin
 - **Sprint Management & Scrum**: If the user needs sprint planning or sprint status checking (acting as a Scrum Master), you must call `@[/bmad-sprint-planning]` or `@[/bmad-sprint-status]`.
 - **UX Design**: For UX patterns and design specifications, call the `@[/bmad-agent-ux-designer]` skill.
 - **Testing & QA**: For test architecture, design, and QA guidance, call the `@[/bmad-tea]` skill.
+- **Archon**: Before starting a task, assess its complexity and whether Archon's capabilities are relevant. Consider: Does the task span multiple files or require CI validation? Would worktree isolation protect master from in-progress work? Would live DB/schema context improve accuracy? Would parallel sub-agents speed up analysis? If the answer to any of these is yes, prefer `@[/jobnecto-archon]` over direct implementation.
 
 ### Namespace conventions
 
