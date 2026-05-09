@@ -20,7 +20,7 @@ on:
         description: OpenRouter model to use (optional)
         required: false
         type: string
-        default: 'tencent/hy3-preview:free'
+        default: 'openai/gpt-oss-120b:free'
 
 concurrency:
   group: pr-review-llm-${{ github.event.pull_request.number || inputs.pr_number || github.run_id }}
@@ -104,5 +104,5 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr_meta.outputs.number }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          OPENROUTER_MODEL: ${{ inputs.model || 'tencent/hy3-preview:free' }}
+          OPENROUTER_MODEL: ${{ inputs.model || 'openai/gpt-oss-120b:free' }}
         run: node .github/scripts/pr_review_llm.mjs pr.diff
