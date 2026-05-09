@@ -11,8 +11,8 @@
 
 ## Implementation snapshot (2026-05-10)
 
-- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), `1-5` (password hashing and token policy hardening), `2-1` (create resume), `2-2` (list resumes), `2-3` (get resume detail), `2-4` (update resume), `2-5` (soft-delete resume), `2-6` (create education record), `2-7` (list education records), `2-8` (get/update/delete education records), `r-1` (separate soft-delete repository contract), `3-1` (create cover letter template), `3-2` (list cover letter templates), `3-3` (get cover letter template detail), and `3-4` (update cover letter template) are merged to `master`.
-- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`). Resume create/list/detail/update/delete and education create/list/detail/update/delete endpoints are merged. Epic 3 currently includes cover letter template create/list/detail/update (`POST /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates/{id}`, `PATCH /api/v1/cover-letter-templates/{id}`) with per-user ownership and soft-delete semantics.
+- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), `1-5` (password hashing and token policy hardening), `2-1` (create resume), `2-2` (list resumes), `2-3` (get resume detail), `2-4` (update resume), `2-5` (soft-delete resume), `2-6` (create education record), `2-7` (list education records), `2-8` (get/update/delete education records), `r-1` (separate soft-delete repository contract), `3-1` (create cover letter template), `3-2` (list cover letter templates), `3-3` (get cover letter template detail), `3-4` (update cover letter template), and `3-5` (delete cover letter template) are merged to `master`.
+- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`). Resume create/list/detail/update/delete and education create/list/detail/update/delete endpoints are merged. Epic 3 is complete: cover letter template create/list/detail/update/delete (`POST /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates/{id}`, `PATCH /api/v1/cover-letter-templates/{id}`, `DELETE /api/v1/cover-letter-templates/{id}`) with per-user ownership and soft-delete semantics.
 - Password persistence uses PBKDF2 (`pbkdf2-sha256`) via `IPasswordHasher` and `Pbkdf2PasswordHasher`, with test coverage for malformed hash formats.
 - CI and PR review automation are active on merge and PR events (`CI` + `PR review (LLM via OpenRouter)`).
 - Repository layer supports UserId-scoped filtering and cursor-based pagination (BaseRepository); ownership filtering is enforced for all user-scoped resources.
@@ -103,6 +103,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 | GET | `/api/v1/cover-letter-templates` | Return a cursor-paginated template library for the authenticated user; supports case-insensitive `search` and returns `contentPreview` only. |
 | GET | `/api/v1/cover-letter-templates/{id}` | Return full detail for an owned template, including `content`; return `404` for missing, soft-deleted, or cross-user records. |
 | PATCH | `/api/v1/cover-letter-templates/{id}` | Update name/content on an owned template; return `403` for cross-user access, `404` for missing/soft-deleted records, and `409` for uniqueness conflicts. |
+| DELETE | `/api/v1/cover-letter-templates/{id}` | Soft-delete an owned template; returns `204 No Content`. Returns `403` for cross-user attempts, `404` for non-existent IDs. |
 
 ## Tech stack
 
@@ -136,7 +137,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 6. [done] API versioning and first endpoints (controllers under `/api/v1`).
 7. [done] **Users** CRUD with validation (create endpoint implemented; profile update and avatar management implemented in Story 1.4).
 8. [backlog] **Vacancies** list + CRUD.
-9. [in-progress] **Resumes**, **educations**, **cover letters** CRUD and relationships via user-scoped routes only (no cross-user list endpoints). Resume and education CRUD are merged; cover letter template create/list/detail/update are merged; template delete and cover letter CRUD remain in backlog.
+9. [in-progress] **Resumes**, **educations**, **cover letters** CRUD and relationships via user-scoped routes only (no cross-user list endpoints). Resume and education CRUD are merged; all cover letter template CRUD (create/list/detail/update/delete) are merged; cover letter CRUD (Epic 5) remains in backlog.
 
 ### Phase C — Security
 

@@ -66,7 +66,7 @@ development_status:
   3-2-list-cover-letter-templates: done
   3-3-get-cover-letter-template-detail: done
   3-4-update-cover-letter-template: done
-  3-5-delete-cover-letter-template: backlog
+  3-5-delete-cover-letter-template: done
   epic-3-retrospective: optional
 
   # --- Epic 4: Vacancy Browsing & Filtering ---

@@ -97,6 +97,32 @@ public class CoverLetterTemplatesController : ControllerBase
     }
 
     /// <summary>
+    /// Soft-deletes a cover letter template owned by the current authenticated user.
+    /// </summary>
+    /// <param name="id">The cover letter template identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>No content on success.</returns>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteAsync(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var userIdValue = HttpContext.GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(userIdValue) || !Guid.TryParse(userIdValue, out var userId))
+            return Unauthorized();
+
+        await _mediator.Send(
+            new DeleteCoverLetterTemplateCommand { CoverLetterTemplateId = id, UserId = userId },
+            cancellationToken);
+
+        return NoContent();
+    }
+
+    /// <summary>
     /// Creates a new cover letter template for the current authenticated user.
     /// </summary>
     /// <param name="command">Cover letter template creation payload.</param>
