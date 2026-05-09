@@ -42,6 +42,14 @@ public class CoverLetterTemplatesUniquenessApiTests : IAsyncLifetime
             Password = "Password123!",
         };
 
+    private static Guid ExtractIdFromLocation(HttpResponseMessage response)
+    {
+        response.Headers.Location.Should().NotBeNull();
+        var idSegment = response.Headers.Location!.ToString().Split('/').Last();
+        Guid.TryParse(idSegment, out var id).Should().BeTrue("Location header must end with a valid GUID");
+        return id;
+    }
+
     [Fact]
     public async Task Create_DuplicateName_SameUser_Returns409()
     {
@@ -115,6 +123,113 @@ public class CoverLetterTemplatesUniquenessApiTests : IAsyncLifetime
 
         results.Count(r => r.StatusCode == HttpStatusCode.Created).Should().Be(1);
         results.Count(r => r.StatusCode == HttpStatusCode.Conflict).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Patch_RenameToExistingName_SameUser_Returns409()
+    {
+        if (!await _factory!.TryInitializeSchemaAsync())
+        {
+            _output.WriteLine("Skipped: PostgreSQL test database was unavailable.");
+            return;
+        }
+
+        var client = _factory!.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var authCookie = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_patch_same_"));
+
+        var first = await CoverLetterTemplatesApiTests.PostTemplateAsync(client, authCookie, new
+        {
+            name = "First Name",
+            content = ValidContent(),
+        });
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var second = await CoverLetterTemplatesApiTests.PostTemplateAsync(client, authCookie, new
+        {
+            name = "Second Name",
+            content = ValidContent(),
+        });
+        second.StatusCode.Should().Be(HttpStatusCode.Created);
+        var secondId = ExtractIdFromLocation(second);
+
+        var patch = await CoverLetterTemplatesApiTests.PatchTemplateAsync(client, authCookie, secondId, new
+        {
+            name = "First Name",
+        });
+
+        patch.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Patch_SameNameUsedByAnotherUser_DoesNotBlockUpdate_Returns200()
+    {
+        if (!await _factory!.TryInitializeSchemaAsync())
+        {
+            _output.WriteLine("Skipped: PostgreSQL test database was unavailable.");
+            return;
+        }
+
+        var client = _factory!.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var cookieA = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_patch_a_"));
+        var cookieB = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_patch_b_"));
+
+        var userATemplate = await CoverLetterTemplatesApiTests.PostTemplateAsync(client, cookieA, new
+        {
+            name = "UserA Original",
+            content = ValidContent(),
+        });
+        userATemplate.StatusCode.Should().Be(HttpStatusCode.Created);
+        var userATemplateId = ExtractIdFromLocation(userATemplate);
+
+        var userBTemplate = await CoverLetterTemplatesApiTests.PostTemplateAsync(client, cookieB, new
+        {
+            name = "Shared Across Users",
+            content = ValidContent(),
+        });
+        userBTemplate.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var patch = await CoverLetterTemplatesApiTests.PatchTemplateAsync(client, cookieA, userATemplateId, new
+        {
+            name = "Shared Across Users",
+        });
+
+        patch.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Patch_ConcurrentRenameCollision_OneSuccessAndAtLeastOneConflict()
+    {
+        if (!await _factory!.TryInitializeSchemaAsync())
+        {
+            _output.WriteLine("Skipped: PostgreSQL test database was unavailable.");
+            return;
+        }
+
+        var client = _factory!.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var authCookie = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_patch_race_"));
+
+        var first = await CoverLetterTemplatesApiTests.PostTemplateAsync(client, authCookie, new
+        {
+            name = "Race One",
+            content = ValidContent(),
+        });
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+        var firstId = ExtractIdFromLocation(first);
+
+        var second = await CoverLetterTemplatesApiTests.PostTemplateAsync(client, authCookie, new
+        {
+            name = "Race Two",
+            content = ValidContent(),
+        });
+        second.StatusCode.Should().Be(HttpStatusCode.Created);
+        var secondId = ExtractIdFromLocation(second);
+
+        var patch1 = CoverLetterTemplatesApiTests.PatchTemplateAsync(client, authCookie, firstId, new { name = "Collision Name" });
+        var patch2 = CoverLetterTemplatesApiTests.PatchTemplateAsync(client, authCookie, secondId, new { name = "Collision Name" });
+        var responses = await Task.WhenAll(patch1, patch2);
+
+        responses.Count(x => x.StatusCode == HttpStatusCode.OK).Should().Be(1);
+        responses.Count(x => x.StatusCode == HttpStatusCode.Conflict).Should().BeGreaterThanOrEqualTo(1);
     }
 }
 

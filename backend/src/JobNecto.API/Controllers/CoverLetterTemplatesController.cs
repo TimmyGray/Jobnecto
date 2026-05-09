@@ -81,7 +81,7 @@ public class CoverLetterTemplatesController : ControllerBase
     [ProducesResponseType(typeof(CoverLetterTemplateResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CoverLetterTemplateResult>> GetByIdAsync(
+    public async Task<ActionResult<CoverLetterTemplateResult>> GetAsync(
         Guid id,
         CancellationToken cancellationToken)
     {
@@ -119,5 +119,35 @@ public class CoverLetterTemplatesController : ControllerBase
 
         var result = await _mediator.Send(command, cancellationToken);
         return Created($"/api/v1/cover-letter-templates/{result.Id}", result);
+    }
+
+    /// <summary>
+    /// Updates one or more fields on an existing cover letter template owned by the current authenticated user.
+    /// </summary>
+    /// <param name="id">The cover letter template identifier.</param>
+    /// <param name="command">Partial update payload.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The updated cover letter template.</returns>
+    [HttpPatch("{id:guid}")]
+    [ProducesResponseType(typeof(CoverLetterTemplateResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<CoverLetterTemplateResult>> UpdateAsync(
+        [FromRoute] Guid id,
+        UpdateCoverLetterTemplateCommand command,
+        CancellationToken cancellationToken)
+    {
+        var userIdValue = HttpContext.GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(userIdValue) || !Guid.TryParse(userIdValue, out var userId))
+            return Unauthorized();
+
+        command.CoverLetterTemplateId = id;
+        command.UserId = userId;
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
     }
 }

@@ -86,7 +86,7 @@ So that I can refine my reusable material over time.
 
 **Acceptance Criteria:**
 
-**Given** a valid JWT token and `PUT /api/v1/cover-letter-templates/{id}` with new `name` and/or `content`
+**Given** a valid JWT token and `PATCH /api/v1/cover-letter-templates/{id}` with new `name` and/or `content`
 **When** the request is processed
 **Then** `200 OK` with updated template; `updatedAt` refreshed
 

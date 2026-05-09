@@ -26,6 +26,27 @@ public static class CoverLetterTemplateMappers
     }
 
     /// <summary>
+    /// Applies non-null fields from an update command onto an existing template entity.
+    /// Null fields are left unchanged (partial update semantics).
+    /// </summary>
+    /// <param name="template">Target entity to update.</param>
+    /// <param name="command">Update payload.</param>
+    public static void ApplyUpdates(this CoverLetterTemplate template, UpdateCoverLetterTemplateCommand command)
+    {
+        if (template == null)
+            throw new ArgumentNullException(nameof(template));
+
+        if (command == null)
+            throw new ArgumentNullException(nameof(command));
+
+        if (command.Name != null)
+            template.Name = command.Name;
+
+        if (command.Content != null)
+            template.Content = command.Content;
+    }
+
+    /// <summary>
     /// Maps a domain entity to the API response DTO.
     /// </summary>
     /// <param name="template">Persisted cover letter template entity.</param>

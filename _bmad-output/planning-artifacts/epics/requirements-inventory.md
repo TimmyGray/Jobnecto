@@ -18,7 +18,7 @@ FR13: User can soft-delete an education record via `DELETE /api/v1/educations/{i
 FR14: User can create a cover letter template with `name` (unique per user) and `content` (50-10000 chars) via `POST /api/v1/cover-letter-templates`; returns `201 Created`.
 FR15: User can list their cover letter templates (paginated, searchable by `name`, ordered by `updatedAt desc`) via `GET /api/v1/cover-letter-templates`; returns `200 OK` with content preview (first 200 chars).
 FR16: User can retrieve a single cover letter template with full `content` via `GET /api/v1/cover-letter-templates/{id}`; returns `404` if not found.
-FR17: User can update a cover letter template's `name` or `content` via `PUT /api/v1/cover-letter-templates/{id}`; name uniqueness re-validated if changed; returns `200 OK`.
+FR17: User can update a cover letter template's `name` or `content` via `PATCH /api/v1/cover-letter-templates/{id}`; name uniqueness re-validated if changed; returns `200 OK`.
 FR18: User can soft-delete a cover letter template via `DELETE /api/v1/cover-letter-templates/{id}`; returns `204 No Content`.
 FR19: User can create a job-specific cover letter with `vacancyId` (required, must exist), `content` (50-10000 chars), and optional `templateId` via `POST /api/v1/cover-letters`; one letter per vacancy per user; returns `201 Created`.
 FR20: User can list their cover letters (paginated, ordered by `createdAt desc`) via `GET /api/v1/cover-letters`; includes `vacancyTitle` from linked vacancy; returns `200 OK`.

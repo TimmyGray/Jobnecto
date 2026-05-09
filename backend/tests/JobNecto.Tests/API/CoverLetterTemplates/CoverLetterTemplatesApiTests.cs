@@ -61,6 +61,20 @@ public class CoverLetterTemplatesApiTests
         return await client.SendAsync(request);
     }
 
+    internal static async Task<HttpResponseMessage> PatchTemplateAsync(
+        HttpClient client,
+        string authCookie,
+        Guid id,
+        object payload)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/cover-letter-templates/{id}")
+        {
+            Content = JsonContent.Create(payload),
+        };
+        request.Headers.TryAddWithoutValidation("Cookie", authCookie);
+        return await client.SendAsync(request);
+    }
+
     [Fact]
     public async Task Create_WithoutToken_Returns401()
     {
@@ -417,6 +431,171 @@ public class CoverLetterTemplatesApiTests
         var response = await GetTemplateByIdAsync(client, cookieB, created!.Id);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    // --- PATCH /api/v1/cover-letter-templates/{id} ---
+
+    [Fact]
+    public async Task Patch_WithoutToken_Returns401()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.PatchAsJsonAsync(
+            $"/api/v1/cover-letter-templates/{Guid.NewGuid()}",
+            new { name = "Updated Name" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Patch_OwnedTemplate_NameOnly_Returns200AndPreservesContent()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var authCookie = await CreateUserAndGetCookieHelperAsync(client);
+
+        var createResponse = await PostTemplateAsync(client, authCookie, new
+        {
+            name = "Original Name",
+            content = new string('a', 70),
+        });
+
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CoverLetterTemplateResultDto>(JsonOptions);
+
+        var response = await PatchTemplateAsync(client, authCookie, created!.Id, new
+        {
+            name = "Updated Name",
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<CoverLetterTemplateResultDto>(JsonOptions);
+        result.Should().NotBeNull();
+        result!.Name.Should().Be("Updated Name");
+        result.Content.Should().Be(new string('a', 70));
+        result.UpdatedAt.Should().BeAfter(created.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task Patch_OwnedTemplate_ContentOnly_Returns200AndPreservesName()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var authCookie = await CreateUserAndGetCookieHelperAsync(client);
+
+        var createResponse = await PostTemplateAsync(client, authCookie, new
+        {
+            name = "Original Name",
+            content = new string('a', 70),
+        });
+
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CoverLetterTemplateResultDto>(JsonOptions);
+        var updatedContent = new string('b', 80);
+
+        var response = await PatchTemplateAsync(client, authCookie, created!.Id, new
+        {
+            content = updatedContent,
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<CoverLetterTemplateResultDto>(JsonOptions);
+        result.Should().NotBeNull();
+        result!.Name.Should().Be("Original Name");
+        result.Content.Should().Be(updatedContent);
+        result.UpdatedAt.Should().BeAfter(created.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task Patch_AnotherUsersTemplate_Returns403()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var cookieA = await CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_patch_a_"));
+        var cookieB = await CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_patch_b_"));
+
+        var createResponse = await PostTemplateAsync(client, cookieA, new
+        {
+            name = "Owner Template",
+            content = ValidContent(),
+        });
+
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CoverLetterTemplateResultDto>(JsonOptions);
+
+        var response = await PatchTemplateAsync(client, cookieB, created!.Id, new
+        {
+            name = "Attack",
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Patch_NonExistentId_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var authCookie = await CreateUserAndGetCookieHelperAsync(client);
+
+        var response = await PatchTemplateAsync(client, authCookie, Guid.NewGuid(), new
+        {
+            name = "Updated",
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Patch_InvalidContentBounds_Returns400WithFieldError()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var authCookie = await CreateUserAndGetCookieHelperAsync(client);
+
+        var createResponse = await PostTemplateAsync(client, authCookie, new
+        {
+            name = "Template",
+            content = ValidContent(),
+        });
+
+        var created = await createResponse.Content.ReadFromJsonAsync<CoverLetterTemplateResultDto>(JsonOptions);
+
+        var response = await PatchTemplateAsync(client, authCookie, created!.Id, new
+        {
+            content = new string('x', 49),
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("Content");
+    }
+
+    [Fact]
+    public async Task Patch_EmptyBody_Returns400()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var authCookie = await CreateUserAndGetCookieHelperAsync(client);
+
+        var createResponse = await PostTemplateAsync(client, authCookie, new
+        {
+            name = "Template",
+            content = ValidContent(),
+        });
+
+        var created = await createResponse.Content.ReadFromJsonAsync<CoverLetterTemplateResultDto>(JsonOptions);
+
+        var response = await PatchTemplateAsync(client, authCookie, created!.Id, new { });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]

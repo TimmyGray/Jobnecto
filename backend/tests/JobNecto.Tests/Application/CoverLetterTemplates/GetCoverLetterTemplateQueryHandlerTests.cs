@@ -23,6 +23,7 @@ public class GetCoverLetterTemplateQueryHandlerTests
 
     private static CoverLetterTemplate MakeTemplate(Guid userId) => new()
     {
+        Id = Guid.NewGuid(),
         UserId = userId,
         Name = "My Template",
         Content = new string('a', 50),
