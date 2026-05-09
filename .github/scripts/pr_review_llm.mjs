@@ -17,7 +17,7 @@
  */
 
 import { readFileSync, existsSync } from "node:fs";
-import { exit, stderr } from "node:process";
+import { stderr } from "node:process";
 
 /** OpenRouter chat completions (OpenAI-compatible). */
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -29,7 +29,16 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MAX_DIFF_CHARS = 900_000;
 
 /** Used when OPENROUTER_MODEL is unset or empty. */
-const DEFAULT_MODEL = "tencent/hy3-preview:free";
+const DEFAULT_MODEL = "openai/gpt-oss-120b:free";
+
+/** Include only the most recent LLM reviews to keep context useful and compact. */
+const PREVIOUS_REVIEWS_LIMIT = 3;
+
+/** Per-review character cap when folding previous findings into the prompt context. */
+const MAX_PREVIOUS_REVIEW_CHARS = 5_000;
+
+/** Cap completion size so comments stay detailed but not overly long. */
+const OPENROUTER_MAX_TOKENS = 1_400;
 
 /**
  * Paths whose entire diff hunks we drop before calling the LLM.
@@ -86,6 +95,23 @@ function truncate(text, limit) {
   };
 }
 
+function compactPreviousReview(body) {
+  const lines = body.split("\n");
+  const findingsStart = lines.findIndex((l) =>
+    l.includes("## Potential bugs and edge cases")
+  );
+  const summaryStart = lines.findIndex((l) => l.includes("## Summary of changes"));
+
+  const startIndex = findingsStart >= 0 ? findingsStart : summaryStart;
+  const selected = startIndex >= 0 ? lines.slice(startIndex).join("\n") : body;
+
+  if (selected.length <= MAX_PREVIOUS_REVIEW_CHARS) return selected;
+  return (
+    selected.slice(0, MAX_PREVIOUS_REVIEW_CHARS) +
+    "\n\n...(previous review context truncated)\n"
+  );
+}
+
 /**
  * PRs are issues in GitHub’s API; issue comments appear on the PR conversation tab.
  */
@@ -139,24 +165,24 @@ async function getPreviousReviewContext() {
     const comments = await res.json();
     if (!Array.isArray(comments)) return null;
 
+    const trustedReviewAuthors = new Set(["github-actions", "github-actions[bot]"]);
+
     // Extract previous review comments from github-actions
     const previousReviews = comments
       .filter(
         (c) =>
-          c.user?.login === "github-actions" &&
+          trustedReviewAuthors.has(c.user?.login ?? "") &&
           c.body &&
           c.body.includes("### LLM PR review")
       )
-      .map((c) => {
-        // Remove the header "### LLM PR review (OpenRouter)" and fold into context
-        const lines = c.body.split("\n");
-        const contentStart = lines.findIndex((l) =>
-          l.includes("## Summary of changes")
-        );
-        return contentStart >= 0 ? lines.slice(contentStart).join("\n") : c.body;
-      });
+      .map((c) => compactPreviousReview(c.body))
+      .slice(-PREVIOUS_REVIEWS_LIMIT);
 
     if (previousReviews.length === 0) return null;
+
+    stderr.write(
+      `Including ${previousReviews.length} previous review(s) for continuity context.\n`
+    );
 
     // Summarize for the new review prompt
     return `
@@ -230,6 +256,14 @@ If a finding depends on the behavior of a method whose implementation is not in 
 you MUST explicitly state the assumption (e.g., "assuming X can return null") and cap the
 severity at 🟡 warning. Never rate an inferred, unverified path as 🔴 critical.
 
+Prioritization rule: report findings in strict risk order and include both severity and risk score.
+Length rule: keep the whole response high-signal (target 700-1200 words; hard cap 1600 words).
+Finding budget: include at most 8 findings total and skip low-value style nits.
+Confidence rule: do not speculate beyond visible diff evidence.
+Framework rule: do not raise critical findings about JWT signature validation, auth middleware,
+CSRF/CORS, or infrastructure config unless the diff explicitly changes those configurations.
+If the evidence is indirect, either omit the finding or mark it as P3/🟡 warning with assumptions.
+
 Output valid GitHub-flavoured Markdown. Use exactly these sections in order:
 
 ## Summary of changes
@@ -259,9 +293,13 @@ Identify concrete scenarios that could break:
 - Concurrent access, retry / idempotency gaps
 - Missing error handling or swallowed exceptions
 - Broken contracts with callers or downstream services
-Rate each finding: 🔴 critical, 🟡 warning, 🔵 nit.
+For each finding, use a markdown table row with columns:
+Priority | Severity | Risk (1-10) | Evidence (file + lines) | Impact | Recommended fix.
+Use Priority values P0/P1/P2/P3 and Severity values 🔴 critical / 🟡 warning / 🔵 nit.
 Before rating any finding 🔴 critical, verify: can you quote specific diff lines that
 demonstrate the full fault path? If not, downgrade to 🟡 warning.
+If there are no concrete issues, state that explicitly.
+Do not create hypothetical security findings from unchanged framework defaults.
 
 ## Security
 Flag any security concerns:
@@ -293,7 +331,7 @@ If tests are missing, suggest specific test cases.
 
 ## Suggestions for improvement
 Provide actionable recommendations ordered by impact. For non-trivial suggestions, include
-a short code snippet showing the proposed change.
+a short code snippet showing the proposed change. Limit this section to at most 5 bullets.
 
 ## Verdict
 End with one of:
@@ -327,6 +365,7 @@ and approve.`;
       ],
       // Low temperature: more consistent review tone; less creative drift.
       temperature: 0.3,
+      max_tokens: OPENROUTER_MAX_TOKENS,
     }),
     // Avoid hanging the Actions runner indefinitely on a stuck connection.
     signal: AbortSignal.timeout(300_000), // 5 minutes
@@ -337,11 +376,10 @@ and approve.`;
     throw new Error(`OpenRouter HTTP ${res.status}: ${raw.slice(0, 2000)}`);
   }
 
-  // Log raw response for debugging (first 1000 chars, visible in Actions logs)
-  if (raw.length > 0) {
-    stderr.write(`OpenRouter response (first 1000 chars): ${raw.slice(0, 1000)}\n`);
-  } else {
+  if (raw.length === 0) {
     stderr.write("OpenRouter returned empty response body\n");
+  } else {
+    stderr.write(`OpenRouter raw response size: ${raw.length} chars\n`);
   }
 
   let parsed;
@@ -373,14 +411,17 @@ and approve.`;
       `OpenRouter returned empty content. Full response: ${JSON.stringify(parsed).slice(0, 1500)}`
     );
   }
-  return String(content).trim();
+  const review = String(content).trim();
+  stderr.write(`OpenRouter review length: ${review.length} chars\n`);
+  stderr.write(`OpenRouter review preview (first 1000 chars): ${review.slice(0, 1000)}\n`);
+  return review;
 }
 
 async function main() {
   const diffPath = process.argv[2];
   if (!diffPath) {
     stderr.write("Usage: node pr_review_llm.mjs <diff-file>\n");
-    exit(0);
+    return;
   }
 
   const diffText = existsSync(diffPath)
@@ -411,7 +452,7 @@ async function main() {
     } catch (e) {
       stderr.write(`Failed to post GitHub comment: ${e}\n`);
     }
-    exit(0);
+    return;
   }
 
   try {
@@ -444,7 +485,9 @@ async function main() {
     }
   }
 
-  exit(0);
+  return;
 }
 
-await main();
+await main().catch((err) => {
+  stderr.write(`Unexpected failure in pr_review_llm.mjs: ${err}\n`);
+});
