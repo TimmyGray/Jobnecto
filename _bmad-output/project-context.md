@@ -56,10 +56,10 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **`Program.cs`** wires **`AddInfrastructure()`** and **`AddJwtAuthentication()`** in the API host. For tests, DB wiring/connection scope can be overridden by the test host.
 - When adding Redis/Quartz behavior, align with packages already referenced — avoid duplicate client/scheduler abstractions unless introducing a deliberate replacement.
 
-### Current implementation snapshot (2026-05-09)
+### Current implementation snapshot (2026-05-10)
 
-- Merged stories: `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile), `1-5` (password hashing + token policy hardening), `2-1` (create resume), `2-2` (list resumes), `2-3` (get resume detail), `2-4` (update resume), `2-5` (delete resume), `2-6` (create education record), `2-7` (list education records), `2-8` (get, update, and delete education records), `r-1` (separate soft-delete repository contract), `3-1` (create cover letter template), `3-2` (list cover letter templates), `3-3` (get cover letter template detail).
-- Active HTTP endpoints: `POST /api/v1/users`, `POST /api/v1/users/token/refresh`, `GET /api/v1/users/me`, `PATCH /api/v1/users/me`, `POST|PATCH|DELETE /api/v1/users/me/avatar`, `POST /api/v1/resumes`, `GET /api/v1/resumes`, `GET /api/v1/resumes/{id}`, `PATCH /api/v1/resumes/{id}`, `DELETE /api/v1/resumes/{id}`, `POST /api/v1/educations`, `GET /api/v1/educations`, `GET /api/v1/educations/{id}`, `PATCH /api/v1/educations/{id}`, `DELETE /api/v1/educations/{id}`, `POST /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates/{id}`.
+- Merged stories: `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile), `1-5` (password hashing + token policy hardening), `2-1` (create resume), `2-2` (list resumes), `2-3` (get resume detail), `2-4` (update resume), `2-5` (delete resume), `2-6` (create education record), `2-7` (list education records), `2-8` (get, update, and delete education records), `r-1` (separate soft-delete repository contract), `3-1` (create cover letter template), `3-2` (list cover letter templates), `3-3` (get cover letter template detail), `3-4` (update cover letter template).
+- Active HTTP endpoints: `POST /api/v1/users`, `POST /api/v1/users/token/refresh`, `GET /api/v1/users/me`, `PATCH /api/v1/users/me`, `POST|PATCH|DELETE /api/v1/users/me/avatar`, `POST /api/v1/resumes`, `GET /api/v1/resumes`, `GET /api/v1/resumes/{id}`, `PATCH /api/v1/resumes/{id}`, `DELETE /api/v1/resumes/{id}`, `POST /api/v1/educations`, `GET /api/v1/educations`, `GET /api/v1/educations/{id}`, `PATCH /api/v1/educations/{id}`, `DELETE /api/v1/educations/{id}`, `POST /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates/{id}`, `PATCH /api/v1/cover-letter-templates/{id}`.
 - Password storage uses PBKDF2 (`Pbkdf2PasswordHasher`) behind `IPasswordHasher`.
 - Auth transport policy: browser flows rely on HTTP-only cookie transport; bearer clients can use response-body token on refresh.
 - Education records support degree types: `bachelor`, `master`, `phd`, `postdoc`, `other`.
@@ -110,6 +110,6 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Keep this file **lean** and agent-focused; prefer **`AGENTS.md`** for long-form contributor docs if content overlaps.
 - Refresh when **TargetFramework**, CI, or layer boundaries change; remove rules that become universally obvious.
 
-_Last updated: 2026-05-09_
+_Last updated: 2026-05-10_
 
 ---
