@@ -29,8 +29,6 @@ public class UpdateCoverLetterTemplateCommandValidator : AbstractValidator<Updat
 
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("name must not be empty when provided.")
-            .Must(value => value == null || !string.IsNullOrWhiteSpace(value))
-            .WithMessage("name must not be empty when provided.")
             .MaximumLength(100).WithMessage("name must be at most 100 characters long.")
             .When(x => x.Name != null);
 

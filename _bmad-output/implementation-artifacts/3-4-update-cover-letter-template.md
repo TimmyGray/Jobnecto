@@ -202,7 +202,7 @@ so that I can refine my reusable material over time.
 ## Story Completion Status
 
 - Story context drafted and validated against current architecture and test patterns.
-- Sprint status updated to `ready-for-dev`.
+- Sprint status updated to `review`.
 - Completion note: comprehensive developer guide prepared for direct `dev-story` execution.
 
 ## Dev Agent Record
