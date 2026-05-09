@@ -1,5 +1,5 @@
 # generated: 2026-04-18T00:00:00.000Z
-# last_updated: 2026-05-09T20:46:41Z
+# last_updated: 2026-05-10T00:30:00Z
 # project: Jobnecto
 # project_key: NOKEY
 # tracking_system: file-system
@@ -65,7 +65,7 @@ development_status:
   3-1-create-cover-letter-template: done
   3-2-list-cover-letter-templates: done
   3-3-get-cover-letter-template-detail: done
-  3-4-update-cover-letter-template: backlog
+  3-4-update-cover-letter-template: review
   3-5-delete-cover-letter-template: backlog
   epic-3-retrospective: optional
 

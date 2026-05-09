@@ -11,6 +11,16 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-05-10 - Align endpoint method with latest user contract
+
+**Trigger:** User correction
+**Context:** Story 3.4 planning artifacts for cover letter template update endpoint method.
+**Wrong action:** I generated/kept `PUT /api/v1/cover-letter-templates/{id}` in story source artifacts.
+**Root cause:** I over-relied on previously documented wording and did not treat the user's latest method preference as the immediate source of truth.
+**Correct behavior:** When the user corrects an endpoint method, update all related source-of-truth artifacts in the same pass (epic story, requirements inventory, and generated implementation story file) to keep contracts consistent.
+**Pattern / trigger:** User explicitly changes API method semantics (e.g., "change PUT to PATCH") after artifacts were generated.
+**Generalize?** No
+
 ### 2026-05-09 - Run mandatory post-merge docs workflow immediately
 
 **Trigger:** User correction
