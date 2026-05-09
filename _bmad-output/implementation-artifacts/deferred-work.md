@@ -48,6 +48,10 @@
 - **Non-atomic `UpdateAsync` + `SaveChangesAsync`** — A `SaveChangesAsync` failure leaves the EF change tracker in a dirty state; subsequent operations on the same scope could inadvertently persist partial changes. Deferred: pre-existing pattern across all handlers.
 - **`DeleteEducationCommandValidator` has no unit tests** — Validator is exercised implicitly through the pipeline; route `:guid` constraint prevents `Guid.Empty` from reaching it. Deferred: low-risk, consistent with project convention for simple validators.
 
+## Deferred from: code review of 3-3-get-cover-letter-template-detail (2026-05-09)
+
+- **`CoverLetterTemplateResult` exposes `UserId` in response body** — `ToCoverLetterTemplateResult()` (Story 3.1) maps `template.UserId` into the DTO; the owner's internal ID is visible to the caller. Pre-existing design decision; revisit if admin/multi-tenant scenarios require restricting user-identity fields from API responses.
+
 ## Deferred from: code review of 3-1-create-cover-letter-template (2026-05-07)
 
 - **Unit handler test missing `result.Id != Guid.Empty` assertion** — `CreateCoverLetterTemplateCommandHandlerTests` does not assert the returned Id is populated; integration test covers this via `NotBeEmpty` assertion in `CoverLetterTemplatesApiTests`.

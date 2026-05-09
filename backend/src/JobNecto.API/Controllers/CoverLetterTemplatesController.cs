@@ -72,6 +72,31 @@ public class CoverLetterTemplatesController : ControllerBase
     }
 
     /// <summary>
+    /// Returns the full detail of a single cover letter template owned by the current authenticated user.
+    /// </summary>
+    /// <param name="id">The cover letter template identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The cover letter template with full content.</returns>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(CoverLetterTemplateResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CoverLetterTemplateResult>> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var userIdValue = HttpContext.GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(userIdValue) || !Guid.TryParse(userIdValue, out var userId))
+            return Unauthorized();
+
+        var result = await _mediator.Send(
+            new GetCoverLetterTemplateQuery { CoverLetterTemplateId = id, UserId = userId },
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Creates a new cover letter template for the current authenticated user.
     /// </summary>
     /// <param name="command">Cover letter template creation payload.</param>
