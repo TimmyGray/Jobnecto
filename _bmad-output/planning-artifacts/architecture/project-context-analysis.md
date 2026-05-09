@@ -5,7 +5,7 @@
 **Functional Requirements (Phase B):**
 
 - 6 primary domain resources: User (Profile), Resume, Education, CoverLetterTemplate, CoverLetter, Vacancy
-- Epic 2 delivered complete Resume and Education CRUD endpoints. Epic 3 delivered CoverLetterTemplate create/list/detail endpoints; CoverLetterTemplate update/delete plus CoverLetter and Vacancy endpoint work remains scheduled for later epics.
+- Epic 2 delivered complete Resume and Education CRUD endpoints. Epic 3 delivered CoverLetterTemplate create/list/detail/update endpoints; CoverLetterTemplate delete plus CoverLetter and Vacancy endpoint work remains scheduled for later epics.
 - `GET /api/v1/users/me` returns only core user profile fields; related resources are fetched via dedicated resource routes
 - CRUD operations on user-owned resources (User, Resume, Education, Template, Letter)
 - Read-only operations on shared resources (Vacancy browsing and filtering)
