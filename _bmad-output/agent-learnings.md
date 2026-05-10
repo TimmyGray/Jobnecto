@@ -11,6 +11,16 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-05-11 - Sync EF snapshot whenever model config changes in migration-backed tests
+
+**Trigger:** Test failure
+**Context:** CI fixes for PostgreSQL-backed uniqueness/concurrency tests after enabling Postgres service in `.github/workflows/ci.yml`.
+**Wrong action:** I fixed the EF runtime model (`VacancyConfiguration`) but initially did not synchronize the EF migration snapshot, which caused `PendingModelChangesWarning` during `Database.MigrateAsync()` in CI tests.
+**Root cause:** I treated the issue as runtime mapping-only and overlooked that this repo's integration tests enforce migration snapshot parity when initializing PostgreSQL schemas.
+**Correct behavior:** In this codebase, any EF model configuration change that affects mapped columns must keep migration metadata aligned (snapshot and/or migration) before considering CI fixed.
+**Pattern / trigger:** Changes under `backend/src/JobNecto.Infrastructure/Persistance/Config/*.cs` combined with tests that call `Database.MigrateAsync()`.
+**Generalize?** Yes
+
 ### 2026-05-10 - Verify xUnit runtime-skip APIs before coding dependency-gated tests
 
 **Trigger:** Test failure
