@@ -50,14 +50,26 @@ public class CoverLetterTemplatesUniquenessApiTests : IAsyncLifetime
         return id;
     }
 
+    private async Task<bool> EnsureDatabaseAvailableAsync()
+    {
+        var isDatabaseReady = await _factory!.TryInitializeSchemaAsync();
+        if (isDatabaseReady)
+            return true;
+
+        const string message = "PostgreSQL test database was unavailable for cover letter template uniqueness assertions.";
+        _output.WriteLine("Skipped: " + message);
+
+        if (string.Equals(Environment.GetEnvironmentVariable("CI"), "true", StringComparison.OrdinalIgnoreCase))
+            isDatabaseReady.Should().BeTrue(message);
+
+        return false;
+    }
+
     [Fact]
     public async Task Create_DuplicateName_SameUser_Returns409()
     {
-        if (!await _factory!.TryInitializeSchemaAsync())
-        {
-            _output.WriteLine("Skipped: PostgreSQL test database was unavailable.");
+        if (!await EnsureDatabaseAvailableAsync())
             return;
-        }
 
         var client = _factory!.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
         var authCookie = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand());
@@ -80,11 +92,8 @@ public class CoverLetterTemplatesUniquenessApiTests : IAsyncLifetime
     [Fact]
     public async Task Create_SameName_DifferentUsers_Returns201BothTimes()
     {
-        if (!await _factory!.TryInitializeSchemaAsync())
-        {
-            _output.WriteLine("Skipped: PostgreSQL test database was unavailable.");
+        if (!await EnsureDatabaseAvailableAsync())
             return;
-        }
 
         var client = _factory!.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
         var cookieA = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_a_"));
@@ -108,11 +117,8 @@ public class CoverLetterTemplatesUniquenessApiTests : IAsyncLifetime
     [Fact]
     public async Task Create_ConcurrentDuplicateName_AtLeastOneReturns409()
     {
-        if (!await _factory!.TryInitializeSchemaAsync())
-        {
-            _output.WriteLine("Skipped: PostgreSQL test database was unavailable.");
+        if (!await EnsureDatabaseAvailableAsync())
             return;
-        }
 
         var client = _factory!.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
         var authCookie = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand());
@@ -128,11 +134,8 @@ public class CoverLetterTemplatesUniquenessApiTests : IAsyncLifetime
     [Fact]
     public async Task Patch_RenameToExistingName_SameUser_Returns409()
     {
-        if (!await _factory!.TryInitializeSchemaAsync())
-        {
-            _output.WriteLine("Skipped: PostgreSQL test database was unavailable.");
+        if (!await EnsureDatabaseAvailableAsync())
             return;
-        }
 
         var client = _factory!.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
         var authCookie = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_patch_same_"));
@@ -163,11 +166,8 @@ public class CoverLetterTemplatesUniquenessApiTests : IAsyncLifetime
     [Fact]
     public async Task Patch_SameNameUsedByAnotherUser_DoesNotBlockUpdate_Returns200()
     {
-        if (!await _factory!.TryInitializeSchemaAsync())
-        {
-            _output.WriteLine("Skipped: PostgreSQL test database was unavailable.");
+        if (!await EnsureDatabaseAvailableAsync())
             return;
-        }
 
         var client = _factory!.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
         var cookieA = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_patch_a_"));
@@ -199,11 +199,8 @@ public class CoverLetterTemplatesUniquenessApiTests : IAsyncLifetime
     [Fact]
     public async Task Patch_ConcurrentRenameCollision_OneSuccessAndAtLeastOneConflict()
     {
-        if (!await _factory!.TryInitializeSchemaAsync())
-        {
-            _output.WriteLine("Skipped: PostgreSQL test database was unavailable.");
+        if (!await EnsureDatabaseAvailableAsync())
             return;
-        }
 
         var client = _factory!.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
         var authCookie = await CoverLetterTemplatesApiTests.CreateUserAndGetCookieHelperAsync(client, NewUserCommand("clt_patch_race_"));

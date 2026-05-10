@@ -53,7 +53,7 @@ The **enabling insight** is that LLMs in 2026 are now smart, reliable, and acces
 ### Project Classification
 
 | Attribute | Value |
-|-----------|-------|
+| --------- | ----- |
 | **Project Type** | API Backend (REST). |
 | **Domain** | HR Tech / Recruitment (job aggregation and matching). |
 | **Complexity** | Medium (multi-domain entities, third-party integrations, intelligent filtering). |
@@ -64,6 +64,7 @@ The **enabling insight** is that LLMs in 2026 are now smart, reliable, and acces
 ### User Success
 
 A job seeker can:
+
 - Create a profile with education, resumes, and cover letter templates
 - Manage (create, read, update, soft delete) their profile data, resumes, educations, and cover letter templates
 - View a paginated, filterable list of vacancies (read-only until Phase C auth)
@@ -107,17 +108,18 @@ A job seeker can:
 - **Mapping Consistency**: Standardized the use of `<Entity>Mappers` in Application feature slices to handle DTO↔Entity transformations, ensuring 100% decoupling between API contracts and Domain models.
 - **Generic Repository Usage**: Leveraging `IEditableRepository<T>` for Resume and Education to reuse the established `GetAsync(PagedQuery)` pattern which handles automated `UserId` scoping and soft-delete filtering.
 
-2. ≥ 85% code coverage on Application handlers and validators
-3. Zero breaking changes to Domain model entities post-Phase B
-4. OpenAPI spec includes all endpoints, request/response schemas, status codes (200, 400, 404, 500)
-5. Database supports test-driven setup: migrations allow fresh DB creation and teardown per test run
-6. Documentation: API versioning strategy documented in README or API docs
+1. ≥ 85% code coverage on Application handlers and validators
+2. Zero breaking changes to Domain model entities post-Phase B
+3. OpenAPI spec includes all endpoints, request/response schemas, status codes (200, 400, 404, 500)
+4. Database supports test-driven setup: migrations allow fresh DB creation and teardown per test run
+5. Documentation: API versioning strategy documented in README or API docs
 
 ## Product Scope
 
 ### MVP - Minimum Viable Product (Phase B)
 
 **Core Resources:**
+
 - **User profiles** — Create profile, retrieve/update current user core fields only (GET `/api/v1/users/me`, PATCH `/api/v1/users/me`)
 - **Resumes** — CRUD operations (GET list, POST create, GET detail, PATCH update, DELETE soft)
 - **Educations** — CRUD operations linked to user (GET list, POST create, GET detail, PATCH update, DELETE soft)
@@ -127,12 +129,14 @@ A job seeker can:
   - **Vacancy Filtering** — Complex multi-criteria filtering via POST `/api/v1/vacancies/filter` with request body (skills, location, salary range, work location type, etc.)
 
 **Validation Requirements:**
+
 - Email validation (valid format)
 - Phone validation (E.164 format per domain model)
 - Age validation per EF rules
 - Proper HTTP status codes: 200 (success), 400 (validation error), 404 (not found), 500 (server error)
 
 **Database & Architecture:**
+
 - Migrations for all new entities and relationships
 - `AddInfrastructure()` wired in `Program.cs`
 - UnitOfWork pattern supporting transactional integrity
@@ -192,6 +196,7 @@ A job seeker can:
 
 1. **Browse All Recent Vacancies** → GET `/api/v1/vacancies?page=1&pageSize=20` (see recent postings)
 2. **Apply Complex Filters** → POST `/api/v1/vacancies/filter` with request body:
+
    ```json
    {
      "skills": ["C#", "Azure"],
@@ -202,6 +207,7 @@ A job seeker can:
      "pageSize": 20
    }
    ```
+
    (apply multi-criteria filtering without URL query string pollution)
 3. **Paginate Results** → POST `/api/v1/vacancies/filter` with `page: 2` (load more results)
 4. **View Vacancy Details** → GET `/api/v1/vacancies/{id}` (read full job description, requirements, match score)
@@ -218,12 +224,14 @@ A job seeker can:
 1. **Review Vacancy** → GET `/api/v1/vacancies/{id}` (understand job requirements)
 2. **Retrieve Relevant Template** → GET `/api/v1/cover-letter-templates/{templateId}` (get starting point)
 3. **Create Job-Specific Cover Letter** → POST `/api/v1/cover-letters` with body:
+
    ```json
    {
      "vacancyId": "vacancy-123",
      "content": "Customized content based on template..."
    }
    ```
+
    (create instance for this specific vacancy)
 4. **Retrieve Cover Letter** → GET `/api/v1/cover-letters/{letterId}` (review before sending)
 5. **Update Cover Letter** → PATCH `/api/v1/cover-letters/{letterId}` (refine based on feedback)
@@ -257,13 +265,15 @@ A job seeker can:
 **Purpose:** Manage job seeker identity, contact information, and professional summary.
 
 **Endpoints:**
+
 - `GET /api/v1/users/me` — Retrieve current user core profile fields only
 - `PATCH /api/v1/users/me` — Update current user profile
 - `POST /api/v1/users` — Create new user account
 
-**Feature: Create User Profile (POST /api/v1/users)**
+#### Feature: Create User Profile (POST /api/v1/users)
 
 **Acceptance Criteria:**
+
 - User can register with `loginName`, `email`, `password`, and optional profile fields (`phone`, `location`, `about`, `avatar`)
 - Email validation: must be valid email format; must be unique across the system
 - Phone validation (if provided): must be valid E.164 format (e.g., `+1234567890`)
@@ -275,6 +285,7 @@ A job seeker can:
 - On duplicate email/loginName: return `409 Conflict` with message
 
 **Validation Rules:**
+
 - `email`: Required, valid format, unique
 - `loginName`: Required, 3-20 chars, alphanumeric + underscore, unique
 - `password`: Required, minimum 8 characters; persisted values must be one-way salted hashes
@@ -282,15 +293,17 @@ A job seeker can:
 - `avatar`: Optional, URL or base64 data
 
 **Edge Cases:**
+
 - Subdomain-style emails (e.g., `user+label@example.com`) are valid
 - Phone with country code required (e.g., `+1` for US)
 - Duplicate email attempt after another user created account moments before
 
 ---
 
-**Feature: Retrieve Current User (GET /api/v1/users/me)**
+#### Feature: Retrieve Current User (GET /api/v1/users/me)
 
 **Acceptance Criteria:**
+
 - Return current user core profile fields only: `id`, `loginName`, `email`, `phone`, `location`, `about`, `avatar`, `createdAt`, `updatedAt`
 - Exclude sensitive fields (password hash, tokens)
 - Related resources are retrieved via dedicated user-scoped routes (`/api/v1/resumes`, `/api/v1/educations`, `/api/v1/cover-letters`)
@@ -298,7 +311,8 @@ A job seeker can:
 - If JWT references non-existing user: return `404 Not Found`
 - On unauthorized (Phase C): return `401 Unauthorized`
 
-**Response Shape (Phase B, no auth yet):**
+### Response Shape (Phase B, no auth yet)
+
 ```json
 {
   "id": "uuid",
@@ -315,9 +329,10 @@ A job seeker can:
 
 ---
 
-**Feature: Update User Profile (PATCH /api/v1/users/me)**
+#### Feature: Update User Profile (PATCH /api/v1/users/me)
 
 **Acceptance Criteria:**
+
 - Update any profile field: `email`, `phone`, `location`, `about`, `avatar`
 - Can change `loginName`; must remain unique system-wide; return `409 Conflict` if new value already taken
 - Cannot change `id`, `createdAt` (immutable system fields)
@@ -336,13 +351,14 @@ A job seeker can:
 **Purpose:** Store resume templates with skills, experience expectations, and preferred work conditions.
 
 **Endpoints:**
+
 - `GET /api/v1/resumes` — List all resumes for current user (paginated)
 - `POST /api/v1/resumes` — Create new resume
 - `GET /api/v1/resumes/{id}` — Retrieve single resume detail
 - `PATCH /api/v1/resumes/{id}` — Update resume
 - `DELETE /api/v1/resumes/{id}` — Soft delete resume
 
-**Feature: Create Resume (POST /api/v1/resumes)**
+#### Feature: Create Resume (POST /api/v1/resumes)
 
 **Acceptance Criteria:**
 
@@ -377,9 +393,10 @@ A job seeker can:
 
 ---
 
-**Feature: List Resumes (GET /api/v1/resumes)**
+#### Feature: List Resumes (GET /api/v1/resumes)
 
 **Acceptance Criteria:**
+
 - Return paginated list of user's resumes
 - Query params: `pageSize` (default 20, max 100), `lastSeenId` (Guid, optional cursor), `lastSeenUpdatedAt` (DateTime, optional cursor)
 - Return array with: `id`, `title`, `skills` (array), `salary`, `currency`, `workLocationType`, `updatedAt`
@@ -388,9 +405,10 @@ A job seeker can:
 
 ---
 
-**Feature: Get Resume Detail (GET /api/v1/resumes/{id})**
+#### Feature: Get Resume Detail (GET /api/v1/resumes/{id})
 
 **Acceptance Criteria:**
+
 - Return full resume with all fields
 - If resume not found: return `404 Not Found`
 - If resume belongs to different user: return `403 Forbidden` (Phase C with auth)
@@ -398,9 +416,10 @@ A job seeker can:
 
 ---
 
-**Feature: Update Resume (PATCH /api/v1/resumes/{id})**
+#### Feature: Update Resume (PATCH /api/v1/resumes/{id})
 
 **Acceptance Criteria:**
+
 - Update any resume field
 - Partial updates allowed
 - Re-validate all fields same as POST
@@ -410,9 +429,10 @@ A job seeker can:
 
 ---
 
-**Feature: Delete Resume (DELETE /api/v1/resumes/{id})**
+#### Feature: Delete Resume (DELETE /api/v1/resumes/{id})
 
 **Acceptance Criteria:**
+
 - Soft delete: set `IsDeleted = true` or similar flag (don't physically remove from DB)
 - Return `204 No Content` on success
 - Resume no longer appears in list endpoints after soft delete
@@ -425,15 +445,17 @@ A job seeker can:
 **Purpose:** Store user's educational background (degrees, specializations, institutions).
 
 **Endpoints:**
+
 - `GET /api/v1/educations` — List all educations for current user
 - `POST /api/v1/educations` — Create new education record
 - `GET /api/v1/educations/{id}` — Retrieve single education
 - `PATCH /api/v1/educations/{id}` — Update education
 - `DELETE /api/v1/educations/{id}` — Soft delete education
 
-**Feature: Create Education (POST /api/v1/educations)**
+#### Feature: Create Education (POST /api/v1/educations)
 
 **Acceptance Criteria:**
+
 - Create with: `title` (degree name), `specialization` (field of study), `degree` (enum: bachelor, master, phd, postdoc, other)
 - Title: required, 1-100 characters
 - Specialization: required, 1-100 characters
@@ -443,9 +465,10 @@ A job seeker can:
 
 ---
 
-**Feature: List Educations (GET /api/v1/educations)**
+#### Feature: List Educations (GET /api/v1/educations)
 
 **Acceptance Criteria:**
+
 - Return paginated list of user's education records
 - Query params: `pageSize` (default 20, max 100), `lastSeenId` (Guid, optional cursor), `lastSeenUpdatedAt` (DateTime, optional cursor)
 - Return array with: `id`, `title`, `specialization`, `degree`, `createdAt`, `updatedAt`
@@ -455,9 +478,10 @@ A job seeker can:
 
 ---
 
-**Feature: Get Education Detail, Update, Delete**
+#### Feature: Get Education Detail, Update, Delete
 
 **Acceptance Criteria:** (Similar pattern to Resume)
+
 - GET `{id}`: return full education record with all fields
 - PATCH `{id}`: update any field, re-validate
 - DELETE `{id}`: soft delete
@@ -470,15 +494,17 @@ A job seeker can:
 **Purpose:** Store reusable cover letter templates that job seekers craft once and customize for each application.
 
 **Endpoints:**
+
 - `GET /api/v1/cover-letter-templates` — List all templates for current user (paginated, filterable)
 - `POST /api/v1/cover-letter-templates` — Create new template
 - `GET /api/v1/cover-letter-templates/{id}` — Retrieve single template
 - `PATCH /api/v1/cover-letter-templates/{id}` — Update template
 - `DELETE /api/v1/cover-letter-templates/{id}` — Soft delete template
 
-**Feature: Create Cover Letter Template (POST /api/v1/cover-letter-templates)**
+#### Feature: Create Cover Letter Template (POST /api/v1/cover-letter-templates)
 
 **Acceptance Criteria:**
+
 - Create with: `name` (template name), `content` (template text, may contain placeholders like {{companyName}}, {{role}})
 - Name: required, 1-100 characters, unique per user (two templates can't have same name for same user)
 - Content: required, minimum 50 characters, maximum 10000 characters
@@ -486,9 +512,10 @@ A job seeker can:
 
 ---
 
-**Feature: List Cover Letter Templates (GET /api/v1/cover-letter-templates)**
+#### Feature: List Cover Letter Templates (GET /api/v1/cover-letter-templates)
 
 **Acceptance Criteria:**
+
 - Return paginated list of user's templates
 - Query params: `pageSize` (default 20, max 100), `lastSeenId` (Guid, optional cursor), `lastSeenUpdatedAt` (DateTime, optional cursor)
 - Return array with: `id`, `name`, `contentPreview` (first 200 chars), `createdAt`, `updatedAt`
@@ -498,17 +525,19 @@ A job seeker can:
 
 ---
 
-**Feature: Get Template Detail (GET /api/v1/cover-letter-templates/{id})**
+#### Feature: Get Template Detail (GET /api/v1/cover-letter-templates/{id})
 
 **Acceptance Criteria:**
+
 - Return full template with complete `content`
 - If not found: return `404 Not Found`
 
 ---
 
-**Feature: Update Template (PATCH /api/v1/cover-letter-templates/{id})**
+#### Feature: Update Template (PATCH /api/v1/cover-letter-templates/{id})
 
 **Acceptance Criteria:**
+
 - Update `name` or `content` or both
 - Validate name uniqueness per user if name is being changed
 - Return `200 OK` with updated template
@@ -516,9 +545,10 @@ A job seeker can:
 
 ---
 
-**Feature: Delete Template (DELETE /api/v1/cover-letter-templates/{id})**
+#### Feature: Delete Template (DELETE /api/v1/cover-letter-templates/{id})
 
 **Acceptance Criteria:**
+
 - Soft delete
 - Return `204 No Content` on success
 - If not found: return `404 Not Found`
@@ -530,27 +560,29 @@ A job seeker can:
 **Purpose:** Store job-specific application cover letters, typically created from a template and customized for a particular vacancy.
 
 **Endpoints:**
+
 - `GET /api/v1/cover-letters` — List all cover letters for current user (paginated)
 - `POST /api/v1/cover-letters` — Create new cover letter for a vacancy
 - `GET /api/v1/cover-letters/{id}` — Retrieve single cover letter
 - `PATCH /api/v1/cover-letters/{id}` — Update cover letter
 - `DELETE /api/v1/cover-letters/{id}` — Soft delete cover letter
 
-**Feature: Create Cover Letter (POST /api/v1/cover-letters)**
+#### Feature: Create Cover Letter (POST /api/v1/cover-letters)
 
 **Acceptance Criteria:**
-- Create with: `vacancyId` (required), `content` (required), `templateId` (optional, for tracking which template was the source)
-- VacancyId: must reference valid vacancy
+
+- Create with: `vacancyId` (required), `content` (required)
+- VacancyId: must reference valid vacancy belonging to current user
 - Content: required, minimum 50 characters, maximum 10000 characters
-- TemplateId: optional, if provided must be valid template belonging to user
 - One cover letter per vacancy per user (cannot create duplicate for same vacancy)
-- Return `201 Created` with cover letter object including `id`, `vacancyId`, `content`, `templateId`, `createdAt`, `updatedAt`
+- Return `201 Created` with cover letter object including `id`, `vacancyId`, `content`, `createdAt`, `updatedAt`
 
 ---
 
-**Feature: List Cover Letters (GET /api/v1/cover-letters)**
+#### Feature: List Cover Letters (GET /api/v1/cover-letters)
 
 **Acceptance Criteria:**
+
 - Return paginated list of user's cover letters
 - Query params: `pageSize` (default 20, max 100), `lastSeenId` (Guid, optional cursor), `lastSeenUpdatedAt` (DateTime, optional cursor)
 - Return array with: `id`, `vacancyId`, `vacancyTitle` (from linked Vacancy), `contentPreview` (first 200 chars), `createdAt`
@@ -559,27 +591,30 @@ A job seeker can:
 
 ---
 
-**Feature: Get Cover Letter Detail (GET /api/v1/cover-letters/{id})**
+#### Feature: Get Cover Letter Detail (GET /api/v1/cover-letters/{id})
 
 **Acceptance Criteria:**
-- Return full cover letter with complete `content`, `vacancyId`, `templateId`
+
+- Return full cover letter with complete `content`, `vacancyId`
 - Include vacancy details: title, company, description
 - If not found: return `404 Not Found`
 
 ---
 
-**Feature: Update Cover Letter (PATCH /api/v1/cover-letters/{id})**
+#### Feature: Update Cover Letter (PATCH /api/v1/cover-letters/{id})
 
 **Acceptance Criteria:**
+
 - Update `content` (cannot change `vacancyId` after creation)
 - Return `200 OK` with updated cover letter
 - Update `updatedAt` timestamp
 
 ---
 
-**Feature: Delete Cover Letter (DELETE /api/v1/cover-letters/{id})**
+#### Feature: Delete Cover Letter (DELETE /api/v1/cover-letters/{id})
 
 **Acceptance Criteria:**
+
 - Soft delete
 - Return `204 No Content` on success
 
@@ -590,13 +625,15 @@ A job seeker can:
 **Purpose:** Store job vacancy listings aggregated from external sources. Phase B: read-only with filtering. Phase D: syncing from job sources.
 
 **Endpoints:**
+
 - `GET /api/v1/vacancies` — List recent vacancies (basic pagination)
 - `POST /api/v1/vacancies/filter` — Advanced filtering with complex criteria
 - `GET /api/v1/vacancies/{id}` — Retrieve single vacancy detail
 
-**Feature: List Vacancies (GET /api/v1/vacancies)**
+#### Feature: List Vacancies (GET /api/v1/vacancies)
 
 **Acceptance Criteria:**
+
 - Return paginated list of all vacancies (recent first)
 - Query params: `pageSize` (default 20, max 100), `lastSeenId` (Guid, optional cursor), `lastSeenUpdatedAt` (DateTime, optional cursor)
 - Return array with: `id`, `title`, `company`, `location`, `jobSource`, `salary`, `currency`, `matchScore`, `createdAt`
@@ -605,9 +642,10 @@ A job seeker can:
 
 ---
 
-**Feature: Filter Vacancies (POST /api/v1/vacancies/filter)**
+#### Feature: Filter Vacancies (POST /api/v1/vacancies/filter)
 
 **Acceptance Criteria:**
+
 - Accept POST request with filter object in body (not query params)
 - Filter criteria: `skills` (array, match any), `location` (string, partial match), `salaryMin` (number), `salaryMax` (number), `workLocationTypes` (array: remote/office/hybrid), `categories` (array), `experienceLevel` (enum), `excludeKeywords` (array)
 - Pagination: `pageSize`, `lastSeenId`, `lastSeenUpdatedAt` (cursor) in filter body
@@ -617,6 +655,7 @@ A job seeker can:
 - Return `400 Bad Request` if filter is malformed
 
 **Sample Request Body:**
+
 ```json
 {
   "skills": ["C#", "Azure"],
@@ -636,9 +675,10 @@ A job seeker can:
 
 ---
 
-**Feature: Get Vacancy Detail (GET /api/v1/vacancies/{id})**
+#### Feature: Get Vacancy Detail (GET /api/v1/vacancies/{id})
 
 **Acceptance Criteria:**
+
 - Return full vacancy with all fields: `title`, `description`, `company`, `companyWebsite`, `location`, `salary`, `currency`, `categories` (array), `skills` (array), `workLocationType`, `workTimeType`, `experienceLevel`, `matchScore`, `jobSource` (object with `name` and optional `url`), `isChosen`, `isHidden`, `createdAt`, `updatedAt`
 - If not found: return `404 Not Found`
 - Match score: if present, display as a number 0-100 (or null if not yet calculated in Phase B)
@@ -659,6 +699,7 @@ A job seeker can:
 - `500 Internal Server Error` — Unhandled server error
 
 **Error Response Format:**
+
 ```json
 {
   "type": "https://api.jobnecto.dev/errors/validation",
@@ -678,7 +719,7 @@ A job seeker can:
 
 **Entity Relationship Overview:**
 
-```
+```text
 User (1)
 ├── (1:N) Resumes
 ├── (1:N) Educations
@@ -693,6 +734,7 @@ User (1)
 
 **Detailed Relationships:**
 
+```markdown
 | From | To | Type | Cardinality | Notes |
 |------|-----|------|-------------|-------|
 | User | Resume | Foreign Key | 1:N | Each resume belongs to one user. Deleting user soft-deletes all resumes. |
@@ -709,8 +751,8 @@ User (1)
 | When X is deleted | What happens to related records |
 |------------------|-------------------------------|
 | User | All resumes, educations, cover letters, templates → soft-deleted |
-| Resume | References removed from any CoverLetters (templateId becomes NULL) |
-| CoverLetterTemplate | References in CoverLetters become NULL (template is optional) |
+| Resume | No direct impact on CoverLetters |
+| CoverLetterTemplate | No direct impact on CoverLetters (template reference not persisted) |
 | Vacancy | CoverLetters referencing it are soft-deleted (application record removed) |
 | Education | ResumeEducations join records deleted; resume still exists |
 
@@ -753,6 +795,7 @@ Soft deletes are logical removals—data remains in the database but is marked a
 **Implementation Approach:**
 
 Use a `IsDeleted` boolean flag (or `DeletedAt` timestamp) on affected entities:
+
 - `Resume`, `Education`, `CoverLetter`, `CoverLetterTemplate` → add `IsDeleted` flag (or `DeletedAt` timestamp)
 - `Vacancy` → add `IsDeleted` flag (or `DeletedAt` timestamp)
 
@@ -782,6 +825,7 @@ This ensures soft-deleted records are never accidentally exposed.
 **Restore Capability:**
 
 Decision: **Can soft-deleted records be restored?**
+
 - For Phase B: Not a requirement; assume permanent once soft-deleted
 - For Phase C onward: Architect to support restoration (set `IsDeleted = false`), but not yet exposed in API
 
@@ -832,7 +876,7 @@ Phase B development assumes Phase A is **complete**:
 **Uniqueness Constraints:**
 
 | Entity | Field(s) | Unique Per | Notes |
-|--------|----------|-----------|-------|
+| --- | --- | --- | --- |
 | User | `loginName` | System-wide | Case-insensitive |
 | User | `email` | System-wide | Case-insensitive |
 | Resume | `title` | Per user | Same user cannot have 2 resumes with same title |
@@ -844,7 +888,7 @@ All uniqueness rules above must be enforced by database-level unique constraints
 **Referential Integrity:**
 
 - `CoverLetter.VacancyId` → must exist in `Vacancy` table (no orphaned letters)
-- `CoverLetter.TemplateId` → optional; if present, must exist and belong to same user
+- `CoverLetter.VacancyId` → must exist in `Vacancy` table and belong to the same user (no orphaned letters)
 - `ResumeEducations.ResumeId` → must exist in `Resume` table
 - `ResumeEducations.EducationId` → must exist in `Education` table
 
@@ -857,19 +901,23 @@ See Feature Requirements & Acceptance Criteria section for detailed field-level 
 ## Non-Functional Requirements
 
 **API Response Time:**
+
 - List endpoints: < 200ms for typical 20-item page
 - Detail endpoints: < 100ms
 - Filter endpoint: < 500ms for complex multi-criteria filter (depends on dataset size)
 
 **Data Availability:**
+
 - CRUD operations should not fail due to database unavailability in Phase B (error handling in Phase E)
 
 **Pagination Limits:**
+
 - `pageSize` minimum: 1
 - `pageSize` maximum: 100 (prevent abuse)
 - Default: 20 items per page
 
 **Request Limits:**
+
 - Request body size: max 1MB (prevents abuse)
 - Content validation per field documented in Feature Requirements
 

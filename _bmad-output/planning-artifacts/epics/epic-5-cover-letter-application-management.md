@@ -20,10 +20,6 @@ So that I can submit a tailored application.
 **When** the request is processed
 **Then** `201 Created` with the cover letter object; `Location` header set to `/api/v1/cover-letters/{id}`
 
-**Given** optional `templateId` is provided and belongs to the current user
-**When** the request is processed
-**Then** `templateId` is persisted on the cover letter; content is whatever the user provided (not auto-filled)
-
 **Given** the user already has a (non-deleted) cover letter for the same `vacancyId`
 **When** `POST /api/v1/cover-letters` is called again with the same `vacancyId`
 **Then** `409 Conflict` from database-backed per-user/per-vacancy uniqueness enforcement
@@ -31,10 +27,6 @@ So that I can submit a tailored application.
 **Given** `vacancyId` references a vacancy that does not exist
 **When** the request is processed
 **Then** `404 Not Found` with detail referencing the vacancy
-
-**Given** `templateId` is provided but does not exist or belongs to another user
-**When** the request is processed
-**Then** `404 Not Found` with detail referencing the template
 
 **Given** `content` is fewer than 50 or more than 10000 characters
 **When** the request is processed
@@ -75,7 +67,7 @@ So that I can review or edit what I've written.
 
 **Given** a valid JWT token and a cover letter ID owned by the current user
 **When** `GET /api/v1/cover-letters/{id}` is called
-**Then** `200 OK` with all fields: `id`, `content`, `vacancyId`, `templateId` (nullable), `createdAt`, `updatedAt`, plus nested `vacancy` object with key fields
+**Then** `200 OK` with all fields: `id`, `content`, `vacancyId`, `createdAt`, `updatedAt`, plus nested `vacancy` object with key fields
 
 **Given** the cover letter does not exist, is soft-deleted, or belongs to another user
 **Then** `404 Not Found`

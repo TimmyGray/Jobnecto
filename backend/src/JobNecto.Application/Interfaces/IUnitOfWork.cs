@@ -23,7 +23,7 @@ public interface IUnitOfWork : IAsyncDisposable
     /// <summary>
     /// Repository for cover letters with full write support (update + soft delete).
     /// </summary>
-    IMutableRepository<CoverLetter> CoverLetterRepository { get; }
+    ICoverLetterRepository CoverLetterRepository { get; }
 
     /// <summary>
     /// Repository for resumes with full write support (update + soft delete).

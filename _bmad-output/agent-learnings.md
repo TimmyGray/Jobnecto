@@ -11,6 +11,56 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-05-10 - Verify xUnit runtime-skip APIs before coding dependency-gated tests
+
+**Trigger:** Test failure
+**Context:** Applying Epic 5 review fixes in `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersUniquenessApiTests.cs`.
+**Wrong action:** I implemented runtime skipping with `Xunit.Sdk.SkipException`, which is not available in the xUnit 2.9 package set used by this repo, causing compile failure.
+**Root cause:** I assumed a skip exception API existed without checking the concrete xUnit version and exported types in this project.
+**Correct behavior:** Before adding runtime skip logic, confirm the exact xUnit runtime capabilities in the repository and choose a compatible approach (or CI-gated fail-fast fallback) that compiles in the current package set.
+**Pattern / trigger:** Any dependency-gated integration test where runtime skipping is introduced after a review recommendation.
+**Generalize?** Yes
+
+### 2026-05-10 - Enforce soft-delete predicates explicitly in specialized joined queries
+
+**Trigger:** Test failure
+**Context:** Story 5.5 post-delete API tests showed `GET /cover-letters/{id}` and list visibility regressions after soft delete.
+**Wrong action:** I relied only on global query filters in specialized cover letter queries that also used JOIN/group-join with `IgnoreQueryFilters()` on related vacancy data.
+**Root cause:** I assumed global filters would remain unambiguous in every composed query shape; in this path, deleted records still surfaced in tests.
+**Correct behavior:** In specialized repository queries (especially with joins and query-filter overrides), add explicit base predicates for active records (`!IsDeleted`) on the primary entity to guarantee visibility rules.
+**Pattern / trigger:** Any custom query that combines soft-deletable entities with `IgnoreQueryFilters()` on related entities.
+**Generalize?** Yes
+
+### 2026-05-10 - Verify enum members before writing new tests and DTO fixtures
+
+**Trigger:** Test failure
+**Context:** Story 5.3 unit/API tests for cover letter detail used `Location.ISTANBUL`.
+**Wrong action:** I referenced an enum member that does not exist in `JobNecto.Domain.Enums.Location`, which caused compile failure.
+**Root cause:** I assumed location granularity from endpoint expectations instead of checking the actual enum contract in the codebase.
+**Correct behavior:** Before using enum literals in new tests or seeded fixtures, open the enum declaration and use only existing members; align expected JSON values with actual serializer output.
+**Pattern / trigger:** Any new test or mapper that introduces enum constants from memory rather than from the source enum file.
+**Generalize?** Yes
+
+### 2026-05-10 - Do not reassign filtered IQueryable into implicitly ordered query vars
+
+**Trigger:** Test failure
+**Context:** Story 5.2 `CoverLetterRepository.GetPagedListAsync` cursor filter implementation.
+**Wrong action:** I assigned an ordered LINQ query to `var query` (inferred as `IOrderedQueryable`) and then reassigned `query = query.Where(...)`, which returns `IQueryable` and caused compile error CS0266.
+**Root cause:** I relied on implicit type inference for a mutable query pipeline and overlooked that adding `Where` changes the static interface from ordered to non-ordered.
+**Correct behavior:** When a query variable is conditionally reassigned with filters, declare it as `IQueryable<T>` up front (or re-apply ordering after filtering) instead of relying on `var` from `OrderBy`.
+**Pattern / trigger:** Any repository method that builds an ordered query then conditionally applies `Where` before paging.
+**Generalize?** Yes
+
+### 2026-05-10 - Keep EF Core types out of Application handlers
+
+**Trigger:** Test failure
+**Context:** Story 5.1 `CreateCoverLetterCommandHandler` initially caught `DbUpdateException` directly from `Microsoft.EntityFrameworkCore` in the Application layer.
+**Wrong action:** I introduced an EF Core type dependency into Application to catch database uniqueness violations.
+**Root cause:** I followed the story note too literally and missed the architecture boundary: Application must remain persistence-provider agnostic.
+**Correct behavior:** In Application handlers, catch provider-agnostic exceptions and map conflicts without referencing EF packages; keep EF-specific details in Infrastructure/API exception mapping.
+**Pattern / trigger:** Any new Application handler that tries to catch `DbUpdateException` or import `Microsoft.EntityFrameworkCore`.
+**Generalize?** Yes
+
 ### 2026-05-10 - Return structured ProblemDetails for all 400 responses, never plain strings
 
 **Trigger:** PR review comment (LLM reviewer, second pass)

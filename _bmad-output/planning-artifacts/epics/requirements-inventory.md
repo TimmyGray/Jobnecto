@@ -1,6 +1,6 @@
 # Requirements Inventory
 
-### Functional Requirements
+## Functional Requirements
 
 FR1: User can create a new account with `loginName`, `email`, `password`, and optional profile fields (`phone`, `location`, `about`, `avatar`) via `POST /api/v1/users`; returns `201 Created` with user object (excluding password).
 FR2: User can retrieve their core profile fields via `GET /api/v1/users/me`; related resources (resumes, educations, cover letters) are retrieved through dedicated user-scoped endpoints; returns `200 OK`.
@@ -20,9 +20,9 @@ FR15: User can list their cover letter templates (paginated, searchable by `name
 FR16: User can retrieve a single cover letter template with full `content` via `GET /api/v1/cover-letter-templates/{id}`; returns `404` if not found.
 FR17: User can update a cover letter template's `name` or `content` via `PATCH /api/v1/cover-letter-templates/{id}`; name uniqueness re-validated if changed; returns `200 OK`.
 FR18: User can soft-delete a cover letter template via `DELETE /api/v1/cover-letter-templates/{id}`; returns `204 No Content`.
-FR19: User can create a job-specific cover letter with `vacancyId` (required, must exist), `content` (50-10000 chars), and optional `templateId` via `POST /api/v1/cover-letters`; one letter per vacancy per user; returns `201 Created`.
+FR19: User can create a job-specific cover letter with `vacancyId` (required, must exist) and `content` (50-10000 chars) via `POST /api/v1/cover-letters`; one letter per vacancy per user; returns `201 Created`.
 FR20: User can list their cover letters (paginated, ordered by `createdAt desc`) via `GET /api/v1/cover-letters`; includes `vacancyTitle` from linked vacancy; returns `200 OK`.
-FR21: User can retrieve a single cover letter with full `content`, `vacancyId`, `templateId`, and linked vacancy details via `GET /api/v1/cover-letters/{id}`; returns `404` if not found.
+FR21: User can retrieve a single cover letter with full `content`, `vacancyId`, and linked vacancy details via `GET /api/v1/cover-letters/{id}`; returns `404` if not found.
 FR22: User can update cover letter `content` (cannot change `vacancyId` after creation) via `PATCH /api/v1/cover-letters/{id}`; returns `200 OK`.
 FR23: User can soft-delete a cover letter via `DELETE /api/v1/cover-letters/{id}`; returns `204 No Content`.
 FR24: Authenticated user can browse their own paginated vacancies (default 20, max 100) via `POST /api/v1/vacancies/filter` using empty criteria (`{}`); default ordering is `createdAt desc`, optional `sortBy` supports `updatedAt` and `relevance` (alias of `updatedAt`); returns `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`.
