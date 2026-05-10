@@ -72,8 +72,8 @@ development_status:
   # --- Epic 4: Vacancy Browsing & Filtering ---
   epic-4: in-progress
   4-1-browse-vacancies-paginated-list: done
-  4-2-filter-vacancies: backlog
-  4-3-get-vacancy-detail: backlog
+  4-2-filter-vacancies: ready-for-dev
+  4-3-get-vacancy-detail: ready-for-dev
   epic-4-retrospective: optional
 
   # --- Epic 5: Cover Letter Application Management ---
