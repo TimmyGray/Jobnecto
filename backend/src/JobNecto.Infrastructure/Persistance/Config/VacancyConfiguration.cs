@@ -43,6 +43,8 @@ public class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
 
         builder.Property(v => v.IsChosen);
 
+        builder.Property(v => v.IsViewed);
+
         builder.Property(v => v.IsHidden);
 
         builder.Property(v => v.Location).HasConversion<string>();
