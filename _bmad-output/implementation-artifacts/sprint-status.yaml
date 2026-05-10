@@ -74,7 +74,7 @@ development_status:
   4-1-browse-vacancies-paginated-list: done
   4-2-filter-vacancies: done
   4-3-get-vacancy-detail: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
 
   # --- Epic 5: Cover Letter Application Management ---
   epic-5: backlog
