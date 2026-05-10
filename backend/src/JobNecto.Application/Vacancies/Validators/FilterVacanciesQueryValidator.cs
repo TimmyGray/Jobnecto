@@ -18,5 +18,9 @@ public class FilterVacanciesQueryValidator : AbstractValidator<FilterVacanciesQu
             .LessThanOrEqualTo(x => x.SalaryMax)
             .When(x => x.SalaryMin.HasValue && x.SalaryMax.HasValue)
             .WithMessage("salaryMin must not be greater than salaryMax.");
+
+        RuleFor(x => x.ExcludeKeywords)
+            .Must(kw => kw == null || kw.Length <= 20)
+            .WithMessage("At most 20 exclude keywords are allowed.");
     }
 }
