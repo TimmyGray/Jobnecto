@@ -536,6 +536,65 @@ public class VacancyRepositoryTests
     }
 
     [Fact]
+    public async Task GetFilteredAsync_exclude_keywords_removes_vacancies_whose_title_contains_keyword()
+    {
+        var (context, _, _) = await SeedAllVacanciesAsync();
+        await using (context)
+        {
+            var repo = new VacancyRepository(context);
+
+            // "PHP" appears in the title of LegacyFullStackHidden ("Full Stack Engineer (PHP + Vue)")
+            var result = await repo.GetFilteredAsync(
+                new PagedQuery { PageSize = 20 },
+                new VacancyFilter { ExcludeKeywords = ["PHP"] },
+                CancellationToken.None
+            );
+
+            result.Items.Should().NotContain(v => v.Title != null && v.Title.Contains("PHP"));
+            result.TotalCount.Should().Be(6);
+        }
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_exclude_keywords_removes_vacancies_whose_description_contains_keyword()
+    {
+        var (context, _, _) = await SeedAllVacanciesAsync();
+        await using (context)
+        {
+            var repo = new VacancyRepository(context);
+
+            // "WCAG" appears only in the description of JuniorReactHybridBerlin
+            var result = await repo.GetFilteredAsync(
+                new PagedQuery { PageSize = 20 },
+                new VacancyFilter { ExcludeKeywords = ["WCAG"] },
+                CancellationToken.None
+            );
+
+            result.Items.Should().NotContain(v => v.Description != null && v.Description.Contains("WCAG"));
+            result.TotalCount.Should().Be(6);
+        }
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_multiple_exclude_keywords_apply_and_logic()
+    {
+        var (context, _, _) = await SeedAllVacanciesAsync();
+        await using (context)
+        {
+            var repo = new VacancyRepository(context);
+
+            // "PHP" removes 1 vacancy; "WCAG" removes 1 more; combined removes 2
+            var result = await repo.GetFilteredAsync(
+                new PagedQuery { PageSize = 20 },
+                new VacancyFilter { ExcludeKeywords = ["PHP", "WCAG"] },
+                CancellationToken.None
+            );
+
+            result.TotalCount.Should().Be(5);
+        }
+    }
+
+    [Fact]
     public async Task UpdateMatchScoreAsync_throws_NotImplementedException()
     {
         await using var context = CreateContext();

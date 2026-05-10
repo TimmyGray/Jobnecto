@@ -150,6 +150,48 @@ public class FilterVacanciesQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ExcludeKeywords_MappedToFilter()
+    {
+        // Arrange
+        VacancyFilter? capturedFilter = null;
+
+        _vacancyRepositoryMock
+            .Setup(x => x.GetFilteredAsync(It.IsAny<PagedQuery>(), It.IsAny<VacancyFilter?>(), It.IsAny<CancellationToken>()))
+            .Callback<PagedQuery, VacancyFilter?, CancellationToken>((_, f, _) => capturedFilter = f)
+            .ReturnsAsync(MakePagedResult([], 0, null, null, 20, false));
+
+        var query = new FilterVacanciesQuery
+        {
+            ExcludeKeywords = ["PHP", "  Vue  "],
+        };
+
+        // Act
+        await _handler.Handle(query, CancellationToken.None);
+
+        // Assert
+        capturedFilter.Should().NotBeNull();
+        capturedFilter!.ExcludeKeywords.Should().BeEquivalentTo(["PHP", "  Vue  "]);
+    }
+
+    [Fact]
+    public async Task Handle_EmptyExcludeKeywordsArray_TreatedAsNoCriteria()
+    {
+        // Arrange
+        VacancyFilter? capturedFilter = null;
+
+        _vacancyRepositoryMock
+            .Setup(x => x.GetFilteredAsync(It.IsAny<PagedQuery>(), It.IsAny<VacancyFilter?>(), It.IsAny<CancellationToken>()))
+            .Callback<PagedQuery, VacancyFilter?, CancellationToken>((_, f, _) => capturedFilter = f)
+            .ReturnsAsync(MakePagedResult([], 0, null, null, 20, false));
+
+        // Act
+        await _handler.Handle(new FilterVacanciesQuery { ExcludeKeywords = [] }, CancellationToken.None);
+
+        // Assert — empty array normalises to null, so no filter is built
+        capturedFilter.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Handle_MapsVacancyWithNoSalary_ToNullSalaryInResult()
     {
         // Arrange

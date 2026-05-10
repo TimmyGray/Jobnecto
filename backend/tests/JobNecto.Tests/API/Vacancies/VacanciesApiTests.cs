@@ -306,6 +306,137 @@ public class VacanciesApiTests
         result!.TotalCount.Should().Be(polandCount);
     }
 
+    // ── Story 4.2 tests ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Filter_SalaryMinGreaterThanSalaryMax_Returns400WithFieldLevelError()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, _) = await CreateUserAndGetCookieAsync(client);
+
+        var response = await PostFilterAsync(client, authCookie, new { salaryMin = 100_000, salaryMax = 50_000 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+        root.GetProperty("title").GetString().Should().Be("Validation failed");
+        root.GetProperty("errors").TryGetProperty("SalaryMin", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Filter_SalaryMinEqualToSalaryMax_Returns200()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, _) = await CreateUserAndGetCookieAsync(client);
+
+        var response = await PostFilterAsync(client, authCookie, new { salaryMin = 80_000, salaryMax = 80_000 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Filter_WithExcludeKeywords_ExcludesMatchingVacancies()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, userId) = await CreateUserAndGetCookieAsync(client);
+        var seeded = await SeedVacanciesAsync(factory, userId);
+
+        // "PHP" appears in the title of LegacyFullStackHidden
+        var phpCount = seeded.Count(v => v.Title != null && v.Title.Contains("PHP"));
+        phpCount.Should().Be(1, "precondition: exactly one seeded vacancy has PHP in title");
+
+        var response = await PostFilterAsync(client, authCookie, new { excludeKeywords = new[] { "PHP" } });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<VacancyPagedResultDto>(JsonOptions);
+        result.Should().NotBeNull();
+        result!.TotalCount.Should().Be(seeded.Count - phpCount);
+        result.Items.Should().NotContain(i => i.Title != null && i.Title.Contains("PHP"));
+    }
+
+    [Fact]
+    public async Task Filter_WithMultipleCriteria_ReturnsAndIntersection()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, userId) = await CreateUserAndGetCookieAsync(client);
+        var seeded = await SeedVacanciesAsync(factory, userId);
+
+        // Poland vacancies with salaryMin >= 90_000:
+        // SeniorDotNetRemotePoland: location=Poland, salaryMin=95_000 ✓
+        // DataAnalystInternshipWarsaw: location=Poland, salaryMin=4_500 ✗
+        var expected = seeded
+            .Where(v => v.Location == JobNecto.Domain.Enums.Location.Poland && v.SalaryMin >= 90_000m)
+            .ToList();
+        expected.Should().HaveCount(1, "precondition check");
+
+        var response = await PostFilterAsync(client, authCookie, new
+        {
+            location = new[] { "Poland" },
+            salaryMin = 90_000,
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<VacancyPagedResultDto>(JsonOptions);
+        result.Should().NotBeNull();
+        result!.TotalCount.Should().Be(expected.Count);
+        result.Items.Select(i => i.Id).Should().BeEquivalentTo(expected.Select(v => v.Id));
+    }
+
+    [Fact]
+    public async Task Filter_WithFilteredCriteriaAndCursor_ReturnsCorrectSlice()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, userId) = await CreateUserAndGetCookieAsync(client);
+        var seeded = await SeedVacanciesAsync(factory, userId);
+
+        // Remote vacancies ordered by createdAt desc:
+        // SeniorDotNetRemotePoland, ContractDevOpsRemoteUs, PartTimeContentMarketerRemote, BareMinimumScrapedListing
+        var remoteVacancies = seeded
+            .Where(v => v.WorkLocationType == JobNecto.Domain.Enums.WorkLocationType.Remote)
+            .OrderByDescending(v => v.CreatedAt)
+            .ThenByDescending(v => v.Id)
+            .ToList();
+        remoteVacancies.Should().HaveCountGreaterThan(1, "precondition: need at least 2 remote vacancies for cursor test");
+
+        var firstResponse = await PostFilterAsync(client, authCookie, new
+        {
+            workLocationType = new[] { "Remote" },
+            pageSize = 1,
+        });
+
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstPage = await firstResponse.Content.ReadFromJsonAsync<VacancyPagedResultDto>(JsonOptions);
+        firstPage.Should().NotBeNull();
+        firstPage!.Items.Should().HaveCount(1);
+        firstPage.HasNext.Should().BeTrue();
+        firstPage.Items[0].Id.Should().Be(remoteVacancies[0].Id);
+
+        var secondResponse = await PostFilterAsync(client, authCookie, new
+        {
+            workLocationType = new[] { "Remote" },
+            pageSize = 1,
+            lastSeenId = firstPage.LastSeenId,
+            lastSeenUpdatedAt = firstPage.LastSeenUpdatedAt,
+        });
+
+        secondResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var secondPage = await secondResponse.Content.ReadFromJsonAsync<VacancyPagedResultDto>(JsonOptions);
+        secondPage.Should().NotBeNull();
+        secondPage!.Items.Should().HaveCount(1);
+        secondPage.Items[0].Id.Should().Be(remoteVacancies[1].Id);
+    }
+
     [Fact]
     public async Task Filter_WithSortByRelevance_UsesUpdatedAtOrderingAlias()
     {
