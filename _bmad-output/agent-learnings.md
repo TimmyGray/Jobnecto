@@ -11,6 +11,26 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-05-10 - Check JSON serialization config when reviewing request DTO field types
+
+**Trigger:** PR review comment (Copilot reviewer)
+**Context:** Story 4.1 `FilterVacanciesQuery` used typed enum arrays (`Location[]`, `WorkTimeType[]`, `WorkLocationType[]`, `Currency[]`) in the request body. Without `JsonStringEnumConverter` registered globally, clients must send integer values instead of string names — an unusable API contract.
+**Wrong action:** I read the DTO fields, saw typed enum arrays, and accepted them at face value without checking whether the serializer was configured to handle string enum names.
+**Root cause:** I did not trace the full client-to-handler path: HTTP body → JSON deserialization → DTO field type → serializer config. I reviewed the domain logic but skipped the deserialization layer.
+**Correct behavior:** When reviewing or writing request DTOs with enum-typed fields, always check `Program.cs` / `AddControllers` options for `JsonStringEnumConverter`. If it is absent, either add it globally or use `string` fields with manual `Enum.TryParse` (consistent with the rest of the codebase).
+**Pattern / trigger:** Request DTO contains `SomeEnum[]` or `SomeEnum?` fields in an ASP.NET Core project; check serializer config before accepting the design.
+**Generalize?** Yes
+
+### 2026-05-10 - Validate partial-cursor states, not just missing-cursor states
+
+**Trigger:** PR review comment (Copilot reviewer and LLM reviewer)
+**Context:** Story 4.1 cursor pagination required both `lastSeenId` and `lastSeenUpdatedAt`. Sending only one field silently skipped the cursor entirely and re-returned the first page — a potential infinite loop for clients.
+**Wrong action:** I reviewed the cursor logic and correctly identified the sort-mode-change risk (finding #1), but I only considered "cursor present" vs "cursor absent". I never considered the degenerate case where exactly one cursor field is supplied.
+**Root cause:** I stayed within the happy path and the one-field-missing-but-other-present case did not surface as a distinct state to test.
+**Correct behavior:** For any pagination contract that requires a pair of cursor fields, explicitly validate the XOR state (exactly one provided) and return 400. Add tests for both asymmetric directions.
+**Pattern / trigger:** Cursor pagination with two correlated fields (`lastSeenId` + `lastSeenTimestamp`); always add XOR validation and tests.
+**Generalize?** Yes
+
 ### 2026-05-10 - Honor single-route API strategy across all planning artifacts
 
 **Trigger:** User correction
