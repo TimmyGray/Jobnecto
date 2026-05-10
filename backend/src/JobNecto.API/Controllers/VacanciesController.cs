@@ -49,7 +49,21 @@ public class VacanciesController : ControllerBase
         query.UserId = userId;
 
         if (query.LastSeenId.HasValue ^ query.LastSeenUpdatedAt.HasValue)
-            return BadRequest("lastSeenId and lastSeenUpdatedAt must be provided together.");
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Validation failed",
+                Detail = "lastSeenId and lastSeenUpdatedAt must be provided together.",
+            });
+
+        var allowedSortBy = new[] { "createdAt", "updatedAt", "relevance" };
+        if (!string.IsNullOrWhiteSpace(query.SortBy) && !allowedSortBy.Contains(query.SortBy, StringComparer.OrdinalIgnoreCase))
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Validation failed",
+                Detail = $"sortBy must be one of: {string.Join(", ", allowedSortBy)}.",
+            });
 
         if (query.LastSeenUpdatedAt.HasValue)
         {

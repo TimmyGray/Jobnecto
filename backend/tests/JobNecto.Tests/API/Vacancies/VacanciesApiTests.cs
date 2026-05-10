@@ -5,6 +5,7 @@ using FluentAssertions;
 using JobNecto.Application.Users;
 using JobNecto.Domain.Entities;
 using JobNecto.Infrastructure.Persistance;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -239,7 +240,7 @@ public class VacanciesApiTests
     }
 
     [Fact]
-    public async Task Filter_WithOnlyLastSeenId_Returns400()
+    public async Task Filter_WithOnlyLastSeenId_Returns400WithProblemDetails()
     {
         await using var factory = new JobNectoApiFactory();
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
@@ -249,10 +250,13 @@ public class VacanciesApiTests
         var response = await PostFilterAsync(client, authCookie, new { lastSeenId = Guid.NewGuid() });
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(JsonOptions);
+        problem!.Title.Should().Be("Validation failed");
+        problem.Detail.Should().Contain("lastSeenId");
     }
 
     [Fact]
-    public async Task Filter_WithOnlyLastSeenUpdatedAt_Returns400()
+    public async Task Filter_WithOnlyLastSeenUpdatedAt_Returns400WithProblemDetails()
     {
         await using var factory = new JobNectoApiFactory();
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
@@ -262,6 +266,25 @@ public class VacanciesApiTests
         var response = await PostFilterAsync(client, authCookie, new { lastSeenUpdatedAt = DateTime.UtcNow });
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(JsonOptions);
+        problem!.Title.Should().Be("Validation failed");
+        problem.Detail.Should().Contain("lastSeenUpdatedAt");
+    }
+
+    [Fact]
+    public async Task Filter_WithUnknownSortBy_Returns400WithProblemDetails()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, _) = await CreateUserAndGetCookieAsync(client);
+
+        var response = await PostFilterAsync(client, authCookie, new { sortBy = "popularity" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(JsonOptions);
+        problem!.Title.Should().Be("Validation failed");
+        problem.Detail.Should().Contain("sortBy");
     }
 
     [Fact]
