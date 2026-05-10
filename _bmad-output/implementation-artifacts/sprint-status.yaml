@@ -73,7 +73,7 @@ development_status:
   epic-4: in-progress
   4-1-browse-vacancies-paginated-list: done
   4-2-filter-vacancies: done
-  4-3-get-vacancy-detail: ready-for-dev
+  4-3-get-vacancy-detail: done
   epic-4-retrospective: optional
 
   # --- Epic 5: Cover Letter Application Management ---
