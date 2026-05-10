@@ -183,7 +183,6 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
         {
             foreach (var keyword in filter.ExcludeKeywords)
             {
-<<<<<<< HEAD
                 if (string.IsNullOrWhiteSpace(keyword)) continue;
 
                 var escaped = keyword.Trim().Replace("%", "\\%").Replace("_", "\\_");
