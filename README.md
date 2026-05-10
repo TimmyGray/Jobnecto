@@ -138,6 +138,8 @@ curl -i http://localhost:5000/
   - Updates template `name` and/or `content` for an owned template; returns `200 OK`, `400` for invalid payloads, `403` for cross-user access, `404` for missing or soft-deleted records, and `409` for per-user name uniqueness conflicts.
 - `DELETE /api/v1/cover-letter-templates/{id}`
   - Soft-deletes an owned template; returns `204 No Content`, `401` when unauthenticated, `403` for cross-user access, and `404` for missing or soft-deleted records.
+- `POST /api/v1/vacancies/filter`
+  - Browse or filter user-scoped vacancies through a single keyset-paginated endpoint. Send an empty body `{}` for browse mode (all vacancies) or populate filter fields for filtered results. Optional `sortBy`: `createdAt` (default), `updatedAt`, or `relevance` (alias for `updatedAt`). Enum filter arrays (`location`, `workLocationType`, `workTimeType`, `currency`) accept string names. Returns `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`. Page size defaults to 20, capped at 100. Returns `400` if only one cursor field is supplied (both `lastSeenId` + `lastSeenUpdatedAt` required) or if an unknown `sortBy` value is sent.
 
 ### CORS
 
