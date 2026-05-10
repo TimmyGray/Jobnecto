@@ -23,10 +23,10 @@ FR18: User can soft-delete a cover letter template via `DELETE /api/v1/cover-let
 FR19: User can create a job-specific cover letter with `vacancyId` (required, must exist), `content` (50-10000 chars), and optional `templateId` via `POST /api/v1/cover-letters`; one letter per vacancy per user; returns `201 Created`.
 FR20: User can list their cover letters (paginated, ordered by `createdAt desc`) via `GET /api/v1/cover-letters`; includes `vacancyTitle` from linked vacancy; returns `200 OK`.
 FR21: User can retrieve a single cover letter with full `content`, `vacancyId`, `templateId`, and linked vacancy details via `GET /api/v1/cover-letters/{id}`; returns `404` if not found.
-FR22: User can update cover letter `content` (cannot change `vacancyId` after creation) via `PUT /api/v1/cover-letters/{id}`; returns `200 OK`.
+FR22: User can update cover letter `content` (cannot change `vacancyId` after creation) via `PATCH /api/v1/cover-letters/{id}`; returns `200 OK`.
 FR23: User can soft-delete a cover letter via `DELETE /api/v1/cover-letters/{id}`; returns `204 No Content`.
-FR24: Any user can browse a paginated list of vacancies (default 20, max 100, ordered by `createdAt desc`) via `GET /api/v1/vacancies`; returns `200 OK` with `{ total, page, pageSize, items }`.
-FR25: Any user can filter vacancies by multi-criteria (`skills`, `location`, `salaryMin`, `salaryMax`, `workLocationTypes`, `categories`, `experienceLevel`, `excludeKeywords`, `page`, `pageSize`) via `POST /api/v1/vacancies/filter`; AND logic between fields, OR within arrays; returns `200 OK`.
+FR24: Authenticated user can browse their own paginated vacancies (default 20, max 100) via `POST /api/v1/vacancies/filter` using empty criteria (`{}`); default ordering is `createdAt desc`, optional `sortBy` supports `updatedAt` and `relevance` (alias of `updatedAt`); returns `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`.
+FR25: Authenticated user can filter their own vacancies by multi-criteria (`skills`, `location`, `salaryMin`, `salaryMax`, `workLocationTypes`, `categories`, `experienceLevel`, `excludeKeywords`, `lastSeenId`, `lastSeenUpdatedAt`, `pageSize`, `sortBy`) via `POST /api/v1/vacancies/filter`; AND logic between fields, OR within arrays; returns `200 OK` with the same pagination envelope as browse mode.
 FR26: Any user can retrieve a single vacancy with all fields (title, description, company, skills, workLocationType, matchScore, jobSource, etc.) via `GET /api/v1/vacancies/{id}`; returns `404` if not found.
 FR27: All user-owned list endpoints must automatically filter by `userId` at the repository/handler level to enforce data isolation.
 FR28: All mutation handlers must verify resource ownership before allowing changes; return `403 Forbidden` or throw ownership exception if violated.
@@ -42,7 +42,7 @@ NFR6: Build must pass: `dotnet build backend/JobNecto.slnx --configuration Relea
 NFR7: All tests must pass: `dotnet test backend/JobNecto.slnx --configuration Release --warnaserror`.
 NFR8: No nullable reference type warnings suppressed without documented justification.
 NFR9: OpenAPI spec auto-generated for all Phase B endpoints with request/response schemas, status codes (200, 201, 204, 400, 404, 409, 422, 500), and example bodies.
-NFR10: Pagination: cursor-based (`lastSeenId` + `lastSeenUpdatedAt`); `pageSize` min 1, max 100, default 20. Response shape: `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`. Request body max 1MB.
+NFR10: Pagination: cursor-based (`lastSeenId` + `lastSeenUpdatedAt`); `pageSize` min 1, max 100, default 20. For vacancies, `lastSeenUpdatedAt` carries cursor timestamp for the selected sort mode (`createdAt` by default, `updatedAt` for `sortBy=updatedAt|relevance`). Response shape: `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`. Request body max 1MB.
 NFR11: Zero breaking changes to Domain model entities after Phase B is complete.
 NFR12: Passwords must be stored only as one-way salted hashes; plaintext passwords are never persisted or returned, and any migration/backfill required to reach that state is part of auth readiness.
 NFR13: Any business rule surfaced as `409 Conflict` must be backed by a database-level uniqueness constraint and at least one integration test that exercises concurrent create/update attempts.

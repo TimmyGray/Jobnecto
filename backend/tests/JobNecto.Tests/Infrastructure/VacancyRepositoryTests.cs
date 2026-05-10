@@ -68,13 +68,44 @@ public class VacancyRepositoryTests
     }
 
     [Fact]
-    public async Task GetFilteredAsync_orders_by_UpdatedAt_desc_then_Id_and_pages()
+    public async Task GetFilteredAsync_with_user_scope_returns_only_current_users_vacancies()
+    {
+        var (context, ownerId, _) = await SeedAllVacanciesAsync();
+        await using (context)
+        {
+            var otherUser = VacancyTestData.CreateOwnerUser(id: Guid.NewGuid());
+            otherUser.Login = "vacancy-repo-tester-other";
+            otherUser.Email = "vacancy.tests.other@example.com";
+            context.Users.Add(otherUser);
+
+            var otherUsersVacancy = VacancyTestData.JuniorReactHybridBerlin(
+                otherUser.Id,
+                VacancyTestData.AnchorUtc.AddDays(-1),
+                VacancyTestData.AnchorUtc.AddHours(4)
+            );
+            context.Vacancies.Add(otherUsersVacancy);
+            await context.SaveChangesAsync();
+
+            var repo = new VacancyRepository(context);
+            var result = await repo.GetFilteredAsync(
+                new PagedQuery { UserId = ownerId, PageSize = 50 },
+                filter: null,
+                CancellationToken.None
+            );
+
+            result.TotalCount.Should().Be(7);
+            result.Items.Should().OnlyContain(v => v.UserId == ownerId);
+        }
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_orders_by_CreatedAt_desc_then_Id_and_pages()
     {
         var (context, _, seeded) = await SeedAllVacanciesAsync();
         await using (context)
         {
             var repo = new VacancyRepository(context);
-            var expectedOrder = seeded.OrderByDescending(v => v.UpdatedAt).ThenByDescending(v => v.Id).ToList();
+            var expectedOrder = seeded.OrderByDescending(v => v.CreatedAt).ThenByDescending(v => v.Id).ToList();
 
             var result = await repo.GetFilteredAsync(
                 new PagedQuery { PageSize = 2 },
@@ -88,7 +119,31 @@ public class VacancyRepositoryTests
             result.Items[0].Id.Should().Be(expectedOrder[0].Id);
             result.Items[1].Id.Should().Be(expectedOrder[1].Id);
             result.LastSeenId.Should().Be(expectedOrder[1].Id);
-            result.LastSeenUpdatedAt.Should().Be(expectedOrder[1].UpdatedAt);
+            result.LastSeenUpdatedAt.Should().Be(expectedOrder[1].CreatedAt);
+        }
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_with_sort_by_updated_at_orders_by_UpdatedAt_desc_then_Id()
+    {
+        var (context, _, seeded) = await SeedAllVacanciesAsync();
+        await using (context)
+        {
+            var repo = new VacancyRepository(context);
+            var expectedOrder = seeded.OrderByDescending(v => v.UpdatedAt).ThenByDescending(v => v.Id).ToList();
+
+            var result = await repo.GetFilteredAsync(
+                new PagedQuery { PageSize = 3, SortBy = "updatedAt" },
+                filter: null,
+                CancellationToken.None
+            );
+
+            result.TotalCount.Should().Be(7);
+            result.Items.Should().HaveCount(3);
+            result.Items[0].Id.Should().Be(expectedOrder[0].Id);
+            result.Items[1].Id.Should().Be(expectedOrder[1].Id);
+            result.Items[2].Id.Should().Be(expectedOrder[2].Id);
+            result.LastSeenUpdatedAt.Should().Be(expectedOrder[2].UpdatedAt);
         }
     }
 
@@ -99,7 +154,7 @@ public class VacancyRepositoryTests
         await using (context)
         {
             var repo = new VacancyRepository(context);
-            var expectedOrder = seeded.OrderByDescending(v => v.UpdatedAt).ThenByDescending(v => v.Id).ToList();
+            var expectedOrder = seeded.OrderByDescending(v => v.CreatedAt).ThenByDescending(v => v.Id).ToList();
 
             var first = await repo.GetFilteredAsync(
                 new PagedQuery { PageSize = 2 },
@@ -433,6 +488,51 @@ public class VacancyRepositoryTests
             result.PageSize.Should().Be(0);
             result.HasNext.Should().BeTrue();
         }
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_ties_on_same_created_at_are_paginated_deterministically_by_id()
+    {
+        await using var context = CreateContext();
+        var owner = VacancyTestData.CreateOwnerUser();
+        context.Users.Add(owner);
+
+        var sharedCreatedAt = VacancyTestData.AnchorUtc;
+        var v1 = VacancyTestData.SeniorDotNetRemotePoland(owner.Id, sharedCreatedAt, sharedCreatedAt);
+        var v2 = VacancyTestData.JuniorReactHybridBerlin(owner.Id, sharedCreatedAt, sharedCreatedAt);
+        context.Vacancies.AddRange(v1, v2);
+        await context.SaveChangesAsync();
+
+        var repo = new VacancyRepository(context);
+
+        var firstPage = await repo.GetFilteredAsync(
+            new PagedQuery { PageSize = 1 },
+            filter: null,
+            CancellationToken.None
+        );
+
+        firstPage.TotalCount.Should().Be(2);
+        firstPage.Items.Should().HaveCount(1);
+        firstPage.HasNext.Should().BeTrue();
+
+        var secondPage = await repo.GetFilteredAsync(
+            new PagedQuery
+            {
+                PageSize = 1,
+                LastSeenId = firstPage.LastSeenId,
+                LastSeenUpdatedAt = firstPage.LastSeenUpdatedAt,
+            },
+            filter: null,
+            CancellationToken.None
+        );
+
+        secondPage.Items.Should().HaveCount(1);
+        secondPage.HasNext.Should().BeFalse();
+
+        // Both pages together cover all records with no duplicates or gaps.
+        var allReturnedIds = new[] { firstPage.Items[0].Id, secondPage.Items[0].Id };
+        allReturnedIds.Should().BeEquivalentTo(new[] { v1.Id, v2.Id });
+        allReturnedIds.Distinct().Should().HaveCount(2);
     }
 
     [Fact]

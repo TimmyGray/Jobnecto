@@ -1,26 +1,36 @@
 # Epic 4: Vacancy Browsing & Filtering
 
-Users can discover and filter job vacancies using keyword and multi-criteria search, with full pagination support.
+Users can discover and filter job vacancies through a single filter endpoint, with full pagination support.
 
-### Story 4.1: Browse Vacancies (Paginated List)
+## Route Strategy
+
+- Epic 4 uses one list route only: `POST /api/v1/vacancies/filter`.
+- Browse mode is achieved by sending empty criteria (empty body `{}` or no filter fields).
+- Optional sort mode is provided via `sortBy`: `createdAt` (default), `updatedAt`, or `relevance` (alias of `updatedAt`).
+
+### Story 4.1: Browse Vacancies (Empty Filter Mode)
 
 As a **job seeker**,
-I want to browse all available vacancies in a paginated list,
-So that I can scan what's available without filtering.
+I want to browse all available vacancies using the filter endpoint with empty criteria,
+So that I can scan what's available without defining filters.
 
 **Acceptance Criteria:**
 
 **Given** a valid JWT token
-**When** `GET /api/v1/vacancies` is called with no params
-**Then** `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`, ordered by `createdAt desc`, `pageSize` defaulting to 20
+**When** `POST /api/v1/vacancies/filter` is called with empty body `{}`
+**Then** `200 OK` with `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`, returning only vacancies owned by the authenticated user, ordered by `createdAt desc` by default, `pageSize` defaulting to 20
 **And** each item includes: `id`, `title`, `company`, `workLocationType`, `location`, `salary`, `currency`, `createdAt`
 
-**Given** `pageSize`, `lastSeenId`, and `lastSeenUpdatedAt` cursor params are provided
+**Given** `pageSize`, `lastSeenId`, `lastSeenUpdatedAt`, and optional `sortBy` are provided in the request body while filter criteria are empty
 **When** the request is processed
 **Then** correct cursor window is returned; `pageSize` capped at 100
 
+**Given** `sortBy` is set to `updatedAt` or `relevance`
+**When** `POST /api/v1/vacancies/filter` is called
+**Then** results are ordered by `updatedAt desc`, with deterministic tie-break by `id desc`
+
 **Given** no vacancies exist in the DB
-**When** `GET /api/v1/vacancies` is called
+**When** `POST /api/v1/vacancies/filter` is called with empty body `{}`
 **Then** `200 OK` with `{ totalCount: 0, hasNext: false, items: [] }`
 
 ---
@@ -38,9 +48,9 @@ So that I can find the roles that best match my profile.
 **Then** `200 OK` with vacancies matching ALL specified filters (AND logic between fields)
 **And** within array fields (`skills`, `workLocationTypes`, `categories`), any match is sufficient (OR logic)
 
-**Given** an empty filter body `{}`
+**Given** one or more filter fields are provided
 **When** `POST /api/v1/vacancies/filter` is called
-**Then** same result as paginated list (all vacancies)
+**Then** only the matching subset is returned while preserving the same pagination envelope and selected sort mode as Story 4.1
 
 **Given** `salaryMin` > `salaryMax` is provided
 **When** the request is processed
@@ -48,7 +58,7 @@ So that I can find the roles that best match my profile.
 
 **Given** `pageSize` exceeds 100
 **When** the request is processed
-**Then** it is capped at 100 (or `400 Bad Request` per implementation choice — must be consistent)
+**Then** it is capped at 100 (or `400 Bad Request` per implementation choice - must be consistent)
 
 **Given** `excludeKeywords` contains terms
 **When** the request is processed
@@ -73,4 +83,4 @@ So that I can decide whether to apply.
 **Then** `404 Not Found`
 
 ---
-
+<!-- EOF -->

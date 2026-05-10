@@ -6,7 +6,7 @@ using JobNecto.Domain.ValueObjects;
 /// <summary>
 /// Realistic <see cref="Vacancy"/> fixtures for repository and filter tests.
 /// Use <see cref="CreateOwnerUser"/> (or your own user) and pass <paramref name="userId"/> into each factory.
-/// Timestamps: pass explicit <c>createdAt</c>/<c>updatedAt</c> when testing pagination (ordering is by <c>UpdatedAt</c> desc).
+/// Timestamps: pass explicit <c>createdAt</c>/<c>updatedAt</c> when testing pagination (ordering is by <c>CreatedAt</c> desc).
 /// </summary>
 /// <remarks>
 /// <see cref="VacancyRepository"/> filters on <c>Skills</c> / <c>JobCategories</c> are not exercised with EF InMemory in this project
@@ -280,7 +280,7 @@ internal static class VacancyTestData
         };
 
     /// <summary>
-    /// Ordered by <see cref="Vacancy.UpdatedAt"/> descending: index 0 is newest (best for cursor pagination tests).
+    /// Returns fixtures with distinct timestamps suitable for deterministic cursor pagination tests.
     /// </summary>
     public static IReadOnlyList<Vacancy> AllDistinctUpdatedAt(Guid userId)
     {
