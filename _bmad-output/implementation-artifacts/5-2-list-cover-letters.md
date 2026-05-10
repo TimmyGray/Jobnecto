@@ -1,6 +1,6 @@
 # Story 5.2: List Cover Letters
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 

@@ -1,6 +1,6 @@
 # Story 5.1: Create Cover Letter
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 

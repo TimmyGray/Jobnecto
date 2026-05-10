@@ -1,6 +1,6 @@
 # Story 5.3: Get Cover Letter Detail
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 

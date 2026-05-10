@@ -1,6 +1,6 @@
 # Story 5.5: Delete Cover Letter
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 

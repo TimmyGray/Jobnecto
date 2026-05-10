@@ -20,7 +20,6 @@ public class UpdateCoverLetterCommandValidator : AbstractValidator<UpdateCoverLe
 
         RuleFor(x => x.Content)
             .NotEmpty()
-            .Must(content => !string.IsNullOrWhiteSpace(content))
             .MinimumLength(50)
             .MaximumLength(10000);
     }

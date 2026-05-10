@@ -1,6 +1,6 @@
 # Story 5.4: Update Cover Letter Content
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
