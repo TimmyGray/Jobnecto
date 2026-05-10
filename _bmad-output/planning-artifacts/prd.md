@@ -611,6 +611,7 @@ A job seeker can:
 - Accept POST request with filter object in body (not query params)
 - Filter criteria: `skills` (array, match any), `location` (string, partial match), `salaryMin` (number), `salaryMax` (number), `workLocationTypes` (array: remote/office/hybrid), `categories` (array), `experienceLevel` (enum), `excludeKeywords` (array)
 - Pagination: `pageSize`, `lastSeenId`, `lastSeenUpdatedAt` (cursor) in filter body
+- Sorting: optional `sortBy` supports `createdAt` (default), `updatedAt`, and `relevance` (alias of `updatedAt`)
 - Return results matching ALL provided criteria (AND logic between fields; OR logic within arrays)
 - Return `200 OK` with same shape as List endpoint: `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`
 - Return `400 Bad Request` if filter is malformed
@@ -626,6 +627,7 @@ A job seeker can:
   "categories": [],
   "experienceLevel": "mid",
   "excludeKeywords": [],
+  "sortBy": "createdAt",
   "pageSize": 20,
   "lastSeenId": null,
   "lastSeenUpdatedAt": null

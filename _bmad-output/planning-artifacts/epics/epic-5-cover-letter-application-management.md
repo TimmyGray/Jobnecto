@@ -90,11 +90,11 @@ So that I can refine my application before submitting.
 
 **Acceptance Criteria:**
 
-**Given** a valid JWT token and `PUT /api/v1/cover-letters/{id}` with new `content`
+**Given** a valid JWT token and `PATCH /api/v1/cover-letters/{id}` with new `content`
 **When** the request is processed
 **Then** `200 OK` with updated cover letter; `updatedAt` refreshed
 
-**Given** `vacancyId` is included in the PUT body
+**Given** `vacancyId` is included in the PATCH body
 **When** the request is processed
 **Then** it is silently ignored — `vacancyId` is immutable after creation
 

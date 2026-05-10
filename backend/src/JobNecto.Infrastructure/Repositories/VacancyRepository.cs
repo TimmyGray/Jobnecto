@@ -8,6 +8,9 @@ namespace JobNecto.Infrastructure.Repositories;
 
 public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
 {
+    private const string SortByCreatedAt = "createdat";
+    private const string SortByUpdatedAt = "updatedat";
+
     public VacancyRepository(AppDbContext context)
         : base(context) { }
 
@@ -18,21 +21,33 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
     )
     {
         var query = _dbSet.AsNoTracking();
+
+        if (pagedQuery.UserId.HasValue)
+        {
+            query = query.Where(v => v.UserId == pagedQuery.UserId.Value);
+        }
+
         query = ApplyFilters(query, filter);
 
         var totalCount = await query.CountAsync(ct);
 
-        query = query
-            .OrderByDescending(v => v.UpdatedAt)
-            .ThenByDescending(v => v.Id)
-            .ThenByDescending(v => v.MatchScore ?? 0);
+        var normalizedSortBy = NormalizeSortBy(pagedQuery.SortBy);
 
-        if (pagedQuery.LastSeenId is not null)
+        query = normalizedSortBy == SortByUpdatedAt
+            ? query.OrderByDescending(v => v.UpdatedAt).ThenByDescending(v => v.Id)
+            : query.OrderByDescending(v => v.CreatedAt).ThenByDescending(v => v.Id);
+
+        if (pagedQuery.LastSeenId is not null && pagedQuery.LastSeenUpdatedAt is not null)
         {
-            query = query.Where(v =>
-                v.UpdatedAt < pagedQuery.LastSeenUpdatedAt
-                || (v.UpdatedAt == pagedQuery.LastSeenUpdatedAt && v.Id < pagedQuery.LastSeenId)
-            );
+            query = normalizedSortBy == SortByUpdatedAt
+                ? query.Where(v =>
+                    v.UpdatedAt < pagedQuery.LastSeenUpdatedAt
+                    || (v.UpdatedAt == pagedQuery.LastSeenUpdatedAt && v.Id < pagedQuery.LastSeenId)
+                )
+                : query.Where(v =>
+                    v.CreatedAt < pagedQuery.LastSeenUpdatedAt
+                    || (v.CreatedAt == pagedQuery.LastSeenUpdatedAt && v.Id < pagedQuery.LastSeenId)
+                );
         }
 
         var take = Math.Max(1, pagedQuery.PageSize);
@@ -44,7 +59,11 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
         var hasNext = takePagePlusOne.Count > take;
 
         Guid? nextLastSeenId = items.Count > 0 ? items[^1].Id : null;
-        DateTime? nextLastSeenUpdatedAt = items.Count > 0 ? items[^1].UpdatedAt : null;
+        DateTime? nextLastSeenUpdatedAt = items.Count > 0
+            ? normalizedSortBy == SortByUpdatedAt
+                ? items[^1].UpdatedAt
+                : items[^1].CreatedAt
+            : null;
 
         return new PagedResult<Vacancy>(
             items,
@@ -176,6 +195,24 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
     public Task<Vacancy> UpdateMatchScoreAsync(Guid id, double matchScore, CancellationToken ct)
     {
         throw new NotImplementedException();
+    }
+
+    private static string NormalizeSortBy(string? sortBy)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+        {
+            return SortByCreatedAt;
+        }
+
+        var normalized = sortBy.Trim().ToLowerInvariant();
+
+        return normalized switch
+        {
+            SortByCreatedAt => SortByCreatedAt,
+            SortByUpdatedAt => SortByUpdatedAt,
+            "relevance" => SortByUpdatedAt,
+            _ => SortByCreatedAt,
+        };
     }
 
     /// <summary>
