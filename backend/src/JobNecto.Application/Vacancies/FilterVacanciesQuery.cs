@@ -60,6 +60,12 @@ public class FilterVacanciesQuery : IRequest<PagedResult<VacancyListItemResult>>
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public bool? IsChosen { get; set; }
+
+    /// <summary>
+    /// Terms that disqualify a vacancy. Any vacancy whose <c>title</c> or <c>description</c>
+    /// contains any of these keywords (case-sensitive) is excluded from results.
+    /// </summary>
+    public string[]? ExcludeKeywords { get; set; }
 }
 
 /// <summary>

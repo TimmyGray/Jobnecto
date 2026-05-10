@@ -21,4 +21,5 @@ public record VacancyFilter
     public DateTime? CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public bool? IsChosen { get; init; }
+    public string[]? ExcludeKeywords { get; init; }
 }

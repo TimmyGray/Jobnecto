@@ -82,6 +82,7 @@ public class FilterVacanciesQueryHandler
             CreatedAt = request.CreatedAt,
             UpdatedAt = request.UpdatedAt,
             IsChosen = request.IsChosen,
+            ExcludeKeywords = NormalizeArray(request.ExcludeKeywords),
         };
 
         return HasAnyFilterCriteria(filter) ? filter : null;
@@ -109,5 +110,6 @@ public class FilterVacanciesQueryHandler
         || filter.JobSource is not null
         || filter.CreatedAt.HasValue
         || filter.UpdatedAt.HasValue
-        || filter.IsChosen.HasValue;
+        || filter.IsChosen.HasValue
+        || filter.ExcludeKeywords is not null;
 }

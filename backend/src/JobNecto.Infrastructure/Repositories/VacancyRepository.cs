@@ -179,6 +179,21 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
             query = query.Where(v => v.IsChosen == filter.IsChosen);
         }
 
+        if (filter.ExcludeKeywords != null && filter.ExcludeKeywords.Length > 0)
+        {
+            foreach (var keyword in filter.ExcludeKeywords)
+            {
+                if (string.IsNullOrWhiteSpace(keyword)) continue;
+
+                var escaped = keyword.Trim().Replace("%", "\\%").Replace("_", "\\_");
+                var term = $"%{escaped}%";
+                query = query.Where(v =>
+                    !EF.Functions.Like(v.Title ?? string.Empty, term, "\\") &&
+                    !EF.Functions.Like(v.Description ?? string.Empty, term, "\\")
+                );
+            }
+        }
+
         if (filter.CreatedAt != null)
         {
             query = query.Where(v => v.CreatedAt >= filter.CreatedAt);
