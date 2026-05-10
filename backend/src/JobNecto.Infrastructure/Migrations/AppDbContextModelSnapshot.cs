@@ -389,6 +389,9 @@ namespace JobNecto.Infrastructure.Migrations
                     b.Property<bool>("IsHidden")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsViewed")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("JobCategories")
                         .HasColumnType("jsonb");
 
