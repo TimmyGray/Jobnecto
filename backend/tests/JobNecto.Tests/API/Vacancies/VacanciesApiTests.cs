@@ -239,6 +239,51 @@ public class VacanciesApiTests
     }
 
     [Fact]
+    public async Task Filter_WithOnlyLastSeenId_Returns400()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, _) = await CreateUserAndGetCookieAsync(client);
+
+        var response = await PostFilterAsync(client, authCookie, new { lastSeenId = Guid.NewGuid() });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Filter_WithOnlyLastSeenUpdatedAt_Returns400()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, _) = await CreateUserAndGetCookieAsync(client);
+
+        var response = await PostFilterAsync(client, authCookie, new { lastSeenUpdatedAt = DateTime.UtcNow });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Filter_WithLocationStringFilter_ReturnsOnlyMatchingVacancies()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, userId) = await CreateUserAndGetCookieAsync(client);
+        var seeded = await SeedVacanciesAsync(factory, userId);
+
+        var polandCount = seeded.Count(v => v.Location == JobNecto.Domain.Enums.Location.Poland);
+
+        var response = await PostFilterAsync(client, authCookie, new { location = new[] { "Poland" } });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<VacancyPagedResultDto>(JsonOptions);
+        result.Should().NotBeNull();
+        result!.TotalCount.Should().Be(polandCount);
+    }
+
+    [Fact]
     public async Task Filter_WithSortByRelevance_UsesUpdatedAtOrderingAlias()
     {
         await using var factory = new JobNectoApiFactory();

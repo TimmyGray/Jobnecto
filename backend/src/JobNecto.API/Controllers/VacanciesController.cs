@@ -48,6 +48,9 @@ public class VacanciesController : ControllerBase
         query ??= new FilterVacanciesQuery();
         query.UserId = userId;
 
+        if (query.LastSeenId.HasValue ^ query.LastSeenUpdatedAt.HasValue)
+            return BadRequest("lastSeenId and lastSeenUpdatedAt must be provided together.");
+
         if (query.LastSeenUpdatedAt.HasValue)
         {
             query.LastSeenUpdatedAt = query.LastSeenUpdatedAt.Value.Kind == DateTimeKind.Unspecified
