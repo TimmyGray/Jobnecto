@@ -34,4 +34,42 @@ public static class VacancyMappers
             CreatedAt = vacancy.CreatedAt,
         };
     }
+
+    /// <summary>
+    /// Maps a <see cref="Vacancy"/> domain entity to a full detail response DTO.
+    /// </summary>
+    /// <param name="vacancy">The vacancy entity to map.</param>
+    /// <returns>The mapped detail DTO.</returns>
+    public static VacancyDetailResult ToVacancyDetailResult(this Vacancy vacancy)
+    {
+        ArgumentNullException.ThrowIfNull(vacancy);
+
+        return new VacancyDetailResult
+        {
+            Id = vacancy.Id,
+            Title = vacancy.Title,
+            Description = vacancy.Description,
+            Company = vacancy.Company,
+            Skills = vacancy.Skills,
+            WorkLocationType = vacancy.WorkLocationType?.ToString(),
+            Location = vacancy.Location?.ToString(),
+            Salary = vacancy.SalaryMin.HasValue || vacancy.SalaryMax.HasValue
+                ? new VacancySalaryResult
+                {
+                    Min = vacancy.SalaryMin,
+                    Max = vacancy.SalaryMax,
+                }
+                : null,
+            Currency = vacancy.Currency?.ToString(),
+            MatchScore = vacancy.MatchScore,
+            JobSource = new VacancyJobSourceResult
+            {
+                Name = vacancy.JobSource.Name,
+                Url = vacancy.JobSource.Url,
+            },
+            Categories = vacancy.JobCategories,
+            ExperienceLevel = vacancy.ExperienceLevel,
+            CreatedAt = vacancy.CreatedAt,
+        };
+    }
 }

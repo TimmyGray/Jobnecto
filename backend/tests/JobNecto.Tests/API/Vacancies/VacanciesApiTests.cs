@@ -62,6 +62,37 @@ public class VacanciesApiTests
         return await client.SendAsync(request);
     }
 
+    private static async Task<HttpResponseMessage> GetDetailAsync(
+        HttpClient client,
+        string authCookie,
+        Guid vacancyId
+    )
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/vacancies/{vacancyId}");
+        request.Headers.TryAddWithoutValidation("Cookie", authCookie);
+        return await client.SendAsync(request);
+    }
+
+    private static async Task<Vacancy> SeedSingleVacancyAsync(
+        JobNectoApiFactory factory,
+        Guid userId,
+        Vacancy vacancy
+    )
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        if (!await db.Users.AnyAsync(u => u.Id == userId))
+        {
+            var owner = VacancyTestData.CreateOwnerUser(id: userId);
+            db.Users.Add(owner);
+        }
+
+        db.Vacancies.Add(vacancy);
+        await db.SaveChangesAsync();
+        return vacancy;
+    }
+
     private static async Task<IReadOnlyList<Vacancy>> SeedVacanciesAsync(
         JobNectoApiFactory factory,
         Guid userId
@@ -455,6 +486,125 @@ public class VacanciesApiTests
         result!.Items.Select(i => i.Id).Should().Equal(expectedOrder.Select(v => v.Id));
     }
 
+    [Fact]
+    public async Task GetDetail_WithoutToken_Returns401()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync($"/api/v1/vacancies/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GetDetail_OwnedVacancy_Returns200WithAllFields()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, userId) = await CreateUserAndGetCookieAsync(client);
+
+        var anchor = VacancyTestData.AnchorUtc;
+        var vacancy = VacancyTestData.SeniorDotNetRemotePoland(
+            userId,
+            createdAt: anchor.AddDays(-10),
+            updatedAt: anchor.AddHours(3));
+
+        await SeedSingleVacancyAsync(factory, userId, vacancy);
+
+        var response = await GetDetailAsync(client, authCookie, vacancy.Id);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<VacancyDetailDto>(JsonOptions);
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(vacancy.Id);
+        result.Title.Should().Be(vacancy.Title);
+        result.Description.Should().Be(vacancy.Description);
+        result.Company.Should().Be(vacancy.Company);
+        result.Skills.Should().BeEquivalentTo(vacancy.Skills!);
+        result.WorkLocationType.Should().Be(vacancy.WorkLocationType!.Value.ToString());
+        result.Location.Should().Be(vacancy.Location!.Value.ToString());
+        result.Salary.Should().NotBeNull();
+        result.Salary!.Min.Should().Be(vacancy.SalaryMin);
+        result.Salary.Max.Should().Be(vacancy.SalaryMax);
+        result.Currency.Should().Be(vacancy.Currency!.Value.ToString());
+        result.MatchScore.Should().Be(vacancy.MatchScore);
+        result.JobSource.Should().NotBeNull();
+        result.JobSource!.Name.Should().Be(vacancy.JobSource.Name);
+        result.JobSource.Url.Should().Be(vacancy.JobSource.Url);
+        result.Categories.Should().BeEquivalentTo(vacancy.JobCategories!);
+        result.ExperienceLevel.Should().Be(vacancy.ExperienceLevel);
+        result.CreatedAt.Should().Be(anchor.AddDays(-10));
+    }
+
+    [Fact]
+    public async Task GetDetail_NonExistentId_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, _) = await CreateUserAndGetCookieAsync(client);
+
+        var response = await GetDetailAsync(client, authCookie, Guid.NewGuid());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetDetail_OtherUsersVacancy_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, _) = await CreateUserAndGetCookieAsync(client);
+        var otherUserId = Guid.NewGuid();
+
+        var anchor = VacancyTestData.AnchorUtc;
+        var otherUsersVacancy = VacancyTestData.SeniorDotNetRemotePoland(
+            otherUserId,
+            createdAt: anchor.AddDays(-5),
+            updatedAt: anchor);
+
+        await SeedSingleVacancyAsync(factory, otherUserId, otherUsersVacancy);
+
+        var response = await GetDetailAsync(client, authCookie, otherUsersVacancy.Id);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetDetail_SoftDeletedVacancy_Returns404()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, userId) = await CreateUserAndGetCookieAsync(client);
+
+        var anchor = VacancyTestData.AnchorUtc;
+        var vacancy = VacancyTestData.SeniorDotNetRemotePoland(
+            userId,
+            createdAt: anchor.AddDays(-10),
+            updatedAt: anchor);
+
+        await SeedSingleVacancyAsync(factory, userId, vacancy);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var toDelete = await db.Vacancies
+                .IgnoreQueryFilters()
+                .SingleAsync(v => v.Id == vacancy.Id);
+            toDelete.IsDeleted = true;
+            toDelete.DeletedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
+        var response = await GetDetailAsync(client, authCookie, vacancy.Id);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     private sealed class VacancyPagedResultDto
     {
         public List<VacancyListItemDto> Items { get; set; } = [];
@@ -481,5 +631,29 @@ public class VacanciesApiTests
     {
         public decimal? Min { get; set; }
         public decimal? Max { get; set; }
+    }
+
+    private sealed class VacancyDetailDto
+    {
+        public Guid Id { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public string? Company { get; set; }
+        public string[]? Skills { get; set; }
+        public string? WorkLocationType { get; set; }
+        public string? Location { get; set; }
+        public VacancySalaryDto? Salary { get; set; }
+        public string? Currency { get; set; }
+        public double? MatchScore { get; set; }
+        public VacancyJobSourceDto? JobSource { get; set; }
+        public string[]? Categories { get; set; }
+        public string? ExperienceLevel { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    private sealed class VacancyJobSourceDto
+    {
+        public string? Name { get; set; }
+        public string? Url { get; set; }
     }
 }

@@ -27,6 +27,31 @@ public class VacanciesController : ControllerBase
     }
 
     /// <summary>
+    /// Returns the full detail of a single vacancy owned by the current authenticated user.
+    /// </summary>
+    /// <param name="id">The vacancy identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The vacancy with all detail fields.</returns>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(VacancyDetailResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<VacancyDetailResult>> GetAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var userIdValue = HttpContext.GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(userIdValue) || !Guid.TryParse(userIdValue, out var userId))
+            return Unauthorized();
+
+        var result = await _mediator.Send(
+            new GetVacancyQuery { VacancyId = id, UserId = userId },
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Returns a cursor-paginated vacancy list. Empty criteria represents browse mode.
     /// </summary>
     /// <param name="query">Vacancy filter payload.</param>
