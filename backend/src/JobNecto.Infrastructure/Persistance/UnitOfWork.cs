@@ -13,7 +13,7 @@ public class UnitOfWork : IUnitOfWork
 
     private IUserRepository? _userRepository;
     private IVacancyRepository? _vacancyRepository;
-    private IMutableRepository<CoverLetter>? _coverLetterRepository;
+    private ICoverLetterRepository? _coverLetterRepository;
     private IMutableRepository<Resume>? _resumeRepository;
     private IMutableRepository<Education>? _educationRepository;
     private IMutableRepository<CoverLetterTemplate>? _coverLetterTemplateRepository;
@@ -29,7 +29,7 @@ public class UnitOfWork : IUnitOfWork
     public IVacancyRepository VacancyRepository => 
         _vacancyRepository ??= new VacancyRepository(_context);
 
-    public IMutableRepository<CoverLetter> CoverLetterRepository =>
+    public ICoverLetterRepository CoverLetterRepository =>
         _coverLetterRepository ??= new CoverLetterRepository(_context);
 
     public IMutableRepository<Resume> ResumeRepository =>

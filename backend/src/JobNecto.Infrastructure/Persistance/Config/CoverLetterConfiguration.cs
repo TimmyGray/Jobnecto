@@ -36,5 +36,10 @@ public class CoverLetterConfiguration : IEntityTypeConfiguration<CoverLetter>
             .WithMany()
             .HasForeignKey(cl => cl.VacancyId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder
+            .HasIndex(cl => new { cl.UserId, cl.VacancyId })
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false");
     }
 }

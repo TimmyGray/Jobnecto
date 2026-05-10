@@ -11,4 +11,3 @@
 - DB Command Timing: Added `DbCommandTimingInterceptor` to JobNecto.Infrastructure to monitor and log slow database queries (merged in story 2-4).
 - Epic 2 retrospective is complete and identifies the architecture as stable, with follow-up decisions needed for ownership-aware single-record reads and timestamp/clock policy. Epic 3 now enforces database-backed template-name uniqueness with concurrent collision coverage in tests and includes delete coverage for template lifecycle completion.
 - Current verification caveat: the Epic 2 retrospective recorded local `dotnet test backend/JobNecto.slnx` and Release build attempts failing without useful diagnostics. Treat implementation logs as positive evidence, but diagnose local solution-runner behavior before relying on a fresh green gate.
-

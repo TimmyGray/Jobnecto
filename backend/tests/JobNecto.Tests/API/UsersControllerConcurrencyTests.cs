@@ -25,14 +25,26 @@ public class UsersControllerConcurrencyTests : IClassFixture<UsersControllerConc
         _output = output;
     }
 
+    private async Task<bool> EnsureDatabaseAvailableAsync()
+    {
+        var isDatabaseReady = await _factory.TryInitializeSchemaAsync();
+        if (isDatabaseReady)
+            return true;
+
+        const string message = "PostgreSQL test database was unavailable for users concurrency assertions.";
+        _output.WriteLine("Skipped: " + message);
+
+        if (string.Equals(Environment.GetEnvironmentVariable("CI"), "true", StringComparison.OrdinalIgnoreCase))
+            isDatabaseReady.Should().BeTrue(message);
+
+        return false;
+    }
+
     [Fact]
     public async Task Create_ConcurrentDuplicateRequests_ReturnsOneCreatedAndOneConflict()
     {
-        if (!await _factory.TryInitializeSchemaAsync())
-        {
-            _output.WriteLine("Skipped real-database concurrency assertion because PostgreSQL test database was unavailable.");
+        if (!await EnsureDatabaseAvailableAsync())
             return;
-        }
 
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
 
@@ -78,11 +90,8 @@ public class UsersControllerConcurrencyTests : IClassFixture<UsersControllerConc
     [Fact]
     public async Task Create_ConcurrentDuplicatePhoneRequests_ReturnsOneCreatedAndOneConflict()
     {
-        if (!await _factory.TryInitializeSchemaAsync())
-        {
-            _output.WriteLine("Skipped real-database phone uniqueness concurrency assertion because PostgreSQL test database was unavailable.");
+        if (!await EnsureDatabaseAvailableAsync())
             return;
-        }
 
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
 
