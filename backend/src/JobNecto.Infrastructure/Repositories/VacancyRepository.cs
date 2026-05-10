@@ -188,8 +188,8 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
                 var escaped = keyword.Trim().Replace("%", "\\%").Replace("_", "\\_");
                 var term = $"%{escaped}%";
                 query = query.Where(v =>
-                    !EF.Functions.Like(v.Title ?? string.Empty, term) &&
-                    !EF.Functions.Like(v.Description ?? string.Empty, term)
+                    !EF.Functions.Like(v.Title ?? string.Empty, term, "\\") &&
+                    !EF.Functions.Like(v.Description ?? string.Empty, term, "\\")
                 );
             }
         }
