@@ -11,6 +11,36 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-05-10 - Return structured ProblemDetails for all 400 responses, never plain strings
+
+**Trigger:** PR review comment (LLM reviewer, second pass)
+**Context:** Story 4.1 `VacanciesController` returned `BadRequest("plain string")` for cursor validation. Existing `UsersController` already uses `BadRequest(new ProblemDetails { Status, Title, Detail })`.
+**Wrong action:** I introduced a plain-string `BadRequest` without checking the project-wide error-shape convention first.
+**Root cause:** I focused on the validation logic itself and did not cross-check the response format against existing controllers before writing the return statement.
+**Correct behavior:** Before writing any `BadRequest` (or other error return) in a controller, check at least one existing controller for the established error-shape. In this project: `BadRequest(new ProblemDetails { Status = 400, Title = "Validation failed", Detail = "..." })`.
+**Pattern / trigger:** Any new controller action that returns a 4xx response — check the project's existing error shape first.
+**Generalize?** Yes
+
+### 2026-05-10 - Validate all free-form string inputs that map to a fixed set of values
+
+**Trigger:** PR review comment (LLM reviewer, second pass)
+**Context:** Story 4.1 `SortBy` is a free-form string in `FilterVacanciesQuery`. The repository's `NormalizeSortBy` silently coerces unknown values to `createdAt`. Clients sending typos get 200 OK with the wrong ordering and no feedback.
+**Wrong action:** I treated the silent-fallback in `NormalizeSortBy` as a design choice and did not add allowlist validation in the controller.
+**Root cause:** I conflated "the code works" with "the contract is correct". The repository-level normalization is a robustness measure, not a substitute for input validation at the API boundary.
+**Correct behavior:** Any string field that maps to a fixed set of values (sort modes, filter types, etc.) must be validated at the controller/handler boundary with an explicit allowlist and a 400 response for unknown values.
+**Pattern / trigger:** Request DTO has a `string? SortBy` (or equivalent) field; check for allowlist validation before accepting.
+**Generalize?** Yes
+
+### 2026-05-10 - After every fix cycle, immediately update agent-learnings.md
+
+**Trigger:** User correction (repeated, twice in same session)
+**Context:** After both fix rounds in story 4.1, I failed to update agent-learnings until explicitly asked.
+**Wrong action:** I treated the fix as complete once code and tests passed, skipping the mandatory self-improvement log update.
+**Root cause:** I do not treat agent-learnings as part of the definition of done for a fix cycle. I optimize for the visible output (green tests, pushed commit) and treat documentation as optional.
+**Correct behavior:** At the end of every session where I made a mistake that was caught by a reviewer or user, append an entry to `_bmad-output/agent-learnings.md` and commit it before closing the task — without being asked.
+**Pattern / trigger:** Any session where a code review, PR comment, or user correction caused me to change code. Update learnings as the final step.
+**Generalize?** Yes
+
 ### 2026-05-10 - Check JSON serialization config when reviewing request DTO field types
 
 **Trigger:** PR review comment (Copilot reviewer)
