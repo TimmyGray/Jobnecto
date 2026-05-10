@@ -136,6 +136,8 @@ curl -i http://localhost:5000/
   - Returns full detail for an owned template, including full `content`; returns `404 Not Found` for missing, soft-deleted, or cross-user templates.
 - `PATCH /api/v1/cover-letter-templates/{id}`
   - Updates template `name` and/or `content` for an owned template; returns `200 OK`, `400` for invalid payloads, `403` for cross-user access, `404` for missing or soft-deleted records, and `409` for per-user name uniqueness conflicts.
+- `DELETE /api/v1/cover-letter-templates/{id}`
+  - Soft-deletes an owned template; returns `204 No Content`, `401` when unauthenticated, `403` for cross-user access, and `404` for missing or soft-deleted records.
 
 ### CORS
 
