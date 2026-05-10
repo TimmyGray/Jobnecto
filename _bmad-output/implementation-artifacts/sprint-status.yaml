@@ -70,7 +70,7 @@ development_status:
   epic-3-retrospective: done
 
   # --- Epic 4: Vacancy Browsing & Filtering ---
-  epic-4: in-progress
+  epic-4: done
   4-1-browse-vacancies-paginated-list: done
   4-2-filter-vacancies: done
   4-3-get-vacancy-detail: done

@@ -139,7 +139,9 @@ curl -i http://localhost:5000/
 - `DELETE /api/v1/cover-letter-templates/{id}`
   - Soft-deletes an owned template; returns `204 No Content`, `401` when unauthenticated, `403` for cross-user access, and `404` for missing or soft-deleted records.
 - `POST /api/v1/vacancies/filter`
-  - Browse or filter user-scoped vacancies through a single keyset-paginated endpoint. Send an empty body `{}` for browse mode (all vacancies) or populate filter fields for filtered results. Optional `sortBy`: `createdAt` (default), `updatedAt`, or `relevance` (alias for `updatedAt`). Enum filter arrays (`location`, `workLocationType`, `workTimeType`, `currency`) accept string names. Returns `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`. Page size defaults to 20, capped at 100. Returns `400` if only one cursor field is supplied (both `lastSeenId` + `lastSeenUpdatedAt` required) or if an unknown `sortBy` value is sent.
+  - Browse or filter user-scoped vacancies through a single keyset-paginated endpoint. Send an empty body `{}` for browse mode or populate filter fields for filtered results. Optional `sortBy`: `createdAt` (default), `updatedAt`, or `relevance`. Enum filter arrays accept string names. Returns `{ totalCount, pageSize, hasNext, lastSeenId, lastSeenUpdatedAt, items }`. Page size defaults to 20, capped at 100. Salary cross-field validation: `salaryMin ≤ salaryMax` (returns `400` with `errors.SalaryMin` on violation). `excludeKeywords` array excludes vacancies whose title or description contains any of the terms (AND logic, case-sensitive, max 20 keywords). Returns `400` for partial cursor or unknown `sortBy`.
+- `GET /api/v1/vacancies/{id}`
+  - Returns full detail for a vacancy owned by the authenticated user: `id`, `title`, `description`, `company`, `skills`, `workLocationType`, `location`, `salary`, `currency`, `matchScore`, `jobSource`, `categories`, `experienceLevel`, `createdAt`. Returns `404` for non-existent, soft-deleted, or cross-user vacancies; `401` if unauthenticated.
 
 ### CORS
 
