@@ -15,7 +15,7 @@ public class FilterVacanciesQueryValidator : AbstractValidator<FilterVacanciesQu
     public FilterVacanciesQueryValidator()
     {
         RuleFor(x => x.SalaryMin)
-            .LessThanOrEqualTo(x => x.SalaryMax!.Value)
+            .LessThanOrEqualTo(x => x.SalaryMax)
             .When(x => x.SalaryMin.HasValue && x.SalaryMax.HasValue)
             .WithMessage("salaryMin must not be greater than salaryMax.");
     }

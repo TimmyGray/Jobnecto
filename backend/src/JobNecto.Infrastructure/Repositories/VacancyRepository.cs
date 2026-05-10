@@ -183,7 +183,13 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
         {
             foreach (var keyword in filter.ExcludeKeywords)
             {
-                var term = $"%{keyword.Trim()}%";
+                if (string.IsNullOrWhiteSpace(keyword))
+                {
+                    continue;
+                }
+
+                var trimmedKeyword = keyword.Trim();
+                var term = $"%{trimmedKeyword}%";
                 query = query.Where(v =>
                     !EF.Functions.Like(v.Title ?? string.Empty, term) &&
                     !EF.Functions.Like(v.Description ?? string.Empty, term)
