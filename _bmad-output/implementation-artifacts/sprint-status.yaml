@@ -1,5 +1,5 @@
 # generated: 2026-04-18T00:00:00.000Z
-# last_updated: 2026-05-10T14:00:00Z
+# last_updated: 2026-05-11T00:00:00Z
 # project: Jobnecto
 # project_key: NOKEY
 # tracking_system: file-system
@@ -77,10 +77,10 @@ development_status:
   epic-4-retrospective: done
 
   # --- Epic 5: Cover Letter Application Management ---
-  epic-5: in-progress
-  5-1-create-cover-letter: ready-for-dev
-  5-2-list-cover-letters: ready-for-dev
-  5-3-get-cover-letter-detail: ready-for-dev
-  5-4-update-cover-letter-content: ready-for-dev
-  5-5-delete-cover-letter: ready-for-dev
+  epic-5: done
+  5-1-create-cover-letter: done
+  5-2-list-cover-letters: done
+  5-3-get-cover-letter-detail: done
+  5-4-update-cover-letter-content: done
+  5-5-delete-cover-letter: done
   epic-5-retrospective: optional

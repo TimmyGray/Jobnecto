@@ -9,10 +9,10 @@
 - **Filter and paginate** vacancies (`VacancyFilter`, `PagedQuery`, `PagedResult`); support **matching** via `Vacancy.MatchScore` (and optional future persisted analysis if the team adds it).
 - **LLM** integration via `JobNecto.Infrastructure.LLM`, `LlmProvider` enum, and `LlmProviderConfig`.
 
-## Implementation snapshot (2026-05-10)
+## Implementation snapshot (2026-05-11)
 
-- Stories `1-1` (global exception handling), `1-2` (create user account), `1-3` (retrieve current user profile), `1-4` (update user profile + avatar management), `1-5` (password hashing and token policy hardening), `2-1` (create resume), `2-2` (list resumes), `2-3` (get resume detail), `2-4` (update resume), `2-5` (soft-delete resume), `2-6` (create education record), `2-7` (list education records), `2-8` (get/update/delete education records), `r-1` (separate soft-delete repository contract), `3-1` (create cover letter template), `3-2` (list cover letter templates), `3-3` (get cover letter template detail), `3-4` (update cover letter template), `3-5` (delete cover letter template), `4-1` (browse/filter vacancies — paginated list), `4-2` (filter vacancies — salary range validation and excludeKeywords), and `4-3` (get vacancy detail — `GET /api/v1/vacancies/{id}` with ownership enforcement and 404 for soft-deleted/cross-user vacancies) are merged to `master`.
-- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`). Resume create/list/detail/update/delete and education create/list/detail/update/delete endpoints are merged. Epic 3 is complete: cover letter template create/list/detail/update/delete (`POST /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates/{id}`, `PATCH /api/v1/cover-letter-templates/{id}`, `DELETE /api/v1/cover-letter-templates/{id}`) with per-user ownership and soft-delete semantics. Epic 4 is complete: `POST /api/v1/vacancies/filter` (browse + filter, salary range validation, `excludeKeywords` exclusion via explicit-escape LIKE) and `GET /api/v1/vacancies/{id}` (full detail with ownership enforcement and soft-delete exclusion) are all merged.
+- Stories `1-1` through `1-5`, `2-1` through `2-8`, `r-1`, `3-1` through `3-5`, `4-1` through `4-3`, and `5-1` through `5-5` are all merged to `master`. Epic 5 (cover letter application management) was merged 2026-05-11.
+- Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`). Resume create/list/detail/update/delete and education create/list/detail/update/delete endpoints are merged. Epic 3 is complete: cover letter template CRUD with per-user ownership, soft-delete semantics, and DB-backed name uniqueness. Epic 4 is complete: vacancy browse/filter and vacancy detail. Epic 5 is complete: cover letter CRUD (`POST /api/v1/cover-letters`, `GET /api/v1/cover-letters`, `GET /api/v1/cover-letters/{id}`, `PATCH /api/v1/cover-letters/{id}`, `DELETE /api/v1/cover-letters/{id}`) with DB-backed per-user/per-vacancy uniqueness (partial unique index), cursor pagination ordered by `createdAt desc`, nested vacancy fields on detail, soft-delete, and ownership enforcement (404 on reads, 403 on mutations).
 - Password persistence uses PBKDF2 (`pbkdf2-sha256`) via `IPasswordHasher` and `Pbkdf2PasswordHasher`, with test coverage for malformed hash formats.
 - CI and PR review automation are active on merge and PR events (`CI` + `PR review (LLM via OpenRouter)`).
 - Repository layer supports UserId-scoped filtering and cursor-based pagination (BaseRepository); ownership filtering is enforced for all user-scoped resources.
@@ -75,8 +75,8 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 | GET, PATCH, DELETE | `/api/v1/educations/{id}` | User-scoped education detail/update/soft delete with ownership checks. |
 | GET, POST | `/api/v1/cover-letter-templates` | User-scoped template list/create for the authenticated user only. |
 | GET, PATCH, DELETE | `/api/v1/cover-letter-templates/{id}` | User-scoped template detail/update/soft delete with ownership checks. |
-| GET, POST | `/api/v1/cover-letters` | User-scoped cover letter list/create for the authenticated user only. |
-| GET, PATCH, DELETE | `/api/v1/cover-letters/{id}` | User-scoped cover letter detail/update/soft delete with ownership checks. |
+| GET, POST | `/api/v1/cover-letters` | **[implemented — Epic 5]** User-scoped cover letter list/create for the authenticated user only. |
+| GET, PATCH, DELETE | `/api/v1/cover-letters/{id}` | **[implemented — Epic 5]** User-scoped cover letter detail/update/soft delete with ownership checks. |
 | PUT | `/api/v1/users/me/llm-config` | Store LLM settings (design storage first). |
 | GET, POST | `/api/v1/sources` | List and register job sources / sync metadata (beyond `JobSource` on each vacancy). |
 
@@ -106,6 +106,11 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 | DELETE | `/api/v1/cover-letter-templates/{id}` | Soft-delete an owned template; returns `204 No Content`. Returns `403` for cross-user attempts, `404` for non-existent IDs. |
 | POST | `/api/v1/vacancies/filter` | Browse or filter user-scoped vacancies with keyset cursor pagination. Empty body = browse all. Optional `sortBy`: `createdAt` (default), `updatedAt`, `relevance`. Enum filter arrays accept string names. Partial cursor returns `400`. Unknown `sortBy` returns `400`. Salary cross-field validation: `salaryMin ≤ salaryMax` (400 + `errors.SalaryMin` on violation). `excludeKeywords` array excludes vacancies whose title or description contains any keyword (AND logic, explicit-escape LIKE). **[story 4-1 + 4-2]** |
 | GET | `/api/v1/vacancies/{id}` | Return full detail for an owned vacancy (`id`, `title`, `description`, `company`, `skills`, `workLocationType`, `location`, `salary`, `currency`, `matchScore`, `jobSource`, `categories`, `experienceLevel`, `createdAt`); returns `404` for non-existent, soft-deleted, or cross-user vacancies; `401` if unauthenticated. **[story 4-3]** |
+| POST | `/api/v1/cover-letters` | Create a cover letter for an owned vacancy (`vacancyId`, `content` 50–10,000 chars); returns `201 Created` with `Location` header. DB-backed uniqueness: one non-deleted cover letter per user per vacancy; duplicate returns `409`. `404` for non-existent or cross-user vacancy. **[Epic 5]** |
+| GET | `/api/v1/cover-letters` | Cursor-paginated list of cover letters for the authenticated user; ordered by `createdAt desc`; includes `vacancyTitle` from linked vacancy. **[Epic 5]** |
+| GET | `/api/v1/cover-letters/{id}` | Full detail for an owned cover letter including nested vacancy fields (`title`, `company`, `workLocationType`, `location`); `IgnoreQueryFilters` on vacancy side to handle soft-deleted vacancies; `404` for missing or cross-user. **[Epic 5]** |
+| PATCH | `/api/v1/cover-letters/{id}` | Update `content` only (`vacancyId` is immutable); returns `200 OK` with updated cover letter; `403` for cross-user, `404` for missing. **[Epic 5]** |
+| DELETE | `/api/v1/cover-letters/{id}` | Soft-delete an owned cover letter; returns `204 No Content`; `403` for cross-user, `404` for missing. **[Epic 5]** |
 
 ## Tech stack
 
@@ -139,7 +144,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 6. [done] API versioning and first endpoints (controllers under `/api/v1`).
 7. [done] **Users** CRUD with validation (create endpoint implemented; profile update and avatar management implemented in Story 1.4).
 8. [done] **Vacancies** browse/filter (stories 4-1 and 4-2) and vacancy detail (story 4-3) — all merged.
-9. [in-progress] **Resumes**, **educations**, **cover letters** CRUD and relationships via user-scoped routes only (no cross-user list endpoints). Resume and education CRUD are merged; all cover letter template CRUD (create/list/detail/update/delete) are merged; cover letter CRUD (Epic 5) remains in backlog.
+9. [done] **Resumes**, **educations**, **cover letters** CRUD and relationships via user-scoped routes only (no cross-user list endpoints). Resume and education CRUD are merged; all cover letter template CRUD are merged; cover letter CRUD (Epic 5) is merged.
 
 ### Phase C — Security
 
@@ -161,4 +166,4 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 ## Tracking
 
 Work is broken into small GitHub issues **#16–#37** (foundation through hardening).
-Stories **1-4 update user profile and avatar management**, **2-1 create resume**, **2-2 list resumes**, **2-4 update resume**, **2-8 get/update/delete education records**, and **3-4 update cover letter template** merged on **2026-04-25**, **2026-04-27**, **2026-04-28**, **2026-04-30**, **2026-05-05**, and **2026-05-09** respectively.
+Stories **1-4 update user profile and avatar management**, **2-1 create resume**, **2-2 list resumes**, **2-4 update resume**, **2-8 get/update/delete education records**, and **3-4 update cover letter template** merged on **2026-04-25**, **2026-04-27**, **2026-04-28**, **2026-04-30**, **2026-05-05**, and **2026-05-09** respectively. Epic 5 (cover letter CRUD, stories 5-1 through 5-5) merged **2026-05-11**. All Phase B stories are now complete.
