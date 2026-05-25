@@ -11,3 +11,4 @@
   - [Epic 3: Cover Letter Template Library](#epic-3-cover-letter-template-library)
   - [Epic 4: Vacancy Browsing & Filtering](#epic-4-vacancy-browsing-filtering)
   - [Epic 5: Cover Letter Application Management](#epic-5-cover-letter-application-management)
+  - Epic R: Authorization & Ownership Enforcement Hardening (Brownfield)

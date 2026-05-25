@@ -96,3 +96,8 @@ FR25: Epic 4 - Filter vacancies
 FR26: Epic 4 - Get vacancy detail
 FR27: Epic 2 - User-scoped data isolation
 FR28: Epic 1 - Ownership enforcement infrastructure
+
+### Epic R Coverage Annotations (FR27, FR28)
+
+- FR27 (user-scoped queries): Epic R (Authorization & Ownership Enforcement Hardening) locks the canonical user-scoping contract across every list/filter endpoint. Audited in `_bmad-output/planning-artifacts/architecture/endpoint-ownership-audit.md` and codified in `_bmad-output/planning-artifacts/architecture/authorization-contract-matrix.md`; regression-guarded by `backend/tests/JobNecto.Tests/API/Authorization/`.
+- FR28 (ownership enforcement on mutations): Epic R locks the canonical cross-user contract (404 on detail reads, 403 on mutations, 404 on body-supplied foreign keys). Audited in `_bmad-output/planning-artifacts/architecture/endpoint-ownership-audit.md` and codified in `_bmad-output/planning-artifacts/architecture/authorization-contract-matrix.md`; regression-guarded by `backend/tests/JobNecto.Tests/API/Authorization/`.

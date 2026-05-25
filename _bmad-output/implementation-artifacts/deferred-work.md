@@ -36,6 +36,11 @@
 
 - **Concurrent FK race between validation and persist** — Race where a user may be deleted between validator check and `SaveChangesAsync`, producing FK violations. Deferred: infra/transaction isolation decision required (handle via DB constraint mapping or stronger transactional guarantees).
 
+## Deferred from: code review of r-4-consistent-forbidden-vs-notfound-contract-matrix (2026-05-23)
+
+- **Concurrent PATCH rename race on cover-letter-templates** — `UpdateCoverLetterTemplateCommandHandler` has no application-level pre-flight uniqueness check before `SaveChangesAsync`; concurrent renames to the same name both pass the handler and only one gets a DB-level 409. Pre-existing pattern; callers receive generic `"A unique constraint was violated."` rather than a domain-meaningful conflict message.
+- **`GlobalExceptionHandler.IsUniqueConstraintViolation` string-matching fallback fragile** — If `InnerException` is not `PostgresException`, the handler uses substring matching on `"duplicate key"`/`"unique constraint"`/`"UNIQUE constraint failed"`. Safe for Postgres production but could misclassify unrelated `DbUpdateException` messages in non-Postgres test environments or future provider changes.
+
 ## Deferred from: code review of r-1-separate-soft-delete-repository-contract (2026-05-06)
 
 - **CancellationToken unused in SoftDeleteAsync** — Both `SoftDeletableRepository<T>.SoftDeleteAsync` and `VacancyRepository.SoftDeleteAsync` accept `ct` but never use it. Pre-existing pattern: `EditableRepository.UpdateAsync` has identical behavior. Revisit when a clock/cancellation hardening pass is done across all repository methods.

@@ -11,6 +11,26 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-05-23 - Verify file existence before using Add File patches
+
+**Trigger:** Test failure
+**Context:** Implementing follow-up test fixes for R.1/R.3 in `backend/tests/JobNecto.Tests/Infrastructure/VacancyRepositoryTests.cs`.
+**Wrong action:** I used an Add File patch for `VacancyRepositoryTests.cs` without confirming that the file already existed, which produced duplicate class/usings in the same file and broke compilation.
+**Root cause:** I optimized for speed and skipped a quick existence check for the target file before choosing patch action type.
+**Correct behavior:** Before creating any file with Add File, check whether a file with that path already exists; if it exists, use Update File and integrate changes into the existing structure.
+**Pattern / trigger:** Any task that introduces "new tests" in a folder with existing dense test suites where similarly named files may already exist.
+**Generalize?** Yes
+
+### 2026-05-21 - Run a fast compile check immediately after creating new test files
+
+**Trigger:** Test failure
+**Context:** Story R.3 authorization integration suite implementation under `backend/tests/JobNecto.Tests/API/Authorization/`.
+**Wrong action:** I created multiple new test files and ran full test discovery first, which failed due to two missing using directives (`JsonContent`, `CreateScope` extension import).
+**Root cause:** I optimized for feature completeness before doing a quick compile/import sanity pass on new files.
+**Correct behavior:** After bulk new-file creation, run a fast compile check immediately and fix missing imports before expensive test runs.
+**Pattern / trigger:** Any change that adds multiple new C# test files in one burst.
+**Generalize?** Yes
+
 ### 2026-05-11 - Sync EF snapshot whenever model config changes in migration-backed tests
 
 **Trigger:** Test failure
