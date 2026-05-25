@@ -16,27 +16,27 @@ so that I can review or edit what I've written.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add specialized detail method to `ICoverLetterRepository` (AC: 1, 2)
-  - [ ] Add `GetDetailByIdAsync(Guid id, CancellationToken ct)` to `backend/src/JobNecto.Application/Interfaces/ICoverLetterRepository.cs` returning `CoverLetterDetailResult?`.
-  - [ ] Define `CoverLetterDetailResult` and nested `VacancyInCoverLetterResult` DTOs in `backend/src/JobNecto.Application/CoverLetters/GetCoverLetterQuery.cs` (or a dedicated DTOs file in the same folder).
-  - [ ] Implement in `CoverLetterRepository`: JOIN cover letter with vacancy; return null if not found (let the handler/query handler throw `NotFoundException`).
+- [x] Task 1: Add specialized detail method to `ICoverLetterRepository` (AC: 1, 2)
+  - [x] Add `GetDetailByIdAsync(Guid id, CancellationToken ct)` to `backend/src/JobNecto.Application/Interfaces/ICoverLetterRepository.cs` returning `CoverLetterDetailResult?`.
+  - [x] Define `CoverLetterDetailResult` and nested `VacancyInCoverLetterResult` DTOs in `backend/src/JobNecto.Application/CoverLetters/GetCoverLetterQuery.cs` (or a dedicated DTOs file in the same folder).
+  - [x] Implement in `CoverLetterRepository`: JOIN cover letter with vacancy; return null if not found (let the handler/query handler throw `NotFoundException`).
 
-- [ ] Task 2: Create query and handler (AC: 1, 2)
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/GetCoverLetterQuery.cs` with `GetCoverLetterQuery` (`IRequest<CoverLetterDetailResult>`), `CoverLetterId`, `UserId` (JsonIgnore).
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/GetCoverLetterQueryHandler.cs`: call `ICoverLetterRepository.GetDetailByIdAsync`; if null → throw `NotFoundException`; if `result.UserId != request.UserId` → throw `NotFoundException` (existence leakage prevention per Decision 7); return result.
+- [x] Task 2: Create query and handler (AC: 1, 2)
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/GetCoverLetterQuery.cs` with `GetCoverLetterQuery` (`IRequest<CoverLetterDetailResult>`), `CoverLetterId`, `UserId` (JsonIgnore).
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/GetCoverLetterQueryHandler.cs`: call `ICoverLetterRepository.GetDetailByIdAsync`; if null → throw `NotFoundException`; if `result.UserId != request.UserId` → throw `NotFoundException` (existence leakage prevention per Decision 7); return result.
 
-- [ ] Task 3: Add API endpoint (AC: 3)
-  - [ ] Add `[HttpGet("{id:guid}")]` action to `backend/src/JobNecto.API/Controllers/CoverLettersController.cs`.
-  - [ ] Extract `UserId`, dispatch `GetCoverLetterQuery`, return `Ok(result)`.
-  - [ ] `ProducesResponseType` for 200, 401, 404.
+- [x] Task 3: Add API endpoint (AC: 3)
+  - [x] Add `[HttpGet("{id:guid}")]` action to `backend/src/JobNecto.API/Controllers/CoverLettersController.cs`.
+  - [x] Extract `UserId`, dispatch `GetCoverLetterQuery`, return `Ok(result)`.
+  - [x] `ProducesResponseType` for 200, 401, 404.
 
-- [ ] Task 4: Add tests (AC: 1–3)
-  - [ ] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/GetCoverLetterQueryHandlerTests.cs` — mock `ICoverLetterRepository`; test: owned letter → returns detail with nested vacancy, not found → NotFoundException, other-user letter → NotFoundException.
-  - [ ] In `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersApiTests.cs` — add: no token → 401; valid GET → 200 with full nested vacancy; non-existent ID → 404; other-user ID → 404.
+- [x] Task 4: Add tests (AC: 1–3)
+  - [x] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/GetCoverLetterQueryHandlerTests.cs` — mock `ICoverLetterRepository`; test: owned letter → returns detail with nested vacancy, not found → NotFoundException, other-user letter → NotFoundException.
+  - [x] In `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersApiTests.cs` — add: no token → 401; valid GET → 200 with full nested vacancy; non-existent ID → 404; other-user ID → 404.
 
-- [ ] Task 5: Verification gates
-  - [ ] Build: `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` — 0 warnings, 0 errors.
-  - [ ] Tests: `dotnet test backend/JobNecto.slnx` — all pass.
+- [x] Task 5: Verification gates
+  - [x] Build: `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` — 0 warnings, 0 errors.
+  - [x] Tests: `dotnet test backend/JobNecto.slnx` — all pass.
 
 ## Dev Notes
 
@@ -146,4 +146,10 @@ claude-sonnet-4-6
 
 ### File List
 
+- `backend/src/JobNecto.Application/CoverLetters/GetCoverLetterQuery.cs` (CREATED)
+- `backend/src/JobNecto.Application/CoverLetters/GetCoverLetterQueryHandler.cs` (CREATED)
+- `backend/tests/JobNecto.Tests/Application/CoverLetters/GetCoverLetterQueryHandlerTests.cs` (CREATED)
+- `backend/src/JobNecto.Application/Interfaces/ICoverLetterRepository.cs` (UPDATED — GetDetailByIdAsync added)
+- `backend/src/JobNecto.Infrastructure/Repositories/CoverLetterRepository.cs` (UPDATED — implements GetDetailByIdAsync with vacancy JOIN + IgnoreQueryFilters)
+- `backend/src/JobNecto.API/Controllers/CoverLettersController.cs` (UPDATED — GET /{id} endpoint added)
 - `_bmad-output/implementation-artifacts/5-3-get-cover-letter-detail.md` (this file)

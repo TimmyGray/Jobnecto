@@ -19,30 +19,30 @@ so that I can refine my application before submitting.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create command, DTO, and handler (AC: 1, 2, 4, 5)
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/UpdateCoverLetterCommand.cs` with `UpdateCoverLetterCommand` (`IRequest<CoverLetterUpdateResult>`) and `CoverLetterUpdateResult` DTO. Fields on command: `CoverLetterId` (set from route, JsonIgnore on route), `UserId` (JsonIgnore), `Content`.
-  - [ ] **Do NOT include `VacancyId`** in the command — omitting it entirely enforces immutability without needing to silently ignore it at the model-binding layer.
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/UpdateCoverLetterCommandHandler.cs`: get cover letter via `GetByIdAsync`; if `coverLetter.UserId != request.UserId` → throw `ForbiddenException`; update `Content`; call `UpdateAsync`; call `SaveChangesAsync`; return updated DTO.
-  - [ ] Set `UpdatedAt = DateTime.UtcNow` explicitly in the handler before calling `UpdateAsync` (per agent-learnings: do not rely on DB defaults).
-  - [ ] Add `ToEntity` / `ToUpdateResult` mapper extensions in `backend/src/JobNecto.Application/CoverLetters/Mappers/CoverLetterMappers.cs`.
+- [x] Task 1: Create command, DTO, and handler (AC: 1, 2, 4, 5)
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/UpdateCoverLetterCommand.cs` with `UpdateCoverLetterCommand` (`IRequest<CoverLetterUpdateResult>`) and `CoverLetterUpdateResult` DTO. Fields on command: `CoverLetterId` (set from route, JsonIgnore on route), `UserId` (JsonIgnore), `Content`.
+  - [x] **Do NOT include `VacancyId`** in the command — omitting it entirely enforces immutability without needing to silently ignore it at the model-binding layer.
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/UpdateCoverLetterCommandHandler.cs`: get cover letter via `GetByIdAsync`; if `coverLetter.UserId != request.UserId` → throw `ForbiddenException`; update `Content`; call `UpdateAsync`; call `SaveChangesAsync`; return updated DTO.
+  - [x] Set `UpdatedAt = DateTime.UtcNow` explicitly in the handler before calling `UpdateAsync` (per agent-learnings: do not rely on DB defaults).
+  - [x] Add `ToEntity` / `ToUpdateResult` mapper extensions in `backend/src/JobNecto.Application/CoverLetters/Mappers/CoverLetterMappers.cs`.
 
-- [ ] Task 2: Create validator (AC: 3)
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/Validators/UpdateCoverLetterCommandValidator.cs`.
-  - [ ] Rule: `Content` length 50–10000, `NotEmpty()`, not whitespace-only.
+- [x] Task 2: Create validator (AC: 3)
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/Validators/UpdateCoverLetterCommandValidator.cs`.
+  - [x] Rule: `Content` length 50–10000, `NotEmpty()`, not whitespace-only.
 
-- [ ] Task 3: Add API endpoint (AC: 6)
-  - [ ] Add `[HttpPatch("{id:guid}")]` action to `backend/src/JobNecto.API/Controllers/CoverLettersController.cs`.
-  - [ ] Bind `id` from route → `command.CoverLetterId = id`; inject `UserId` from JWT → `command.UserId = userId`.
-  - [ ] `ProducesResponseType` for 200, 400, 401, 403, 404.
+- [x] Task 3: Add API endpoint (AC: 6)
+  - [x] Add `[HttpPatch("{id:guid}")]` action to `backend/src/JobNecto.API/Controllers/CoverLettersController.cs`.
+  - [x] Bind `id` from route → `command.CoverLetterId = id`; inject `UserId` from JWT → `command.UserId = userId`.
+  - [x] `ProducesResponseType` for 200, 400, 401, 403, 404.
 
-- [ ] Task 4: Add tests (AC: 1–6)
-  - [ ] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/UpdateCoverLetterCommandHandlerTests.cs` — mock `IUnitOfWork`; test: valid update → success with refreshed updatedAt, other-user → ForbiddenException, not found → NotFoundException.
-  - [ ] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/UpdateCoverLetterCommandValidatorTests.cs` — test content boundaries (49, 50, 10000, 10001 chars), empty/whitespace content.
-  - [ ] In `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersApiTests.cs` — add: no token → 401; valid PATCH → 200 with updated content and refreshed `updatedAt`; content too short → 400; other-user ID → 403; non-existent ID → 404.
+- [x] Task 4: Add tests (AC: 1–6)
+  - [x] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/UpdateCoverLetterCommandHandlerTests.cs` — mock `IUnitOfWork`; test: valid update → success with refreshed updatedAt, other-user → ForbiddenException, not found → NotFoundException.
+  - [x] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/UpdateCoverLetterCommandValidatorTests.cs` — test content boundaries (49, 50, 10000, 10001 chars), empty/whitespace content.
+  - [x] In `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersApiTests.cs` — add: no token → 401; valid PATCH → 200 with updated content and refreshed `updatedAt`; content too short → 400; other-user ID → 403; non-existent ID → 404.
 
-- [ ] Task 5: Verification gates
-  - [ ] Build: `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` — 0 warnings, 0 errors.
-  - [ ] Tests: `dotnet test backend/JobNecto.slnx` — all pass.
+- [x] Task 5: Verification gates
+  - [x] Build: `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` — 0 warnings, 0 errors.
+  - [x] Tests: `dotnet test backend/JobNecto.slnx` — all pass.
 
 ## Dev Notes
 
@@ -126,4 +126,11 @@ claude-sonnet-4-6
 
 ### File List
 
+- `backend/src/JobNecto.Application/CoverLetters/UpdateCoverLetterCommand.cs` (CREATED)
+- `backend/src/JobNecto.Application/CoverLetters/UpdateCoverLetterCommandHandler.cs` (CREATED)
+- `backend/src/JobNecto.Application/CoverLetters/Validators/UpdateCoverLetterCommandValidator.cs` (CREATED)
+- `backend/tests/JobNecto.Tests/Application/CoverLetters/UpdateCoverLetterCommandHandlerTests.cs` (CREATED)
+- `backend/tests/JobNecto.Tests/Application/CoverLetters/UpdateCoverLetterCommandValidatorTests.cs` (CREATED)
+- `backend/src/JobNecto.Application/CoverLetters/Mappers/CoverLetterMappers.cs` (UPDATED — ToUpdateResult mapper added)
+- `backend/src/JobNecto.API/Controllers/CoverLettersController.cs` (UPDATED — PATCH /{id} endpoint added)
 - `_bmad-output/implementation-artifacts/5-4-update-cover-letter-content.md` (this file)

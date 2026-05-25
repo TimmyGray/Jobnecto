@@ -1,5 +1,5 @@
 # generated: 2026-04-18T00:00:00.000Z
-# last_updated: 2026-05-25T00:00:00Z
+# last_updated: 2026-05-25T12:00:00Z
 # project: Jobnecto
 # project_key: NOKEY
 # tracking_system: file-system
@@ -62,7 +62,7 @@ development_status:
   r-3-authorization-regression-integration-suite: done
   r-4-consistent-forbidden-vs-notfound-contract-matrix: done
   r-5-authorization-hardening-completion-gate: done
-  epic-r-retrospective: optional
+  epic-r-retrospective: done
 
   # --- Epic 3: Cover Letter Template Library ---
   epic-3: done
@@ -87,4 +87,4 @@ development_status:
   5-3-get-cover-letter-detail: done
   5-4-update-cover-letter-content: done
   5-5-delete-cover-letter: done
-  epic-5-retrospective: optional
+  epic-5-retrospective: done

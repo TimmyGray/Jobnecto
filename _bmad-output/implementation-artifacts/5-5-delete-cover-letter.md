@@ -19,27 +19,27 @@ so that my application history stays organized without permanent loss.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create command and handler (AC: 1, 2, 4, 5)
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/DeleteCoverLetterCommand.cs` with `DeleteCoverLetterCommand` (`IRequest<Unit>`), `CoverLetterId`, `UserId` (JsonIgnore).
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/DeleteCoverLetterCommandHandler.cs`: get cover letter via `GetByIdAsync`; if `coverLetter.UserId != request.UserId` → throw `ForbiddenException`; call `SoftDeleteAsync`; call `SaveChangesAsync`; return `Unit.Value`.
-  - [ ] No DTO needed — returns `Unit`.
+- [x] Task 1: Create command and handler (AC: 1, 2, 4, 5)
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/DeleteCoverLetterCommand.cs` with `DeleteCoverLetterCommand` (`IRequest<Unit>`), `CoverLetterId`, `UserId` (JsonIgnore).
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/DeleteCoverLetterCommandHandler.cs`: get cover letter via `GetByIdAsync`; if `coverLetter.UserId != request.UserId` → throw `ForbiddenException`; call `SoftDeleteAsync`; call `SaveChangesAsync`; return `Unit.Value`.
+  - [x] No DTO needed — returns `Unit`.
 
-- [ ] Task 2: Create validator (minimal, AC: 1)
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/Validators/DeleteCoverLetterCommandValidator.cs` — validate `CoverLetterId` is not empty, `UserId` is not empty.
+- [x] Task 2: Create validator (minimal, AC: 1)
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/Validators/DeleteCoverLetterCommandValidator.cs` — validate `CoverLetterId` is not empty, `UserId` is not empty.
 
-- [ ] Task 3: Add API endpoint (AC: 6)
-  - [ ] Add `[HttpDelete("{id:guid}")]` action to `backend/src/JobNecto.API/Controllers/CoverLettersController.cs`.
-  - [ ] Extract `UserId`, dispatch `DeleteCoverLetterCommand { CoverLetterId = id, UserId = userId }`, return `NoContent()`.
-  - [ ] `ProducesResponseType` for 204, 401, 403, 404.
+- [x] Task 3: Add API endpoint (AC: 6)
+  - [x] Add `[HttpDelete("{id:guid}")]` action to `backend/src/JobNecto.API/Controllers/CoverLettersController.cs`.
+  - [x] Extract `UserId`, dispatch `DeleteCoverLetterCommand { CoverLetterId = id, UserId = userId }`, return `NoContent()`.
+  - [x] `ProducesResponseType` for 204, 401, 403, 404.
 
-- [ ] Task 4: Add tests (AC: 1–6)
-  - [ ] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/DeleteCoverLetterCommandHandlerTests.cs` — mock `IUnitOfWork`; test: valid delete → `SoftDeleteAsync` called + `SaveChangesAsync` called, other-user → ForbiddenException, not found → NotFoundException.
-  - [ ] In `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersApiTests.cs` — add: no token → 401; valid DELETE → 204; deleted letter no longer appears in GET list; deleted letter returns 404 on GET detail; other-user ID → 403.
+- [x] Task 4: Add tests (AC: 1–6)
+  - [x] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/DeleteCoverLetterCommandHandlerTests.cs` — mock `IUnitOfWork`; test: valid delete → `SoftDeleteAsync` called + `SaveChangesAsync` called, other-user → ForbiddenException, not found → NotFoundException.
+  - [x] In `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersApiTests.cs` — add: no token → 401; valid DELETE → 204; deleted letter no longer appears in GET list; deleted letter returns 404 on GET detail; other-user ID → 403.
 
-- [ ] Task 5: Verification gates
-  - [ ] Build: `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` — 0 warnings, 0 errors.
-  - [ ] Tests: `dotnet test backend/JobNecto.slnx` — all pass.
-  - [ ] Run full CI parity: `dotnet test backend/JobNecto.slnx --configuration Release --warnaserror`.
+- [x] Task 5: Verification gates
+  - [x] Build: `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` — 0 warnings, 0 errors.
+  - [x] Tests: `dotnet test backend/JobNecto.slnx` — all pass.
+  - [x] Run full CI parity: `dotnet test backend/JobNecto.slnx --configuration Release --warnaserror`.
 
 ## Dev Notes
 
@@ -115,4 +115,10 @@ claude-sonnet-4-6
 
 ### File List
 
+- `backend/src/JobNecto.Application/CoverLetters/DeleteCoverLetterCommand.cs` (CREATED)
+- `backend/src/JobNecto.Application/CoverLetters/DeleteCoverLetterCommandHandler.cs` (CREATED)
+- `backend/src/JobNecto.Application/CoverLetters/Validators/DeleteCoverLetterCommandValidator.cs` (CREATED)
+- `backend/tests/JobNecto.Tests/Application/CoverLetters/DeleteCoverLetterCommandHandlerTests.cs` (CREATED)
+- `backend/tests/JobNecto.Tests/Application/CoverLetters/DeleteCoverLetterCommandValidatorTests.cs` (CREATED)
+- `backend/src/JobNecto.API/Controllers/CoverLettersController.cs` (UPDATED — DELETE /{id} endpoint added)
 - `_bmad-output/implementation-artifacts/5-5-delete-cover-letter.md` (this file)

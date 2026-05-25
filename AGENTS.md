@@ -91,6 +91,19 @@ When a user request requires specific workflows, code generation, or role-playin
 - Redis and Quartz are referenced in `Infrastructure.csproj` but have no implementation yet.
 - **CORS config key:** `Cors:AllowedOrigins` (array). Development defaults (`http://localhost:5173`, `https://localhost:5173`) are in `appsettings.Development.json`. In Production, override with env vars using double-underscore notation: `Cors__AllowedOrigins__0=https://app.example.com`. Policy name: `"Frontend"`.
 
+## Mandatory story completion checklist (before `Status: review`)
+
+Before moving any story to `Status: review` or `Status: done`, the dev agent **must** complete all of the following in the story file:
+
+1. **Task checkboxes** — Update every completed subtask from `- [ ]` to `- [x]`.
+2. **File List** — Replace the stub `### File List` with every file actually created or modified, annotated `(CREATED)` or `(UPDATED — reason)`.
+3. **Debug Log References** — Record the build command output (last few lines including `Build succeeded`, `0 Warning(s)`, `0 Error(s)`) and the test count (`Passed: N, Failed: 0`).
+4. **Review Findings** — If a code review was run, record findings in a `### Review Findings` section using severity tags `[Patch]`, `[Defer]`, `[Dismiss]`.
+
+Skipping any of these steps is the root cause of story artifact drift (observed in Epics 3, 4, and 5). This gate was introduced after the Epic 5 retrospective (2026-05-25).
+
+---
+
 ## Mandatory comprehensive PR review workflow
 
 Run this workflow every time a PR is created or updated.

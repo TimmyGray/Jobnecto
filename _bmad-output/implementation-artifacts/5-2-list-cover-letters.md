@@ -17,33 +17,33 @@ so that I can track all my job applications.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Introduce `ICoverLetterRepository` with specialized list method (AC: 1, 2)
-  - [ ] Create `backend/src/JobNecto.Application/Interfaces/ICoverLetterRepository.cs` extending `IMutableRepository<CoverLetter>` with `GetPagedListAsync(PagedQuery pagedQuery, CancellationToken ct)` returning `PagedResult<CoverLetterListItem>`.
-  - [ ] Define `CoverLetterListItem` record in the same file (or in `ListCoverLettersQuery.cs`): `Id`, `VacancyId`, `VacancyTitle` (nullable string), `CreatedAt`, `UpdatedAt`.
-  - [ ] Update `IUnitOfWork.CoverLetterRepository` from `IMutableRepository<CoverLetter>` to `ICoverLetterRepository`.
+- [x] Task 1: Introduce `ICoverLetterRepository` with specialized list method (AC: 1, 2)
+  - [x] Create `backend/src/JobNecto.Application/Interfaces/ICoverLetterRepository.cs` extending `IMutableRepository<CoverLetter>` with `GetPagedListAsync(PagedQuery pagedQuery, CancellationToken ct)` returning `PagedResult<CoverLetterListItem>`.
+  - [x] Define `CoverLetterListItem` record in the same file (or in `ListCoverLettersQuery.cs`): `Id`, `VacancyId`, `VacancyTitle` (nullable string), `CreatedAt`, `UpdatedAt`.
+  - [x] Update `IUnitOfWork.CoverLetterRepository` from `IMutableRepository<CoverLetter>` to `ICoverLetterRepository`.
 
-- [ ] Task 2: Implement `ICoverLetterRepository` in Infrastructure (AC: 1, 2, 3)
-  - [ ] Update `backend/src/JobNecto.Infrastructure/Repositories/CoverLetterRepository.cs` to implement `ICoverLetterRepository` (still extends `SoftDeletableRepository<CoverLetter>`).
-  - [ ] Implement `GetPagedListAsync`: user-scoped (`UserId` filter), ordered by `CreatedAt DESC, Id DESC`, JOIN to `Vacancies` for `Title`, `pageSize` cap 100, cursor logic uses `CreatedAt` (not `UpdatedAt`), returns `PagedResult<CoverLetterListItem>` with correct `hasNext`, `totalCount`, and cursor fields.
-  - [ ] Cursor field `LastSeenUpdatedAt` in `PagedQuery` carries `CreatedAt` of the last seen cover letter for this endpoint (the field name is a shared contract name — the value semantics differ here).
-  - [ ] Update `backend/src/JobNecto.Infrastructure/Persistance/UnitOfWork.cs` to return `ICoverLetterRepository`.
+- [x] Task 2: Implement `ICoverLetterRepository` in Infrastructure (AC: 1, 2, 3)
+  - [x] Update `backend/src/JobNecto.Infrastructure/Repositories/CoverLetterRepository.cs` to implement `ICoverLetterRepository` (still extends `SoftDeletableRepository<CoverLetter>`).
+  - [x] Implement `GetPagedListAsync`: user-scoped (`UserId` filter), ordered by `CreatedAt DESC, Id DESC`, JOIN to `Vacancies` for `Title`, `pageSize` cap 100, cursor logic uses `CreatedAt` (not `UpdatedAt`), returns `PagedResult<CoverLetterListItem>` with correct `hasNext`, `totalCount`, and cursor fields.
+  - [x] Cursor field `LastSeenUpdatedAt` in `PagedQuery` carries `CreatedAt` of the last seen cover letter for this endpoint (the field name is a shared contract name — the value semantics differ here).
+  - [x] Update `backend/src/JobNecto.Infrastructure/Persistance/UnitOfWork.cs` to return `ICoverLetterRepository`.
 
-- [ ] Task 3: Create query, handler, and DTOs (AC: 1, 2, 3)
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/ListCoverLettersQuery.cs` with `ListCoverLettersQuery` (`IRequest<PagedResult<CoverLetterListItem>>`), `UserId` (JsonIgnore), `PageSize` (default 20), `LastSeenId`, `LastSeenUpdatedAt`.
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/ListCoverLettersQueryHandler.cs`: cap `PageSize` to 100, build `PagedQuery`, call `_unitOfWork.CoverLetterRepository.GetPagedListAsync(...)`, return result.
+- [x] Task 3: Create query, handler, and DTOs (AC: 1, 2, 3)
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/ListCoverLettersQuery.cs` with `ListCoverLettersQuery` (`IRequest<PagedResult<CoverLetterListItem>>`), `UserId` (JsonIgnore), `PageSize` (default 20), `LastSeenId`, `LastSeenUpdatedAt`.
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/ListCoverLettersQueryHandler.cs`: cap `PageSize` to 100, build `PagedQuery`, call `_unitOfWork.CoverLetterRepository.GetPagedListAsync(...)`, return result.
 
-- [ ] Task 4: Add API endpoint (AC: 4)
-  - [ ] Add `[HttpGet]` action to `backend/src/JobNecto.API/Controllers/CoverLettersController.cs`.
-  - [ ] Query params: `pageSize`, `lastSeenId`, `lastSeenUpdatedAt`; normalize `lastSeenUpdatedAt` to UTC (same pattern as `CoverLetterTemplatesController`).
-  - [ ] `ProducesResponseType` for 200, 401.
+- [x] Task 4: Add API endpoint (AC: 4)
+  - [x] Add `[HttpGet]` action to `backend/src/JobNecto.API/Controllers/CoverLettersController.cs`.
+  - [x] Query params: `pageSize`, `lastSeenId`, `lastSeenUpdatedAt`; normalize `lastSeenUpdatedAt` to UTC (same pattern as `CoverLetterTemplatesController`).
+  - [x] `ProducesResponseType` for 200, 401.
 
-- [ ] Task 5: Add tests (AC: 1–4)
-  - [ ] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/ListCoverLettersQueryHandlerTests.cs` — mock `ICoverLetterRepository`; test: empty list, populated list with correct item fields, pageSize cap.
-  - [ ] In `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersApiTests.cs` — add integration tests: no token → 401; empty result when no cover letters; correct `createdAt desc` ordering; `vacancyTitle` populated from linked vacancy; cursor pagination advances correctly; cross-user isolation (user A's letters not visible to user B).
+- [x] Task 5: Add tests (AC: 1–4)
+  - [x] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/ListCoverLettersQueryHandlerTests.cs` — mock `ICoverLetterRepository`; test: empty list, populated list with correct item fields, pageSize cap.
+  - [x] In `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersApiTests.cs` — add integration tests: no token → 401; empty result when no cover letters; correct `createdAt desc` ordering; `vacancyTitle` populated from linked vacancy; cursor pagination advances correctly; cross-user isolation (user A's letters not visible to user B).
 
-- [ ] Task 6: Verification gates
-  - [ ] Build: `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` — 0 warnings, 0 errors.
-  - [ ] Tests: `dotnet test backend/JobNecto.slnx` — all pass.
+- [x] Task 6: Verification gates
+  - [x] Build: `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` — 0 warnings, 0 errors.
+  - [x] Tests: `dotnet test backend/JobNecto.slnx` — all pass.
 
 ## Dev Notes
 
@@ -175,4 +175,12 @@ claude-sonnet-4-6
 
 ### File List
 
+- `backend/src/JobNecto.Application/Interfaces/ICoverLetterRepository.cs` (CREATED)
+- `backend/src/JobNecto.Application/CoverLetters/ListCoverLettersQuery.cs` (CREATED)
+- `backend/src/JobNecto.Application/CoverLetters/ListCoverLettersQueryHandler.cs` (CREATED)
+- `backend/tests/JobNecto.Tests/Application/CoverLetters/ListCoverLettersQueryHandlerTests.cs` (CREATED)
+- `backend/src/JobNecto.Application/Interfaces/IUnitOfWork.cs` (UPDATED — CoverLetterRepository type → ICoverLetterRepository)
+- `backend/src/JobNecto.Infrastructure/Repositories/CoverLetterRepository.cs` (UPDATED — implements ICoverLetterRepository, adds GetPagedListAsync)
+- `backend/src/JobNecto.Infrastructure/Persistance/UnitOfWork.cs` (UPDATED — return type for CoverLetterRepository)
+- `backend/src/JobNecto.API/Controllers/CoverLettersController.cs` (UPDATED — GET list endpoint added)
 - `_bmad-output/implementation-artifacts/5-2-list-cover-letters.md` (this file)

@@ -18,34 +18,34 @@ so that I can submit a tailored application.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add partial unique index to EF configuration and migrate (AC: 2)
-  - [ ] In `backend/src/JobNecto.Infrastructure/Persistance/Config/CoverLetterConfiguration.cs`, add partial unique index: `(UserId, VacancyId)` WHERE `IsDeleted = false`.
-  - [ ] Add EF migration: `dotnet ef migrations add AddCoverLetterUniqueVacancyPerUser --project backend/src/JobNecto.Infrastructure --startup-project backend/src/JobNecto.API`.
+- [x] Task 1: Add partial unique index to EF configuration and migrate (AC: 2)
+  - [x] In `backend/src/JobNecto.Infrastructure/Persistance/Config/CoverLetterConfiguration.cs`, add partial unique index: `(UserId, VacancyId)` WHERE `IsDeleted = false`.
+  - [x] Add EF migration: `dotnet ef migrations add AddCoverLetterUniqueVacancyPerUser --project backend/src/JobNecto.Infrastructure --startup-project backend/src/JobNecto.API`.
 
-- [ ] Task 2: Create command, DTO, and handler (AC: 1, 2, 3)
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/CreateCoverLetterCommand.cs` with `CreateCoverLetterCommand` (implementing `IRequest<CreateCoverLetterResult>`) and `CreateCoverLetterResult` DTO in the same file.
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/CreateCoverLetterCommandHandler.cs` — verify vacancy exists + belongs to user; create entity; catch `DbUpdateException` → throw `ConflictException`.
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/Mappers/CoverLetterMappers.cs` with `ToEntity(CreateCoverLetterCommand)` and `ToCreateResult(CoverLetter)` extensions.
-  - [ ] Set `CreatedAt` and `UpdatedAt` to `DateTime.UtcNow` in the handler (per agent-learnings: do not rely on DB defaults in-memory).
+- [x] Task 2: Create command, DTO, and handler (AC: 1, 2, 3)
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/CreateCoverLetterCommand.cs` with `CreateCoverLetterCommand` (implementing `IRequest<CreateCoverLetterResult>`) and `CreateCoverLetterResult` DTO in the same file.
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/CreateCoverLetterCommandHandler.cs` — verify vacancy exists + belongs to user; create entity; catch `DbUpdateException` → throw `ConflictException`.
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/Mappers/CoverLetterMappers.cs` with `ToEntity(CreateCoverLetterCommand)` and `ToCreateResult(CoverLetter)` extensions.
+  - [x] Set `CreatedAt` and `UpdatedAt` to `DateTime.UtcNow` in the handler (per agent-learnings: do not rely on DB defaults in-memory).
 
-- [ ] Task 3: Create FluentValidation validator (AC: 4)
-  - [ ] Create `backend/src/JobNecto.Application/CoverLetters/Validators/CreateCoverLetterCommandValidator.cs`.
-  - [ ] Rules: `VacancyId` not empty; `Content` length 50–10000, not empty/whitespace.
+- [x] Task 3: Create FluentValidation validator (AC: 4)
+  - [x] Create `backend/src/JobNecto.Application/CoverLetters/Validators/CreateCoverLetterCommandValidator.cs`.
+  - [x] Rules: `VacancyId` not empty; `Content` length 50–10000, not empty/whitespace.
 
-- [ ] Task 4: Add API controller and endpoint (AC: 1, 5)
-  - [ ] Create `backend/src/JobNecto.API/Controllers/CoverLettersController.cs` with `[ApiController]`, `[Route("api/v1/cover-letters")]`, `[Authorize]`.
-  - [ ] Add `[HttpPost]` action: extract `UserId` via `HttpContext.GetCurrentUserId()`; dispatch `CreateCoverLetterCommand`; return `Created($"/api/v1/cover-letters/{result.Id}", result)`.
-  - [ ] `ProducesResponseType` for 201, 400, 401, 404, 409.
-  - [ ] Use `BadRequest(new ProblemDetails { Status = 400, Title = "Validation failed", Detail = "..." })` pattern (per agent-learnings — never `BadRequest("plain string")`).
+- [x] Task 4: Add API controller and endpoint (AC: 1, 5)
+  - [x] Create `backend/src/JobNecto.API/Controllers/CoverLettersController.cs` with `[ApiController]`, `[Route("api/v1/cover-letters")]`, `[Authorize]`.
+  - [x] Add `[HttpPost]` action: extract `UserId` via `HttpContext.GetCurrentUserId()`; dispatch `CreateCoverLetterCommand`; return `Created($"/api/v1/cover-letters/{result.Id}", result)`.
+  - [x] `ProducesResponseType` for 201, 400, 401, 404, 409.
+  - [x] Use `BadRequest(new ProblemDetails { Status = 400, Title = "Validation failed", Detail = "..." })` pattern (per agent-learnings — never `BadRequest("plain string")`).
 
-- [ ] Task 5: Add tests (AC: 1–5)
-  - [ ] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/CreateCoverLetterCommandHandlerTests.cs` — mock `IUnitOfWork`; test: valid create succeeds, missing vacancy → NotFoundException, other-user vacancy → NotFoundException, duplicate (DbUpdateException with unique violation) → ConflictException.
-  - [ ] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/CreateCoverLetterCommandValidatorTests.cs` — test content boundary (49, 50, 10000, 10001 chars), empty/whitespace content, empty vacancyId.
-  - [ ] Create `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersApiTests.cs` — integration tests: no token → 401; valid create → 201 with Location header; content too short → 400; duplicate vacancyId (same user) → 409; invalid vacancyId → 404.
+- [x] Task 5: Add tests (AC: 1–5)
+  - [x] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/CreateCoverLetterCommandHandlerTests.cs` — mock `IUnitOfWork`; test: valid create succeeds, missing vacancy → NotFoundException, other-user vacancy → NotFoundException, duplicate (DbUpdateException with unique violation) → ConflictException.
+  - [x] Create `backend/tests/JobNecto.Tests/Application/CoverLetters/CreateCoverLetterCommandValidatorTests.cs` — test content boundary (49, 50, 10000, 10001 chars), empty/whitespace content, empty vacancyId.
+  - [x] Create `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersApiTests.cs` — integration tests: no token → 401; valid create → 201 with Location header; content too short → 400; duplicate vacancyId (same user) → 409; invalid vacancyId → 404.
 
-- [ ] Task 6: Verification gates
-  - [ ] Build: `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` — 0 warnings, 0 errors.
-  - [ ] Tests: `dotnet test backend/JobNecto.slnx` — all pass.
+- [x] Task 6: Verification gates
+  - [x] Build: `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` — 0 warnings, 0 errors.
+  - [x] Tests: `dotnet test backend/JobNecto.slnx` — all pass.
 
 ## Dev Notes
 
@@ -139,4 +139,17 @@ claude-sonnet-4-6
 
 ### File List
 
+- `backend/src/JobNecto.Application/CoverLetters/CreateCoverLetterCommand.cs` (CREATED)
+- `backend/src/JobNecto.Application/CoverLetters/CreateCoverLetterCommandHandler.cs` (CREATED)
+- `backend/src/JobNecto.Application/CoverLetters/Mappers/CoverLetterMappers.cs` (CREATED)
+- `backend/src/JobNecto.Application/CoverLetters/Validators/CreateCoverLetterCommandValidator.cs` (CREATED)
+- `backend/src/JobNecto.API/Controllers/CoverLettersController.cs` (CREATED)
+- `backend/tests/JobNecto.Tests/Application/CoverLetters/CreateCoverLetterCommandHandlerTests.cs` (CREATED)
+- `backend/tests/JobNecto.Tests/Application/CoverLetters/CreateCoverLetterCommandValidatorTests.cs` (CREATED)
+- `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersApiTests.cs` (CREATED)
+- `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersUniquenessApiTests.cs` (CREATED)
+- `backend/src/JobNecto.Infrastructure/Persistance/Config/CoverLetterConfiguration.cs` (UPDATED — partial unique index)
+- `backend/src/JobNecto.Infrastructure/Migrations/20260510192135_AddCoverLetterUniqueVacancyPerUser.cs` (CREATED)
+- `backend/src/JobNecto.Infrastructure/Migrations/20260510192135_AddCoverLetterUniqueVacancyPerUser.Designer.cs` (CREATED)
+- `backend/src/JobNecto.Infrastructure/Migrations/AppDbContextModelSnapshot.cs` (UPDATED)
 - `_bmad-output/implementation-artifacts/5-1-create-cover-letter.md` (this file)
