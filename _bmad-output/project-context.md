@@ -56,9 +56,10 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **`Program.cs`** wires **`AddInfrastructure()`** and **`AddJwtAuthentication()`** in the API host. For tests, DB wiring/connection scope can be overridden by the test host.
 - When adding Redis/Quartz behavior, align with packages already referenced — avoid duplicate client/scheduler abstractions unless introducing a deliberate replacement.
 
-### Current implementation snapshot (2026-05-11)
+### Current implementation snapshot (2026-05-25)
 
-- Merged stories: `1-1` through `1-5`, `2-1` through `2-8`, `r-1`, `3-1` through `3-5`, `4-1` through `4-3`, `5-1` through `5-5`. Epic 5 (cover letter application management) merged 2026-05-11.
+- Merged stories: `1-1` through `1-5`, `2-1` through `2-8`, `r-1`, `3-1` through `3-5`, `4-1` through `4-3`, `5-1` through `5-5`, `r-2` through `r-5`. Epic 5 (cover letter application management) merged 2026-05-11; Epic R (authorization & ownership hardening) merged 2026-05-25.
+- Phase C (Security) is complete: authentication, password hashing, and consistent ownership enforcement are closed. Every authenticated endpoint follows the canonical cross-user contract (404 on detail reads, 403 on mutations, 404 on body-supplied foreign keys), codified in `_bmad-output/planning-artifacts/architecture/authorization-contract-matrix.md`, audited in `_bmad-output/planning-artifacts/architecture/endpoint-ownership-audit.md`, and regression-guarded by `backend/tests/JobNecto.Tests/API/Authorization/`. Phase D (Ingestion and LLM) is cleared to start.
 - Active HTTP endpoints: `POST /api/v1/users`, `POST /api/v1/users/token/refresh`, `GET /api/v1/users/me`, `PATCH /api/v1/users/me`, `POST|PATCH|DELETE /api/v1/users/me/avatar`, `POST /api/v1/resumes`, `GET /api/v1/resumes`, `GET /api/v1/resumes/{id}`, `PATCH /api/v1/resumes/{id}`, `DELETE /api/v1/resumes/{id}`, `POST /api/v1/educations`, `GET /api/v1/educations`, `GET /api/v1/educations/{id}`, `PATCH /api/v1/educations/{id}`, `DELETE /api/v1/educations/{id}`, `POST /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates`, `GET /api/v1/cover-letter-templates/{id}`, `PATCH /api/v1/cover-letter-templates/{id}`, `DELETE /api/v1/cover-letter-templates/{id}`, `POST /api/v1/vacancies/filter`, `GET /api/v1/vacancies/{id}`, `POST /api/v1/cover-letters`, `GET /api/v1/cover-letters`, `GET /api/v1/cover-letters/{id}`, `PATCH /api/v1/cover-letters/{id}`, `DELETE /api/v1/cover-letters/{id}`.
 - Password storage uses PBKDF2 (`Pbkdf2PasswordHasher`) behind `IPasswordHasher`.
 - Auth transport policy: browser flows rely on HTTP-only cookie transport; bearer clients can use response-body token on refresh.
@@ -110,6 +111,6 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Keep this file **lean** and agent-focused; prefer **`AGENTS.md`** for long-form contributor docs if content overlaps.
 - Refresh when **TargetFramework**, CI, or layer boundaries change; remove rules that become universally obvious.
 
-_Last updated: 2026-05-11 (Epic 5 cover letter CRUD merged)_
+_Last updated: 2026-05-25 (Epic R authorization & ownership hardening merged; Phase C complete, Phase D cleared)_
 
 ---
