@@ -20,5 +20,10 @@ Users can discover and filter job vacancies using advanced multi-criteria search
 Users can create job-specific cover letters tied to specific vacancies, optionally sourced from a template, with one cover letter allowed per vacancy per user.
 **FRs covered:** FR19, FR20, FR21, FR22, FR23
 
+### Epic R: Authorization & Ownership Enforcement Hardening (Brownfield)
+
+Hardens Phase C security behavior across shipped endpoints by standardizing ownership checks, contract-correct `403`/`404` outcomes, and CI-protected authorization regression coverage.
+**FRs covered:** FR27, FR28
+
 ---
-
+

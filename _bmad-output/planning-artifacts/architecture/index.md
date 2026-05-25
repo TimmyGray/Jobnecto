@@ -11,6 +11,12 @@ The architecture document is organized into the following shards:
 5. **[Summary of Architectural Decisions](summary-of-architectural-decisions.md)** - Quick reference table of all decisions, approaches, and key benefits
 6. **[Implementation Checklist for Phase B](implementation-checklist-for-phase-b.md)** - Completed Phase B checklist plus deferred hardening items
 
+7. **[Endpoint Ownership Audit (R.2)](endpoint-ownership-audit.md)** - Full audit of every authenticated endpoint's cross-user, soft-deleted, and missing-resource contract; one OpenAPI gap found and closed; open items listed for R.4
+
+## Contract Matrices
+
+8. **[Authorization Contract Matrix (R.4)](authorization-contract-matrix.md)** - Canonical 403-vs-404 matrix for all 14 user-scoped detail/update/delete endpoints × 3 failure scenarios (not-found, soft-deleted, cross-user); exception paths, test references, and OpenAPI attribute conformance; source of truth for R.3 regression suite
+
 ## How to Use
 
 - **Starting a story?** Read `project-context-analysis.md` to understand constraints and requirements.

@@ -9,7 +9,7 @@
 - **Filter and paginate** vacancies (`VacancyFilter`, `PagedQuery`, `PagedResult`); support **matching** via `Vacancy.MatchScore` (and optional future persisted analysis if the team adds it).
 - **LLM** integration via `JobNecto.Infrastructure.LLM`, `LlmProvider` enum, and `LlmProviderConfig`.
 
-## Implementation snapshot (2026-05-11)
+## Implementation snapshot (2026-05-25)
 
 - Stories `1-1` through `1-5`, `2-1` through `2-8`, `r-1`, `3-1` through `3-5`, `4-1` through `4-3`, and `5-1` through `5-5` are all merged to `master`. Epic 5 (cover letter application management) was merged 2026-05-11.
 - Authentication baseline is live: `POST /api/v1/users` creates users; `POST /api/v1/users/token/refresh` renews JWTs; `GET /api/v1/users/me` returns the core profile (id, loginName, email, phone, location, about, avatar, timestamps). Story 1.4 adds `PATCH /api/v1/users/me` for partial profile updates and avatar endpoints (`POST|PUT|DELETE /api/v1/users/me/avatar`). Resume create/list/detail/update/delete and education create/list/detail/update/delete endpoints are merged. Epic 3 is complete: cover letter template CRUD with per-user ownership, soft-delete semantics, and DB-backed name uniqueness. Epic 4 is complete: vacancy browse/filter and vacancy detail. Epic 5 is complete: cover letter CRUD (`POST /api/v1/cover-letters`, `GET /api/v1/cover-letters`, `GET /api/v1/cover-letters/{id}`, `PATCH /api/v1/cover-letters/{id}`, `DELETE /api/v1/cover-letters/{id}`) with DB-backed per-user/per-vacancy uniqueness (partial unique index), cursor pagination ordered by `createdAt desc`, nested vacancy fields on detail, soft-delete, and ownership enforcement (404 on reads, 403 on mutations).
@@ -17,6 +17,7 @@
 - CI and PR review automation are active on merge and PR events (`CI` + `PR review (LLM via OpenRouter)`).
 - Repository layer supports UserId-scoped filtering and cursor-based pagination (BaseRepository); ownership filtering is enforced for all user-scoped resources.
 - Product direction: resumes, educations, templates, and cover letters are exposed through separate user-scoped routes with mandatory ownership checks. Resume creation now follows the optional-field contract documented in Story 2.1.
+- Epic R (Authorization & Ownership Enforcement Hardening) closed on 2026-05-25. R.2 produced the endpoint ownership audit (`_bmad-output/planning-artifacts/architecture/endpoint-ownership-audit.md`); R.3 added the cross-user HTTP authorization regression suite (`backend/tests/JobNecto.Tests/API/Authorization/`); R.4 published the canonical 403-vs-404 contract matrix (`_bmad-output/planning-artifacts/architecture/authorization-contract-matrix.md`). `dotnet build` and `dotnet test` against `backend/JobNecto.slnx` in Release with `--warnaserror` both clean (0 warnings; 520/520 tests passing). Phase C complete; Phase D cleared to start.
 
 ## Solution layout
 
@@ -150,7 +151,7 @@ Use a **version prefix** (e.g. `/api/v1/...`) and add auth where noted below.
 
 10. [done] Password hashing.
 11. [done] JWT (or chosen scheme) and protected routes.
-12. [in-progress] Authorization: users mutate only their data.
+12. [done] Authorization: users mutate only their data.
 
 ### Phase D — Ingestion and LLM
 

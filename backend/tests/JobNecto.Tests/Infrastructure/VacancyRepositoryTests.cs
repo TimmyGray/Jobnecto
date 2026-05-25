@@ -595,6 +595,42 @@ public class VacancyRepositoryTests
     }
 
     [Fact]
+    public async Task SoftDeleteAsync_SetsIsDeletedAndDeletedAtUtc()
+    {
+        var (context, _, seeded) = await SeedAllVacanciesAsync();
+        await using (context)
+        {
+            var repo = new VacancyRepository(context);
+            var vacancyId = seeded[0].Id;
+
+            var entity = await repo.GetByIdAsync(vacancyId, CancellationToken.None);
+            await repo.SoftDeleteAsync(entity, CancellationToken.None);
+
+            entity.IsDeleted.Should().BeTrue();
+            entity.DeletedAt.Should().NotBeNull();
+            entity.DeletedAt!.Value.Kind.Should().Be(DateTimeKind.Utc);
+        }
+    }
+
+    [Fact]
+    public async Task SoftDeleteAsync_AfterSaveChanges_EntityExcludedFromQuery()
+    {
+        var (context, _, seeded) = await SeedAllVacanciesAsync();
+        await using (context)
+        {
+            var repo = new VacancyRepository(context);
+            var vacancyId = seeded[0].Id;
+
+            var entity = await repo.GetByIdAsync(vacancyId, CancellationToken.None);
+            await repo.SoftDeleteAsync(entity, CancellationToken.None);
+            await context.SaveChangesAsync();
+
+            var results = await context.Vacancies.ToListAsync();
+            results.Should().NotContain(v => v.Id == vacancyId);
+        }
+    }
+
+    [Fact]
     public async Task UpdateMatchScoreAsync_throws_NotImplementedException()
     {
         await using var context = CreateContext();
