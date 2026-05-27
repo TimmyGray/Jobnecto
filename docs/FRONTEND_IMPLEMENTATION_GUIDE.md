@@ -1,5 +1,23 @@
 # Jobnecto Frontend Implementation Guide
 
+> **This guide is Angular-authoritative.** The Jobnecto client is built on the
+> ratified **Angular** stack (standalone components, Signals + injectable
+> services, `HttpClient` + a thin per-entity cache, typed Reactive Forms,
+> themeable headless primitives on Angular CDK). Any remaining stack question is
+> governed by
+> `_bmad-output/planning-artifacts/architecture/demo-mvp-architecture-decisions.md`
+> **Decision 1**. Earlier revisions of this guide were React-flavored; those
+> tech-stack recommendations have been replaced. The structure, routes, token
+> *scale*, validation rules (§7), states (§8), a11y (§9), responsive (§10),
+> motion (§11), and enum sources (§12) remain authoritative as written.
+>
+> **Component-kit note (Story 1.1):** Decision 1.4 ratifies **spartan-ng on
+> Angular CDK**. Story 1.1 pulled in **`@angular/cdk` only** and built the
+> branded `TextField` directly on CDK + tokens; **spartan-ng is deferred to the
+> first story that needs an overlay/select/sheet primitive**. The branded
+> component contracts (§5) are identical either way, so adding spartan-ng later
+> is a local change.
+
 ## 1. Purpose and Audience
 
 This document is the implementation handoff for:
@@ -47,11 +65,20 @@ Use a feature-sliced architecture:
 
 ### 2.2 Folder Blueprint
 
+> **All frontend code lives in the repo-root `frontend/` folder** (Angular
+> workspace root: `frontend/angular.json`, `frontend/package.json`,
+> `frontend/src/…`), a sibling to `backend/`. The `src/` blueprint below is
+> rooted at `frontend/src/`. The existing `frontend/design-examples/` (visual
+> reference PNGs) is preserved. TypeScript path aliases map the slices:
+> `@app/*`, `@processes/*`, `@pages/*`, `@widgets/*`, `@features/*`,
+> `@entities/*`, `@shared/*`.
+
 ```text
-src/
+frontend/
+  src/
   app/
-    providers/
-    router/
+    providers/        (app.config.ts — providers, HttpClient + interceptor)
+    router/           (app.routes.ts — route skeleton)
   processes/
     auth/
   pages/
@@ -85,80 +112,130 @@ src/
     education/
   shared/
     api/
-      client.ts
-      problem-details.ts
-      endpoints/
-    ui/
-    lib/
-    config/
+      http.interceptor.ts   (withCredentials + RFC 7807 → ProblemDetails)
+      problem-details.ts     (typed ProblemDetails model + normalizer)
+      generated/             (OpenAPI-generated DTOs/enums — never hand-authored)
+    ui/                      (branded kit on Angular CDK + tokens)
+    lib/                     (small utilities)
+    config/                  (design tokens single source + env)
 ```
 
-### 2.3 State Model
+### 2.3 State Model (Angular)
 
-- Server state: query/mutation cache (recommended: TanStack Query).
-- Client state: minimal ephemeral UI state (drawer open, active tab, filter chips).
-- Form state: dedicated schema-driven form state (recommended: React Hook Form + Zod/Yup).
-- Auth state:
-  - Primary auth transport is HTTP-only cookie.
-  - Refresh endpoint may return `accessToken` in body only when bearer transport is used.
-  - Browser-first implementation should treat cookie transport as canonical.
+- **Server state:** `HttpClient` + Angular **Signals** + a **thin per-entity
+  service cache**. Each entity service owns its cache signal and exposes explicit
+  `refetch()` / `invalidate()`. Mutations call `invalidate()` on success; views
+  read the signal. **No TanStack Query.** [Decision 1.3]
+- **Client / UI state:** Angular **Signals** in injectable, feature-sliced
+  services (drawer open, active tab, filter chips). **No NgRx** — this app is
+  CRUD + one generation flow with no complex shared state machine. [Decision 1.2]
+- **Form state:** **typed Reactive Forms** (`FormGroup` / `FormControl<T>`) with
+  validators that mirror the backend rules (§7). Validate on **blur + submit**;
+  disable submit until **dirty + valid**; PATCH only changed fields. **No React
+  Hook Form / Zod / Yup.** [Decision 1.1]
+- **Active draft state:** the cross-cutting cover-letter draft is held in a
+  signal-backed `DraftStore` service, autosaved (debounced) to `localStorage`,
+  keyed by `userId + vacancyId`. Local only; never logged. [Decision 1.5]
+- **Auth state:**
+  - Primary auth transport is the **HTTP-only cookie**; an HTTP interceptor sets
+    `withCredentials: true` on every request. [Decision 1.1]
+  - The refresh endpoint returns `accessToken` in the body only for bearer
+    (non-browser) transport.
+  - Browser-first implementation treats cookie transport as canonical.
+
+### 2.3.1 Type generation (anti-drift)
+
+TS enums/DTOs are **generated from the backend OpenAPI** (`/openapi/v1.json`)
+into `frontend/src/shared/api/generated/` via `openapi-typescript`; never
+hand-authored. Regenerate with `npm run gen:api` (backend must be running). Feature
+code imports generated shapes through entity barrels (e.g. `@entities/user`).
+[Decision 1.1, §12]
 
 ### 2.4 Routing
 
-Recommended routes:
+Routes (FE-Guide base + Decision 1.6 IA growth):
 
-- `/sign-up`
+- `/sign-up`, `/sign-in`
 - `/dashboard`
 - `/profile`
-- `/resumes`
-- `/resumes/:id`
-- `/educations`
-- `/educations/:id`
+- `/resumes`, `/resumes/:id`
+- `/educations`, `/educations/:id`
+- `/vacancies`, `/vacancies/:id`
+- `/cover-letters`, `/cover-letters/:id`
 - `/settings`
 
 Guarded routes:
 
-- All except `/sign-up` should require authenticated session.
+- **All routes are guarded except `/sign-up` and `/sign-in`.** A `401` routes to
+  sign-in preserving the intended destination for post-auth return (FR5).
+  [Decision 1.6, NFR4, FR6]
+- **Story 1.1 scope:** only `/sign-up` (unguarded) and a minimal authenticated
+  `/dashboard` landing stub exist; the guard system (1.4), app shell (1.5), and
+  full dashboard (1.6) land in later stories.
 
 ## 3. Design System Tokens
 
-Define tokens in a single source (JSON or TS), then export to CSS variables.
+Define tokens in a single source (TS: `frontend/src/shared/config/tokens.ts`),
+mirror to CSS custom properties (`frontend/src/styles.scss`), and reference those
+vars from the Tailwind theme (`frontend/tailwind.config.js`). Components use
+token-mapped utility classes (e.g. `bg-canvas`, `text-primary`,
+`bg-action-primary`, `text-brand-accent`) — never hardcoded hex/px.
 
-### 3.1 Color Tokens
+### 3.1 Color Tokens — Career OS palette
+
+> **Career OS palette** (overrides the earlier LinkedIn-blue values). Warm cream
+> canvas, near-black primary action, royal-blue accent. [UX-DR1;
+> ux-design-specification §Color-System]
 
 ```json
 {
   "color": {
     "bg": {
-      "canvas": "#F7F9FC",
+      "canvas": "#F6F4EE",
       "surface": "#FFFFFF",
-      "elevated": "#F1F5FA"
+      "inverse": "#0E0F12"
     },
     "text": {
-      "primary": "#0F172A",
-      "secondary": "#334155",
-      "muted": "#64748B",
-      "inverse": "#FFFFFF"
+      "primary": "#14151A",
+      "secondary": "#44474F",
+      "muted": "#8A8D96",
+      "inverse": "#FAFAF7"
+    },
+    "action": {
+      "primary": "#14151A",
+      "primaryHover": "#000000"
     },
     "brand": {
-      "primary": "#0A66C2",
-      "primaryHover": "#004182",
-      "accent": "#14B8A6"
+      "accent": "#2348E0",
+      "accentHover": "#1B36B8",
+      "spark": "#8FE34A"
     },
     "status": {
       "success": "#15803D",
-      "warning": "#D97706",
-      "danger": "#B91C1C",
-      "info": "#0369A1"
+      "warning": "#B45309",
+      "warningBg": "#FDF1D6",
+      "danger": "#B42318",
+      "info": "#1D4ED8"
     },
     "border": {
-      "default": "#D0D9E5",
-      "strong": "#94A3B8",
-      "focus": "#0A66C2"
+      "default": "#E6E2D8",
+      "strong": "#C9C4B6",
+      "focus": "#2348E0"
     }
   }
 }
 ```
+
+Palette intent:
+
+- `action.primary` (near-black) = primary buttons & active nav.
+- `brand.accent` (royal blue) = links, emphasis, focus ring, italic wordmark.
+- `brand.spark` (lime) = decorative / on-dark ONLY — never an essential signal
+  (fails contrast on light).
+- Typography families: **Manrope** (sans, ~95% of text), **serif-italic display**
+  (Newsreader/Fraunces — wordmark "Job*necto*", accent words, greetings ONLY;
+  never body/controls), **IBM Plex Mono** (uppercase eyebrow labels, entity IDs).
+  Body ≥16px; one `h1` per page.
 
 ### 3.2 Typography Tokens
 
@@ -210,7 +287,7 @@ Define tokens in a single source (JSON or TS), then export to CSS variables.
 ### 3.4 Component Token Mapping
 
 - Buttons:
-  - Primary: `brand.primary` + `text.inverse`
+  - Primary: `action.primary` + `text.inverse` (hover `action.primaryHover`)
   - Secondary: `bg.surface` + `text.primary` + `border.default`
   - Danger: `status.danger`
 - Inputs:
@@ -331,57 +408,71 @@ Purpose:
 - Session controls and support diagnostics.
 - Trigger refresh token call if needed (`POST /api/v1/users/token/refresh`).
 
-## 5. Component Contracts
+## 5. Component Contracts (Angular)
 
-Use strongly typed props and explicit events for all reusable components.
+Reusable components are **thin branded Angular wrappers over headless primitives**
+(Angular CDK now; spartan-ng added when an overlay/select/sheet is first needed —
+see the component-kit note at the top). They are themed entirely from the token
+layer. Form controls implement `ControlValueAccessor` so they drop into typed
+Reactive Forms. Inputs use Angular **signal inputs** (`input()` / `input.required()`)
+and outputs use `output()`; equivalently `@Input()` / `@Output()`.
 
 ## 5.1 Core Form Components
 
-### `TextField`
+### `TextField` (`ui-text-field`) — implemented in Story 1.1
 
-Props:
+Signal inputs / `@Input()`:
 
-- `name: string`
-- `label: string`
-- `value: string`
-- `onChange: (value: string) => void`
-- `onBlur?: () => void`
+- `label: string` (required)
+- `name?: string`
+- `type?: string` (text | email | password | …)
 - `required?: boolean`
-- `maxLength?: number`
-- `error?: string`
+- `maxLength?: number | null`
+- `error?: string` (drives error styling + announced error region)
 - `hint?: string`
 - `autoComplete?: string`
 
-### `SelectField<T>`
+Behavior:
 
-Props:
+- Implements `ControlValueAccessor` — bind with `formControlName`.
+- a11y: label tied via `for`/`id`; `aria-describedby` points at the error
+  (else hint); `aria-invalid` reflects the error state; the error text lives in
+  an `aria-live="polite"` region.
 
-- `name: string`
+### `SelectField<T>` (`ui-select-field`) — future
+
+Signal inputs / `@Input()`:
+
 - `label: string`
-- `value: T | null`
+- `name?: string`
+- `value: T | null` (or via `formControlName`)
 - `options: Array<{ label: string; value: T }>`
-- `onChange: (value: T) => void`
 - `placeholder?: string`
 - `error?: string`
 
-### `TagInput`
+Output: `valueChange: output<T>()` (or CVA).
+
+### `TagInput` (`ui-tag-input`) — future
 
 For skills, projects, certifications, excluded words.
 
-Props:
+Signal inputs / `@Input()`:
 
-- `values: string[]`
-- `onChange: (values: string[]) => void`
+- `values: string[]` (or via `formControlName`)
 - `maxItemLength?: number`
 - `maxItems?: number`
 - `allowDuplicates?: boolean`
 - `error?: string`
 
+Output: `valuesChange: output<string[]>()` (or CVA).
+
 ## 5.2 Domain Components
 
-### `ProfileForm`
+Domain components compose the core wrappers and emit Angular `output()` events.
 
-Input model:
+### `ProfileForm` (`feature-profile-form`)
+
+Input model (typed Reactive Form):
 
 - `loginName?: string`
 - `email?: string`
@@ -390,23 +481,23 @@ Input model:
 - `about?: string`
 - `avatar?: string`
 
-Events:
+Outputs:
 
-- `onSubmit(payload: UpdateCurrentUserPayload)`
-- `onCancel()`
+- `submit: output<UpdateCurrentUserPayload>()`
+- `cancel: output<void>()`
 
-### `AvatarUploader`
+### `AvatarUploader` (`feature-avatar-uploader`)
 
-Props:
+Signal inputs / `@Input()`:
 
 - `currentAvatar?: string`
 - `maxBytes: number` (must be 5 MB)
 - `acceptedMimeTypes: string[]` (jpeg, jpg, png, webp, gif)
 
-Events:
+Outputs:
 
-- `onUpload(file: File)`
-- `onDelete()`
+- `upload: output<File>()`
+- `delete: output<void>()`
 
 ### `ResumeForm`
 
@@ -480,9 +571,12 @@ Expected fields:
 
 Frontend contract:
 
-- Normalize all non-2xx responses into a single `ApiError` model.
+- One HTTP interceptor normalizes all non-2xx responses into a single typed
+  `ProblemDetails` model (`status`, `title`, `detail`, `instance`, `errors?`,
+  `traceId`, `code?`) and rethrows it. [Decision 1.1; implemented in Story 1.1]
 - Surface `errors[field]` messages inline for forms.
-- Surface generic banner for non-validation failures.
+- Surface a generic banner for non-validation failures; never show a raw status
+  code.
 
 ## 6.3 Cursor Pagination Contract
 

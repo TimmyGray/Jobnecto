@@ -1,0 +1,92 @@
+<main class="min-h-screen flex items-center justify-center px-4 py-12">
+  <section
+    class="w-full max-w-md rounded-lg border border-border-default bg-surface p-8 shadow-md"
+    aria-labelledby="sign-up-heading"
+  >
+    <p class="mb-2 font-mono text-xs uppercase tracking-wide text-text-muted">
+      Welcome
+    </p>
+    <h1 id="sign-up-heading" class="mb-1 text-xl font-semibold text-text-primary">
+      Create your <span class="font-serif italic text-brand-accent">Jobnecto</span> account
+    </h1>
+    <p class="mb-6 text-md text-text-secondary">
+      Register and land straight inside the app — no separate sign-in step.
+    </p>
+
+    <!-- Conflict (409) guidance — plain language, never a raw status code. [AC9] -->
+    @if (conflictMessage()) {
+      <div
+        class="mb-4 rounded-md border border-status-warning bg-status-warning-bg px-4 py-3 text-sm text-text-primary"
+        role="alert"
+        aria-live="assertive"
+      >
+        {{ conflictMessage() }}
+      </div>
+    }
+
+    <!-- Generic non-field error banner. -->
+    @if (generalError()) {
+      <div
+        class="mb-4 rounded-md border border-status-danger px-4 py-3 text-sm text-status-danger"
+        role="alert"
+        aria-live="assertive"
+      >
+        {{ generalError() }}
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <div class="flex flex-col gap-4">
+        <ui-text-field
+          formControlName="loginName"
+          label="Login name"
+          name="loginName"
+          autoComplete="username"
+          [required]="true"
+          [maxLength]="50"
+          hint="3–50 characters: letters, numbers, or underscore."
+          [error]="errorFor('loginName')"
+        />
+
+        <ui-text-field
+          formControlName="email"
+          label="Email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          [required]="true"
+          [maxLength]="50"
+          [error]="errorFor('email')"
+        />
+
+        <ui-text-field
+          formControlName="password"
+          label="Password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          [required]="true"
+          [maxLength]="50"
+          hint="8–50 characters."
+          [error]="errorFor('password')"
+        />
+      </div>
+
+      <button
+        type="submit"
+        class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-action-primary px-4 py-3 text-md font-medium text-text-inverse transition-colors duration-standard hover:bg-action-primary-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focus"
+        [disabled]="!canSubmit"
+      >
+        @if (submitting()) {
+          <span
+            class="h-4 w-4 animate-spin rounded-full border-2 border-text-inverse border-t-transparent"
+            aria-hidden="true"
+          ></span>
+          <span>Creating account…</span>
+        } @else {
+          <span>Create account</span>
+        }
+      </button>
+    </form>
+  </section>
+</main>
