@@ -150,12 +150,12 @@ Amelia (bmad-agent-dev) — claude-opus-4-7.
 - **Unit tests (final):** `npx ng test --no-watch` → `Test Files 7 passed (7)`, `Tests 47 passed (47)`.
 - **Production build (final):** `npx ng build` → `Application bundle generation complete.` Lazy chunks `sign-up-page`, `dashboard-page` emitted; `styles.css` compiled with token CSS vars (verified `var(--color-action-primary)` / `var(--color-bg-canvas)` / `var(--color-brand-accent)` present in built CSS → AC2).
 - **OpenAPI generation:** backend started in Development on `http://localhost:5000` (readiness confirmed `200` on `/openapi/v1.json`), `npm run gen:api` emitted `src/shared/api/generated/schema.ts`, backend then stopped.
-- No backend changes; `frontend/design-examples/` preserved.
+- Backend CORS enabling change (`CorsServiceExtensions.AllowCredentials()` + `appsettings.Development.json` adds `localhost:4200`) so the SPA cookie transport works in dev; base `appsettings.json` left fail-closed (`AllowedOrigins: []`). `frontend/design-examples/` preserved.
 
 ### Completion Notes List
 
 - Scaffolded the brownfield Angular 21 standalone SPA in `frontend/` (feature-sliced: app / processes / pages / widgets / features / entities / shared), preserving `frontend/design-examples/`. tsconfig path aliases added per slice.
-- Career-OS token layer authored as the single source (`shared/config/tokens.ts`) → CSS custom properties (`styles.scss :root`) → Tailwind `theme.extend` (referencing the vars). Components use token-mapped utility classes only; verified no hardcoded hex reaches built CSS (AC2).
+- Career-OS token layer: `styles.scss :root` is the canonical CSS-variable source, Tailwind `theme.extend` maps utility classes onto those vars, and `shared/config/tokens.ts` is a typed TS mirror — the three are kept in sync by hand (no generator yet; tracked as a follow-up). Components use token-mapped utility classes only; verified no hardcoded hex reaches built CSS (AC2).
 - HTTP interceptor sets `withCredentials: true` on every request, prefixes relative URLs with the configured API base, and normalizes any non-2xx RFC 7807 body into a typed `ProblemDetails` (lifts `traceId`/`code` from extensions; coerces single-string error values) (AC3).
 - OpenAPI types generated (not hand-authored) and re-exported through `entities/user` (AC4).
 - Standardized `EmptyState` / `ErrorState` (Retry, role=alert/assertive) / `NotFoundState` (back) / `Skeleton` (aria-hidden, reduced-motion honored) added to `shared/ui` (AC5).
@@ -243,3 +243,14 @@ _Blueprint placeholders (no code yet — materialized in later stories):_
 ### Change Log
 
 - 2026-05-27: Implemented Story 1.1 — scaffolded the Angular 21 SPA foundation (feature-sliced, Career-OS tokens, withCredentials + RFC 7807 → ProblemDetails interceptor, OpenAPI type generation, standardized state components) and the `/sign-up` registration flow (POST /api/v1/users → 201 → /dashboard → hydrate GET /api/v1/users/me) with 400/409 error mapping. 47 unit/integration tests pass; production build green. Rewrote the FE Implementation Guide Angular-authoritative. (Amelia / dev-story)
+- 2026-05-27: Code review (fresh context) → **APPROVE-WITH-NITS**, no Critical/High. Applied pre-merge fixes: **MED-1** (reverted base `appsettings.json` `Cors:AllowedOrigins` to `[]`, fail-closed; dev origins stay in `appsettings.Development.json`), **MED-2** (corrected `tokens.ts`/`tailwind.config.js` comments — `styles.scss` is the CSS-var source, `tokens.ts` a typed mirror, hand-synced), **NIT-1** (restored `appsettings.json` trailing newline). LOW/NIT items deferred — see Code Review Follow-ups. (Amelia)
+
+### Code Review Follow-ups (deferred, non-blocking)
+
+These were raised in review, do not manifest in Story 1.1, and are tracked for a later story (likely 1.3 sign-in screen or the first form-heavy story):
+
+- **LOW-1** — `shared/ui/form/text-field.ts`: OnPush component binds plain fields `[value]`/`[disabled]`; `writeValue`/`setDisabledState` won't trigger re-render (latent — form is always empty here). Fix: signal-back `value`/`disabled` or call `ChangeDetectorRef.markForCheck()`. Address before any form uses `patchValue`/`reset`/programmatic `disable()`.
+- **LOW-2** — `pages/auth-sign-up/sign-up.page.ts`: a 201 followed by a failed `GET /users/me` surfaces a sign-up error despite the account being created. Fix: on hydration failure after 201, still navigate to `/dashboard` (degrades gracefully when profile is null).
+- **LOW-3** — `features/user/sign-up/sign-up.validators.ts`: client email regex requires a dotted domain, marginally stricter than the server's `.EmailAddress()`. Reconcile or drop the "exact mirror" claim.
+- **NIT-2** — `entities/user/model.ts`: unused `SignUpInput` type; remove or use it.
+- **Token generator** — build a real `tokens.ts → CSS vars / Tailwind` generation step so the three token surfaces have a true single source (currently hand-synced).

@@ -1,11 +1,11 @@
 /**
  * Tailwind v3 theme wired to the Career-OS token layer.
  *
- * Single source of truth: src/shared/config/tokens.ts emits CSS custom
- * properties (see src/styles.scss `:root`). This config maps Tailwind theme
- * keys onto those CSS vars, so utility classes (e.g. `bg-canvas`,
+ * The CSS-variable source is src/styles.scss (`:root`). This config maps Tailwind
+ * theme keys onto those CSS vars, so utility classes (e.g. `bg-canvas`,
  * `text-primary`, `rounded-md`) resolve to token values and components never
- * hardcode hex/px. [AC2, UX-DR1]
+ * hardcode hex/px. src/shared/config/tokens.ts is a typed TS mirror of the same
+ * values; the three surfaces are kept in sync by hand (no generator yet). [AC2, UX-DR1]
  */
 /** @type {import('tailwindcss').Config} */
 module.exports = {
