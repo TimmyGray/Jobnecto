@@ -312,12 +312,12 @@ If any new tests are added, namespaces must mirror folder structure:
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-r-authorization-ownership-hardening.md` — Scope Context + Story R.2 AC block] — story origin
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-r-authorization-ownership-hardening.md` — Scope Context + Story R.2 AC block] — story origin
 - [Source: `_bmad-output/planning-artifacts/epics/requirements-inventory.md` — FR27, FR28] — requirements text being affirmed
 - [Source: `_bmad-output/project-context.md` — "Active HTTP endpoints"] — canonical endpoint inventory
 - [Source: `backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs`] — exception → status mapping
 - [Source: `backend/src/JobNecto.Infrastructure/Repositories/BaseRepository.cs` — `GetByIdAsync`, `GetAsync`] — repository-level scoping baseline
-- [Source: `_bmad-output/implementation-artifacts/r-1-separate-soft-delete-repository-contract.md`] — R.1 patterns to mirror in any gap-closure tests
+- [Source: `_bmad-output/archive/implementation-artifacts/r-1-separate-soft-delete-repository-contract.md`] — R.1 patterns to mirror in any gap-closure tests
 - [Source: `AGENTS.md`] — build/test commands, namespace rules, secret rules
 
 ## Open Questions
@@ -353,10 +353,11 @@ No blocking issues encountered. All 29 endpoints audited in a single pass; one O
 - `backend/src/JobNecto.API/Controllers/ResumesController.cs` — removed false `[ProducesResponseType(400)]` from `DeleteAsync`
 - `_bmad-output/planning-artifacts/architecture/endpoint-ownership-audit.md` — created (audit deliverable)
 - `_bmad-output/planning-artifacts/architecture/index.md` — added link to audit doc
-- `_bmad-output/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` — this story file
+- `_bmad-output/archive/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` — this story file
 
 ## Change Log
 
 - 2026-05-21: Story drafted by Amelia (bmad-create-story). Status set to `ready-for-dev`. 14 ACs, 12 tasks. No code changes expected unless audit surfaces a gap; OpenAPI attribute reconciliation is most likely scope. Sprint status `r-2-endpoint-ownership-policy-audit-and-gap-closure` flipped from `backlog` to `ready-for-dev`.
 - 2026-05-21: Story implemented by Amelia (claude-sonnet-4-6). Audit complete — no behavioral gaps. One OpenAPI metadata gap closed (`ResumesController.DeleteAsync` 400 removed). Audit doc created. Build+tests pass (477/477). Status → `review`.
 - 2026-05-25: Passed independent code review (no blocking issues); approved and merged. Status → done.
+

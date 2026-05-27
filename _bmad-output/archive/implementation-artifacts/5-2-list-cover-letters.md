@@ -155,7 +155,7 @@ if (lastSeenId.HasValue != lastSeenUpdatedAt.HasValue)
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-5-cover-letter-application-management.md` — Story 5.2]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-5-cover-letter-application-management.md` — Story 5.2]
 - [Source: `_bmad-output/planning-artifacts/epics/requirements-inventory.md` — FR20, NFR10]
 - [Source: `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md` — Decision 3, 7]
 - [Source: `_bmad-output/agent-learnings.md` — XOR cursor validation, BadRequest shape]
@@ -183,4 +183,5 @@ claude-sonnet-4-6
 - `backend/src/JobNecto.Infrastructure/Repositories/CoverLetterRepository.cs` (UPDATED — implements ICoverLetterRepository, adds GetPagedListAsync)
 - `backend/src/JobNecto.Infrastructure/Persistance/UnitOfWork.cs` (UPDATED — return type for CoverLetterRepository)
 - `backend/src/JobNecto.API/Controllers/CoverLettersController.cs` (UPDATED — GET list endpoint added)
-- `_bmad-output/implementation-artifacts/5-2-list-cover-letters.md` (this file)
+- `_bmad-output/archive/implementation-artifacts/5-2-list-cover-letters.md` (this file)
+

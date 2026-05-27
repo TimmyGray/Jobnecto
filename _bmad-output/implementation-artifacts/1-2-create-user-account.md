@@ -141,7 +141,7 @@ public static CreateUserResult ToCreateUserResult(this User user) { ... }
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-1-foundation-user-profile-management.md` - Story 1.2]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-1-foundation-user-profile-management.md` - Story 1.2]
 - [Source: `_bmad-output/planning-artifacts/architecture.md` - Project Context Analysis, Decision 1, Decision 2, Decision 4, Decision 5, Decision 7]
 - [Source: `_bmad-output/planning-artifacts/prd.md` - Feature: Create User Profile (POST /api/v1/users)]
 - [Source: `backend/src/JobNecto.API/Program.cs`]
@@ -190,3 +190,4 @@ GitHub Copilot (Gemini 1.5 Flash)
 - `backend/tests/JobNecto.Tests/API/UsersApiTests.cs`
 - `backend/tests/JobNecto.Tests/Application/Users/CreateUserHandlerTests.cs`
 - `backend/tests/JobNecto.Tests/Application/Users/CreateUserValidatorTests.cs`
+

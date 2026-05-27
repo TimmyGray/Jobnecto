@@ -107,7 +107,7 @@ public class CoverLetterUpdateResult
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-5-cover-letter-application-management.md` — Story 5.4]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-5-cover-letter-application-management.md` — Story 5.4]
 - [Source: `_bmad-output/planning-artifacts/epics/requirements-inventory.md` — FR22, NFR2]
 - [Source: `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md` — Decision 2, 6, 7]
 - [Source: `_bmad-output/agent-learnings.md` — timestamp in handlers, 403 vs 404 semantics]
@@ -133,4 +133,5 @@ claude-sonnet-4-6
 - `backend/tests/JobNecto.Tests/Application/CoverLetters/UpdateCoverLetterCommandValidatorTests.cs` (CREATED)
 - `backend/src/JobNecto.Application/CoverLetters/Mappers/CoverLetterMappers.cs` (UPDATED — ToUpdateResult mapper added)
 - `backend/src/JobNecto.API/Controllers/CoverLettersController.cs` (UPDATED — PATCH /{id} endpoint added)
-- `_bmad-output/implementation-artifacts/5-4-update-cover-letter-content.md` (this file)
+- `_bmad-output/archive/implementation-artifacts/5-4-update-cover-letter-content.md` (this file)
+

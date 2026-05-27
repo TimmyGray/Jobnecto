@@ -60,8 +60,10 @@ nodes:
           Identify changed files on this branch:
             git diff --name-only origin/master...HEAD
 
-          Read any story file in _bmad-output/implementation-artifacts/ referenced by or
-          matching the branch name (to find the acceptance criteria).
+          Read the relevant story file from either:
+          - _bmad-output/implementation-artifacts/ (active), or
+          - _bmad-output/archive/implementation-artifacts/ (archived done stories),
+          based on what the branch references.
           Read the changed test files.
           Read _bmad-output/agent-learnings.md for known problem patterns.
 

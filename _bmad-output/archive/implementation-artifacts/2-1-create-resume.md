@@ -61,7 +61,7 @@ So that I can describe what kind of role I'm looking for.
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-2-resume-education-management.md` - Story 2.1]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-2-resume-education-management.md` - Story 2.1]
 - [Source: `backend/src/JobNecto.Domain/Entities/Resume.cs`]
 - [Source: `backend/src/JobNecto.API/Controllers/UsersController.cs`]
 - [Source: `backend/src/JobNecto.Application/Users/CreateUserCommandHandler.cs`]
@@ -74,7 +74,7 @@ GitHub Copilot (Gemini 1.5 Flash)
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/2-1-create-resume.md`
+- `_bmad-output/archive/implementation-artifacts/2-1-create-resume.md`
 - `backend/src/JobNecto.Application/Resumes/CreateResumeCommand.cs`
 - `backend/src/JobNecto.Application/Resumes/CreateResumeCommandHandler.cs`
 - `backend/src/JobNecto.Application/Resumes/Validators/CreateResumeCommandValidator.cs`
@@ -83,3 +83,4 @@ GitHub Copilot (Gemini 1.5 Flash)
 - `backend/tests/JobNecto.Tests/Application/Resumes/CreateResumeValidatorTests.cs`
 - `backend/tests/JobNecto.Tests/Application/Resumes/CreateResumeHandlerTests.cs`
 - `backend/tests/JobNecto.Tests/API/ResumesApiTests.cs`
+

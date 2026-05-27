@@ -70,7 +70,7 @@ so that it disappears from my list without permanent data loss.
 
 ### References
 
-- `_bmad-output/planning-artifacts/epics/epic-2-resume-education-management.md`
+- `_bmad-output/archive/planning-artifacts/epics/epic-2-resume-education-management.md`
 - `_bmad-output/planning-artifacts/epics/requirements-inventory.md`
 - `backend/src/JobNecto.API/Controllers/ResumesController.cs`
 - `backend/src/JobNecto.Application/Interfaces/IUnitOfWork.cs`
@@ -112,3 +112,4 @@ GitHub Copilot (GPT-5.3-Codex)
 
 - 2026-05-01: Created Story 2.5 implementation artifact and task checklist.
 - 2026-05-01: Implemented Story 2.5 endpoint/application flow, added unit/integration tests, and completed verification gates.
+

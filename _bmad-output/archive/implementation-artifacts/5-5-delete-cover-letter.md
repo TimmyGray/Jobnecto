@@ -97,7 +97,7 @@ Follow `DeleteCoverLetterTemplateCommandHandler.cs` exactly for the handler stru
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-5-cover-letter-application-management.md` — Story 5.5]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-5-cover-letter-application-management.md` — Story 5.5]
 - [Source: `_bmad-output/planning-artifacts/epics/requirements-inventory.md` — FR23, NFR5]
 - [Source: `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md` — Decision 6, 7]
 
@@ -121,4 +121,5 @@ claude-sonnet-4-6
 - `backend/tests/JobNecto.Tests/Application/CoverLetters/DeleteCoverLetterCommandHandlerTests.cs` (CREATED)
 - `backend/tests/JobNecto.Tests/Application/CoverLetters/DeleteCoverLetterCommandValidatorTests.cs` (CREATED)
 - `backend/src/JobNecto.API/Controllers/CoverLettersController.cs` (UPDATED — DELETE /{id} endpoint added)
-- `_bmad-output/implementation-artifacts/5-5-delete-cover-letter.md` (this file)
+- `_bmad-output/archive/implementation-artifacts/5-5-delete-cover-letter.md` (this file)
+

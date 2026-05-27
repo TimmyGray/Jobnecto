@@ -181,7 +181,7 @@ Examine `EditableRepository<T>` in `backend/src/JobNecto.Infrastructure/Reposito
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-1-foundation-user-profile-management.md` — Story 1.3]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-1-foundation-user-profile-management.md` — Story 1.3]
 - [Source: `_bmad-output/planning-artifacts/prd.md` — Feature: Retrieve Current User (GET /api/v1/users/me)]
 - [Source: `_bmad-output/planning-artifacts/architecture.md` — Decision 1 (MediatR), Decision 3 (Repository), Decision 5 (Async), Decision 7 (Ownership)]
 - [Source: `backend/src/JobNecto.API/Controllers/UsersController.cs`]
@@ -248,3 +248,4 @@ GitHub Copilot (GPT-5.3-Codex)
 ## Change Log
 
 - 2026-04-23: Implemented Story 1.3 end-to-end (`GET /api/v1/users/me`), added user-scoped repository query contracts and infrastructure implementations, and added unit/integration coverage. Validated with full `dotnet build` and `dotnet test` on `backend/JobNecto.slnx`.
+

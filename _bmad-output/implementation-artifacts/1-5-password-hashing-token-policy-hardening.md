@@ -71,7 +71,7 @@ so that all authenticated features in later epics build on a secure and explicit
 - Update planning artifacts:
   - `_bmad-output/planning-artifacts/prd.md`
   - `_bmad-output/planning-artifacts/architecture.md`
-  - `_bmad-output/planning-artifacts/epics/epic-1-foundation-user-profile-management.md`
+  - `_bmad-output/archive/planning-artifacts/epics/epic-1-foundation-user-profile-management.md`
 - Expected implementation areas:
   - `backend/src/JobNecto.Application`
   - `backend/src/JobNecto.Infrastructure`
@@ -87,8 +87,8 @@ so that all authenticated features in later epics build on a secure and explicit
 
 ### References
 
-- [Source: `_bmad-output/implementation-artifacts/epic-1-retro-2026-04-22.md`]
-- [Source: `_bmad-output/planning-artifacts/epics/epic-1-foundation-user-profile-management.md` - Story 1.5]
+- [Source: `_bmad-output/archive/implementation-artifacts/epic-1-retro-2026-04-22.md`]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-1-foundation-user-profile-management.md` - Story 1.5]
 - [Source: `_bmad-output/planning-artifacts/prd.md`]
 - [Source: `_bmad-output/planning-artifacts/architecture.md`]
 - [Source: `_bmad-output/implementation-artifacts/1-2-create-user-account.md`]
@@ -116,10 +116,10 @@ GitHub Copilot
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/planning-artifacts/prd.md`
 - `_bmad-output/planning-artifacts/architecture.md`
-- `_bmad-output/planning-artifacts/epics/epic-1-foundation-user-profile-management.md`
+- `_bmad-output/archive/planning-artifacts/epics/epic-1-foundation-user-profile-management.md`
 - `_bmad-output/planning-artifacts/epics/requirements-inventory.md`
-- `_bmad-output/planning-artifacts/epics/epic-3-cover-letter-template-library.md`
-- `_bmad-output/planning-artifacts/epics/epic-2-resume-education-management.md`
+- `_bmad-output/archive/planning-artifacts/epics/epic-3-cover-letter-template-library.md`
+- `_bmad-output/archive/planning-artifacts/epics/epic-2-resume-education-management.md`
 - `backend/src/JobNecto.Application/Interfaces/IPasswordHasher.cs`
 - `backend/src/JobNecto.Application/Users/CreateUserCommandHandler.cs`
 - `backend/src/JobNecto.Application/Users/Mappers/UserMappers.cs`
@@ -156,3 +156,4 @@ GitHub Copilot
 - [x] [Review]\[Patch\] Password hash format validation is too permissive and accepts undersized weak payloads [backend/src/JobNecto.Infrastructure/Services/Pbkdf2PasswordHasher.cs:95]
 - [x] [Review]\[Patch\] Story-related planning artifacts contain mojibake text in requirement ranges/symbols [\_bmad-output/planning-artifacts/epics/requirements-inventory.md:18]
 - [x] [Review]\[Patch\] `CreateUserCommand` comment contradicts implemented password-hardening scope [backend/src/JobNecto.Application/Users/CreateUserCommand.cs:22]
+

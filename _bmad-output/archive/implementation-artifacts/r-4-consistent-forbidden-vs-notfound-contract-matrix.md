@@ -67,7 +67,7 @@ The following matrix is the canonical source of truth. The permanent doc at `_bm
 
 - [x] Task 1: Read inputs and confirm matrix dimensions (AC: 4)
   - [x] Read `_bmad-output/project-context.md` "Active HTTP endpoints" and confirm the 14 endpoints in the matrix above remain the right scope (no endpoint added or removed since 2026-05-11)
-  - [x] Read `_bmad-output/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` Dev Notes "Inventory of Endpoints in Scope" (rows 10–12, 15–17, 20–22, 24, 25, 27–29) and confirm alignment
+  - [x] Read `_bmad-output/archive/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` Dev Notes "Inventory of Endpoints in Scope" (rows 10–12, 15–17, 20–22, 24, 25, 27–29) and confirm alignment
   - [x] If R.2 has progressed and its audit doc `_bmad-output/planning-artifacts/architecture/endpoint-ownership-audit.md` exists, read its "Open Items for R.4" section (per R.2 AC 12) and merge those items into Task 4's reconciliation list
   - [x] If R.2 is still `ready-for-dev` (no audit doc yet), proceed with the inventory baseline from R.2 Dev Notes — note in the Dev Agent Record which input source was used
 
@@ -257,9 +257,9 @@ For the `Mock<IMutableRepository<T>>` mock (Resume, Education, CoverLetter, Cove
 | File | Why |
 | --- | --- |
 | `_bmad-output/project-context.md` | Active HTTP endpoints (AC 4) |
-| `_bmad-output/planning-artifacts/epics/epic-r-authorization-ownership-hardening.md` | Story origin (AC source) |
-| `_bmad-output/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` | Audit baseline; "Open Items for R.4" if audit doc exists |
-| `_bmad-output/implementation-artifacts/r-3-authorization-regression-integration-suite.md` | Consumer of the matrix (Test Reference column) |
+| `_bmad-output/archive/planning-artifacts/epics/epic-r-authorization-ownership-hardening.md` | Story origin (AC source) |
+| `_bmad-output/archive/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` | Audit baseline; "Open Items for R.4" if audit doc exists |
+| `_bmad-output/archive/implementation-artifacts/r-3-authorization-regression-integration-suite.md` | Consumer of the matrix (Test Reference column) |
 | `backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs` | Exception → status mapping (AC 6) |
 | 14 handler files listed in Task 3 | Conformance verification |
 | 5 controller files listed in Task 6 | `[ProducesResponseType]` reconciliation |
@@ -309,14 +309,14 @@ No new C# files are created by this story unless Task 5 adds a new test file (pr
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-r-authorization-ownership-hardening.md` — Story R.4 AC block] — story origin
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-r-authorization-ownership-hardening.md` — Story R.4 AC block] — story origin
 - [Source: `_bmad-output/planning-artifacts/epics/requirements-inventory.md` — FR27, FR28] — requirements text being affirmed
 - [Source: `_bmad-output/project-context.md` — "Active HTTP endpoints"] — canonical endpoint inventory (AC 4)
-- [Source: `_bmad-output/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` — Dev Notes "Canonical Behaviors To Affirm" and "Inventory of Endpoints in Scope"] — audit baseline (AC 3)
-- [Source: `_bmad-output/implementation-artifacts/r-3-authorization-regression-integration-suite.md` — Dev Notes "Resource → Endpoint → Expected Cross-User Status Matrix"] — regression suite that will consume this matrix (AC 14)
+- [Source: `_bmad-output/archive/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` — Dev Notes "Canonical Behaviors To Affirm" and "Inventory of Endpoints in Scope"] — audit baseline (AC 3)
+- [Source: `_bmad-output/archive/implementation-artifacts/r-3-authorization-regression-integration-suite.md` — Dev Notes "Resource → Endpoint → Expected Cross-User Status Matrix"] — regression suite that will consume this matrix (AC 14)
 - [Source: `backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs`] — exception → status mapping (AC 6)
 - [Source: `backend/src/JobNecto.Infrastructure/Repositories/BaseRepository.cs` — `GetByIdAsync`] — repository-level not-found / soft-delete baseline
-- [Source: `_bmad-output/implementation-artifacts/r-1-separate-soft-delete-repository-contract.md`] — R.1 test patterns to mirror (AC 5)
+- [Source: `_bmad-output/archive/implementation-artifacts/r-1-separate-soft-delete-repository-contract.md`] — R.1 test patterns to mirror (AC 5)
 - [Source: `AGENTS.md`] — build/test commands, namespace rules, secret rules
 
 ## Open Questions
@@ -357,10 +357,11 @@ Test: `dotnet test backend/JobNecto.slnx --configuration Release --warnaserror` 
 - `backend/src/JobNecto.API/Controllers/CoverLetterTemplatesController.cs` — removed false `[ProducesResponseType(StatusCodes.Status409Conflict)]` from `UpdateAsync` PATCH action
 - `_bmad-output/planning-artifacts/architecture/authorization-contract-matrix.md` — CREATED (canonical matrix doc, AC 1)
 - `_bmad-output/planning-artifacts/architecture/index.md` — added "Contract Matrices" section with link to matrix doc (AC 13)
-- `_bmad-output/implementation-artifacts/r-4-consistent-forbidden-vs-notfound-contract-matrix.md` — this story file (status, tasks, Dev Agent Record, File List, Change Log)
+- `_bmad-output/archive/implementation-artifacts/r-4-consistent-forbidden-vs-notfound-contract-matrix.md` — this story file (status, tasks, Dev Agent Record, File List, Change Log)
 
 ## Change Log
 
 - 2026-05-21: Story drafted by Amelia (bmad-create-story). Status set to `ready-for-dev`. 16 ACs, 10 tasks. Codifies the canonical 403-vs-404 contract for 14 user-scoped detail/update/delete endpoints × 3 scenarios (not-found, soft-deleted, cross-user), embeds the matrix in the story and as a permanent doc at `_bmad-output/planning-artifacts/architecture/authorization-contract-matrix.md`, and reconciles any handler / OpenAPI deviation surfaced during verification. Sprint status `r-4-consistent-forbidden-vs-notfound-contract-matrix` flipped from `backlog` to `ready-for-dev`.
 - 2026-05-23: Story implemented by Amelia (claude-sonnet-4-6). No handler-level deviations found. One OpenAPI gap closed (CoverLetterTemplatesController.UpdateAsync false 409 removed). Canonical matrix doc created. All 14 matrix cells have existing test coverage — no new tests added. Build 0 warnings/errors; tests 520/520 passed. Status → `review`.
 - 2026-05-23: Code review (bmad-code-review). 3 patches applied: (1) restored 409 on PATCH cover-letter-templates — unique index IX_CoverLetterTemplates_UserId_Name makes it reachable; (2) matrix doc corrected with OpenAPI Notes section; (3) story embedded matrix updated to 7-column format (AC 2). 2 items deferred (concurrent rename race, GlobalExceptionHandler fallback). Build clean post-patches. Status → `done`.
+

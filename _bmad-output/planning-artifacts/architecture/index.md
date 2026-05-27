@@ -17,6 +17,10 @@ The architecture document is organized into the following shards:
 
 8. **[Authorization Contract Matrix (R.4)](authorization-contract-matrix.md)** - Canonical 403-vs-404 matrix for all 14 user-scoped detail/update/delete endpoints × 3 failure scenarios (not-found, soft-deleted, cross-user); exception paths, test references, and OpenAPI attribute conformance; source of truth for R.3 regression suite
 
+## Demo MVP (Phase D — frontend + LLM generation)
+
+9. **[Demo MVP — Architecture Decisions](demo-mvp-architecture-decisions.md)** - Contract-first baseline for the Demo MVP parallel tracks: (1) ratified Angular stack/state/forms remap (Signals + services, native server cache, typed Reactive Forms, spartan-ng/CDK); (2) FR4 sign-in resolved via new `POST /api/v1/users/sessions` (email-or-login, generic 401); (3) pinned `POST /api/v1/cover-letters/generate` contract (200 draft, no persist; 400/401/404/429/502/504; no 409; provider-agnostic `ICoverLetterGenerator` seam)
+
 ## How to Use
 
 - **Starting a story?** Read `project-context-analysis.md` to understand constraints and requirements.

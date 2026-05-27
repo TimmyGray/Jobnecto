@@ -345,7 +345,7 @@ Do **not** modify Resume, Education, or any other entity handlers, repositories,
 
 ### References
 
-- [Epic 3 source](_bmad-output/planning-artifacts/epics/epic-3-cover-letter-template-library.md) — Story 3.2 ACs
+- [Epic 3 source](_bmad-output/archive/planning-artifacts/epics/epic-3-cover-letter-template-library.md) — Story 3.2 ACs
 - [Core architectural decisions](_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md) — MediatR, pagination, ownership patterns
 - [Story 3.1 dev notes](3-1-create-cover-letter-template.md) — entity field vs property gotcha, test patterns, cookie auth
 - [Pattern: ListEducationsQueryHandler](backend/src/JobNecto.Application/Educations/ListEducationsQueryHandler.cs)
@@ -392,7 +392,7 @@ AC coverage:
 - `backend/tests/JobNecto.Tests/Application/CoverLetterTemplates/ListCoverLetterTemplatesQueryHandlerTests.cs` — new: 8 unit tests
 - `backend/tests/JobNecto.Tests/API/CoverLetterTemplates/CoverLetterTemplatesApiTests.cs` — updated: 8 integration tests added
 - `backend/tests/JobNecto.Tests/API/CoverLetterTemplates/CoverLetterTemplatesUniquenessApiTests.cs` — patched: fixed pre-existing CS8602 nullable warnings
-- `_bmad-output/implementation-artifacts/3-2-list-cover-letter-templates.md` — this file
+- `_bmad-output/archive/implementation-artifacts/3-2-list-cover-letter-templates.md` — this file
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — updated: status to review
 
 ## Change Log
@@ -402,3 +402,4 @@ AC coverage:
 ## Story Completion Status
 
 - Ultimate context engine analysis completed - comprehensive developer guide created.
+

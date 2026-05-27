@@ -160,11 +160,11 @@ so that I can keep my professional identity and contact info current.
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-1-foundation-user-profile-management.md` - Story 1.4]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-1-foundation-user-profile-management.md` - Story 1.4]
 - [Source: `_bmad-output/planning-artifacts/prd.md` - Feature: Update User Profile (PATCH /api/v1/users/me)]
 - [Source: `_bmad-output/planning-artifacts/architecture.md` - Cross-Cutting Concerns (Validation, Ownership), Decision 1, Decision 4, Decision 5, Decision 7]
 - [Source: `_bmad-output/implementation-artifacts/1-3-retrieve-current-user-profile.md`]
-- [Source: `_bmad-output/implementation-artifacts/epic-1-retro-2026-04-22.md`]
+- [Source: `_bmad-output/archive/implementation-artifacts/epic-1-retro-2026-04-22.md`]
 - [Source: `backend/src/JobNecto.API/Controllers/UsersController.cs`]
 - [Source: `backend/src/JobNecto.API/Infrastructure/AuthContext.cs`]
 - [Source: `backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs`]
@@ -258,3 +258,4 @@ Dismissed during re-review as false positives:
 ## Change Log
 
 - 2026-04-25: Completed Story 1.4 implementation for profile update + avatar upload/delete with Cloudinary integration and phone uniqueness hardening. Added migration, unit/integration coverage, and passed full Debug/Release quality gates.
+

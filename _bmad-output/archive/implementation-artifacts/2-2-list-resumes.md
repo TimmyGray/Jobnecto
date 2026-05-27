@@ -222,7 +222,7 @@ No new DI wiring needed. MediatR auto-discovers handlers registered via `AddMedi
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-2-resume-education-management.md` — Story 2.2]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-2-resume-education-management.md` — Story 2.2]
 - [Source: `backend/src/JobNecto.Domain/ValueObjects/Pagination.cs`]
 - [Source: `backend/src/JobNecto.Application/Interfaces/IRepository.cs`]
 - [Source: `backend/src/JobNecto.Application/Interfaces/IUnitOfWork.cs`]
@@ -236,7 +236,7 @@ No new DI wiring needed. MediatR auto-discovers handlers registered via `AddMedi
 - [Source: `backend/tests/JobNecto.Tests/API/UsersControllerTests.cs`]
 - [Source: `backend/tests/JobNecto.Tests/Application/Resumes/CreateResumeCommandHandlerTests.cs`]
 - [Source: `backend/tests/JobNecto.Tests/Infrastructure/ResumeRepositoryTests.cs`]
-- [Source: `_bmad-output/implementation-artifacts/2-1-create-resume.md`]
+- [Source: `_bmad-output/archive/implementation-artifacts/2-1-create-resume.md`]
 
 ## Dev Agent Record
 
@@ -272,8 +272,9 @@ GitHub Copilot (Claude Sonnet 4.6)
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/2-2-list-resumes.md`
+- `_bmad-output/archive/implementation-artifacts/2-2-list-resumes.md`
 - `backend/src/JobNecto.Application/Resumes/ListResumesQuery.cs`
 - `backend/src/JobNecto.API/Controllers/ResumesController.cs`
 - `backend/tests/JobNecto.Tests/Application/Resumes/ListResumesHandlerTests.cs`
 - `backend/tests/JobNecto.Tests/API/ResumesControllerTests.cs`
+

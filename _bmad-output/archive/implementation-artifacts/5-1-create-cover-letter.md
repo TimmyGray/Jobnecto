@@ -119,7 +119,7 @@ The 409 integration test must seed a first cover letter for the user+vacancy, th
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-5-cover-letter-application-management.md` — Story 5.1]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-5-cover-letter-application-management.md` — Story 5.1]
 - [Source: `_bmad-output/planning-artifacts/epics/requirements-inventory.md` — FR19, NFR2, NFR13]
 - [Source: `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md` — Decision 2, 3, 4, 6, 7]
 - [Source: `_bmad-output/agent-learnings.md` — timestamp in handlers, BadRequest shape, DB-backed uniqueness]
@@ -152,4 +152,5 @@ claude-sonnet-4-6
 - `backend/src/JobNecto.Infrastructure/Migrations/20260510192135_AddCoverLetterUniqueVacancyPerUser.cs` (CREATED)
 - `backend/src/JobNecto.Infrastructure/Migrations/20260510192135_AddCoverLetterUniqueVacancyPerUser.Designer.cs` (CREATED)
 - `backend/src/JobNecto.Infrastructure/Migrations/AppDbContextModelSnapshot.cs` (UPDATED)
-- `_bmad-output/implementation-artifacts/5-1-create-cover-letter.md` (this file)
+- `_bmad-output/archive/implementation-artifacts/5-1-create-cover-letter.md` (this file)
+

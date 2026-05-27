@@ -79,10 +79,11 @@ claude-sonnet-4-6
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/4-3-get-vacancy-detail.md` (this file)
+- `_bmad-output/archive/implementation-artifacts/4-3-get-vacancy-detail.md` (this file)
 
 ## Change Log
 
 | Date | Summary |
 |------|---------|
 | 2026-05-10 | Implementation complete. Added `GetVacancyQuery`, `GetVacancyQueryHandler`, `ToVacancyDetailResult()` mapper, `GetAsync` controller action, 3 handler unit tests, and 5 API integration tests (including soft-delete regression test added during finalization per review finding F-1). 395 tests passing. |
+

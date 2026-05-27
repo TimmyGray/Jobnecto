@@ -231,8 +231,8 @@ Modified files:
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-2-resume-education-management.md` — Story 2.8]
-- [Source: `_bmad-output/implementation-artifacts/2-7-list-education-records.md` — auth guard pattern, EducationResult, mappers, test patterns]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-2-resume-education-management.md` — Story 2.8]
+- [Source: `_bmad-output/archive/implementation-artifacts/2-7-list-education-records.md` — auth guard pattern, EducationResult, mappers, test patterns]
 - [Source: `backend/src/JobNecto.Application/Resumes/GetResumeQueryHandler.cs` — 404-for-cross-user pattern]
 - [Source: `backend/src/JobNecto.Application/Resumes/UpdateResumeCommandHandler.cs` — ApplyUpdates, ForbiddenException, UpdatedAt pattern]
 - [Source: `backend/src/JobNecto.Application/Resumes/DeleteResumeCommandHandler.cs` — soft-delete pattern]
@@ -287,3 +287,4 @@ Modified files:
 - `backend/src/JobNecto.Application/Educations/Mappers/EducationMappers.cs`
 - `backend/src/JobNecto.API/Controllers/EducationsController.cs`
 - `backend/tests/JobNecto.Tests/API/Educations/EducationsApiTests.cs`
+

@@ -2,7 +2,7 @@
 
 ## Review Sources
 
-- `_bmad-output/implementation-artifacts/epic-2-retro-2026-05-05.md`
+- `_bmad-output/archive/implementation-artifacts/epic-2-retro-2026-05-05.md`
 - `_bmad-output/implementation-artifacts/deferred-work.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - Current architecture shards in `_bmad-output/planning-artifacts/architecture/`
@@ -100,3 +100,4 @@ These items should not be treated as blockers for starting Epic 3 unless the sto
 ## Architecture Verdict
 
 Epic 2 did not invalidate the Clean Architecture direction. The main documentation risk was drift: several shards described future or idealized patterns as if they were already implemented. The revised guidance is to keep the generic repository and vertical-slice baseline, make Epic 3 uniqueness database-backed from the start, and avoid copying the known timestamp and validator ambiguities into new resources without an explicit decision.
+

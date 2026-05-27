@@ -6,7 +6,7 @@ description: |
   runs parallel review (boundary / test / api), finalizes with doc updates and commits,
   pauses for PR approval, then opens a GitHub PR.
 
-  Use when: implementing a story from _bmad-output/implementation-artifacts/.
+  Use when: implementing an active story from _bmad-output/implementation-artifacts/.
   Triggers: "dev story", "implement story N.M", "story dev", "jobnecto story dev".
   NOT for: architecture decisions, story creation, bug fixes without a story file.
 
@@ -25,8 +25,9 @@ nodes:
 
       Read and synthesize the following documents in order:
 
-      1. Locate the story file under _bmad-output/implementation-artifacts/ that matches
-         the story ID in the input (e.g., for "Story 3.4" find 3-4-*.md). Read it fully.
+      1. Locate the active story file under _bmad-output/implementation-artifacts/ that matches
+        the story ID in the input (e.g., for "Story 3.4" find 3-4-*.md). Read it fully.
+        Do not pick files from _bmad-output/archive/ for implementation work.
       2. Read _bmad-output/planning-artifacts/architecture/index.md, then read the specific
          architecture shards it references that are relevant to this story area.
       3. Read _bmad-output/agent-learnings.md in full. Note every lesson that applies.
@@ -246,6 +247,19 @@ nodes:
            - Test count: N tests passing
 
            Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+      8. Archive completed artifacts (required)
+         - Move the completed story file from:
+             _bmad-output/implementation-artifacts/{story-file}.md
+           to:
+             _bmad-output/archive/implementation-artifacts/{story-file}.md
+         - Keep _bmad-output/implementation-artifacts/sprint-status.yaml in place.
+         - If this completion flips an epic to done, move the matching completed epic spec
+           from _bmad-output/planning-artifacts/epics/ to
+           _bmad-output/archive/planning-artifacts/epics/.
+         - If this completion flips an epic to done, also move that epic's retrospective and
+           sprint-plan artifacts (if present) into _bmad-output/archive/implementation-artifacts/.
+         - Rewrite all moved-file references to direct archive paths. Do not leave compatibility stubs.
 
          Commit 2 (docs):
            docs: update after {story-name} implementation

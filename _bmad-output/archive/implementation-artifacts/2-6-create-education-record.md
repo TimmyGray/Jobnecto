@@ -81,7 +81,7 @@ so that employers see my academic background.
 ### File Structure Requirements
 
 - New/updated files are limited to:
-  - `_bmad-output/implementation-artifacts/2-6-create-education-record.md`
+  - `_bmad-output/archive/implementation-artifacts/2-6-create-education-record.md`
   - `_bmad-output/implementation-artifacts/sprint-status.yaml`
   - `backend/src/JobNecto.Domain/Entities/Education.cs`
   - `backend/src/JobNecto.Domain/Enums/Degree.cs`
@@ -111,7 +111,7 @@ so that employers see my academic background.
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-2-resume-education-management.md` - Story 2.6]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-2-resume-education-management.md` - Story 2.6]
 - [Source: `_bmad-output/planning-artifacts/prd.md` - Education Resource / Create Education]
 - [Source: `_bmad-output/planning-artifacts/architecture.md` - CQRS, validation pipeline, clean architecture]
 - [Source: `_bmad-output/project-context.md` - test patterns, namespace rules, build/test commands]
@@ -149,7 +149,7 @@ GitHub Copilot (GPT-5.3-Codex) + Claude Sonnet 4.6
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/2-6-create-education-record.md`
+- `_bmad-output/archive/implementation-artifacts/2-6-create-education-record.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `backend/src/JobNecto.Domain/Entities/Education.cs`
 - `backend/src/JobNecto.Domain/Enums/Degree.cs`
@@ -195,3 +195,4 @@ GitHub Copilot (GPT-5.3-Codex) + Claude Sonnet 4.6
 - [x] \[Review\]\[N/A\] Align `Degree` enum with spec (remove `PostDoc`, `Other`) — N/A; spec updated — `PostDoc` and `Other` are now valid values; `Certificate` removed.
 
 - [x] \[Review\]\[N/A\] Convert `Education.UserId` from field to auto-property — N/A; `Resume.UserId` also uses a field; converting Education alone would be inconsistent. Deferred to a global entity convention cleanup.
+

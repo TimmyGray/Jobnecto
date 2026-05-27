@@ -189,15 +189,15 @@ so that I can refine my reusable material over time.
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-3-cover-letter-template-library.md` - Story 3.4]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-3-cover-letter-template-library.md` - Story 3.4]
 - [Source: `_bmad-output/planning-artifacts/epics/requirements-inventory.md` - FR17/FR28]
 - [Source: `_bmad-output/planning-artifacts/architecture/index.md`]
 - [Source: `_bmad-output/planning-artifacts/architecture/project-context-analysis.md`]
 - [Source: `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md`]
 - [Source: `_bmad-output/planning-artifacts/architecture/epic-2-architecture-revision-2026-05-05.md`]
 - [Source: `backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs`]
-- [Source: `_bmad-output/implementation-artifacts/3-2-list-cover-letter-templates.md`]
-- [Source: `_bmad-output/implementation-artifacts/3-3-get-cover-letter-template-detail.md`]
+- [Source: `_bmad-output/archive/implementation-artifacts/3-2-list-cover-letter-templates.md`]
+- [Source: `_bmad-output/archive/implementation-artifacts/3-3-get-cover-letter-template-detail.md`]
 
 ## Story Completion Status
 
@@ -240,9 +240,10 @@ GPT-5.3-Codex
 - backend/tests/JobNecto.Tests/Application/CoverLetterTemplates/UpdateCoverLetterTemplateCommandHandlerTests.cs
 - backend/tests/JobNecto.Tests/API/CoverLetterTemplates/CoverLetterTemplatesApiTests.cs
 - backend/tests/JobNecto.Tests/API/CoverLetterTemplates/CoverLetterTemplatesUniquenessApiTests.cs
-- _bmad-output/implementation-artifacts/3-4-update-cover-letter-template.md
+- _bmad-output/archive/implementation-artifacts/3-4-update-cover-letter-template.md
 - _bmad-output/implementation-artifacts/sprint-status.yaml
 
 ## Change Log
 
 - 2026-05-10: Implemented Story 3.4 update flow (`PATCH /api/v1/cover-letter-templates/{id}`), added validation/handler/mapper changes, expanded unit+integration+PostgreSQL uniqueness tests, and passed all verification gates.
+

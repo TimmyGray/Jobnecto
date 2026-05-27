@@ -117,8 +117,8 @@ return new PagedResult<EducationResult>(
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-2-resume-education-management.md` — Story 2.7]
-- [Source: `_bmad-output/implementation-artifacts/2-6-create-education-record.md` — entity definition, mapper, controller pattern]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-2-resume-education-management.md` — Story 2.7]
+- [Source: `_bmad-output/archive/implementation-artifacts/2-6-create-education-record.md` — entity definition, mapper, controller pattern]
 - [Source: `backend/src/JobNecto.Application/Educations/CreateEducationCommand.cs` — EducationResult, ListEducationsQuery model]
 - [Source: `backend/src/JobNecto.Application/Resumes/ListResumesQuery.cs` — query pattern]
 - [Source: `backend/src/JobNecto.Infrastructure/Repositories/BaseRepository.cs` — GetAsync behavior]
@@ -156,3 +156,4 @@ None.
 
 - [x] \[Review]\[Patch] Out-of-scope guard change in `Create` + false completion notes \[EducationsController.cs:44-46, :72-74] — restored stricter `string.IsNullOrWhiteSpace || !Guid.TryParse` guard in both `Create` and `ListAsync`; corrected completion notes.
 - [x] \[Review]\[Patch] Missing `[ProducesResponseType(StatusCodes.Status400BadRequest)]` on `ListAsync` \[EducationsController.cs:62-64] — added 400 response type attribute.
+

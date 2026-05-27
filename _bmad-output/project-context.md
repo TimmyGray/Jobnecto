@@ -37,6 +37,8 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 **Layers:** API → Application → Domain; **Infrastructure** (+ **Infrastructure.LLM**, **Infrastructure.JobSources**) implement persistence and integrations. **Do not** reference Infrastructure from Domain or invert dependencies.
 
+**Repo layout:** the .NET backend lives in **`backend/`**. **All frontend code MUST live in the repo-root `frontend/` folder** (Angular SPA workspace root: `frontend/angular.json`, `frontend/package.json`, `frontend/src/…`, feature-sliced per FE Guide §2.2). Never scatter client code under `backend/`, the repo root, or elsewhere. Preserve `frontend/design-examples/` (non-binding visual references). The Demo MVP / Phase D frontend stack is **Angular** (standalone components, Signals + services — no NgRx, HttpClient + thin per-entity cache — no TanStack, typed Reactive Forms, spartan-ng on CDK themed by tokens); the React recommendations in `docs/FRONTEND_IMPLEMENTATION_GUIDE.md` are superseded by `architecture/demo-mvp-architecture-decisions.md` Decision 1.
+
 ---
 
 ## Critical Implementation Rules
@@ -64,6 +66,17 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Password storage uses PBKDF2 (`Pbkdf2PasswordHasher`) behind `IPasswordHasher`.
 - Auth transport policy: browser flows rely on HTTP-only cookie transport; bearer clients can use response-body token on refresh.
 - Education records support degree types: `bachelor`, `master`, `phd`, `postdoc`, `other`.
+
+### Artifact lifecycle and archive policy
+
+- Keep active work artifacts only in `_bmad-output/implementation-artifacts/` and `_bmad-output/planning-artifacts/epics/`.
+- Keep historical completed artifacts in archive folders:
+  - `_bmad-output/archive/implementation-artifacts/`
+  - `_bmad-output/archive/planning-artifacts/epics/`
+- When a story is marked `done`, move its story file to `_bmad-output/archive/implementation-artifacts/`.
+- When an epic is marked `done`, move its completed epic spec to `_bmad-output/archive/planning-artifacts/epics/` and move that epic's retrospective/sprint-plan artifacts to `_bmad-output/archive/implementation-artifacts/`.
+- Keep `_bmad-output/implementation-artifacts/sprint-status.yaml` active (never archived).
+- After moves, rewrite all references to direct archive paths; do not leave compatibility stubs.
 
 ### Testing rules
 
@@ -100,17 +113,17 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ## Usage guidelines
 
-**For AI agents**
+### For AI agents
 
 - Read this file (and root **`AGENTS.md`**) before implementing changes.
 - Follow rules here exactly; when unclear, prefer the **stricter** option and the **documented** solution entrypoint.
 - Update this file when stack or conventions change.
 
-**For humans**
+### For humans
 
 - Keep this file **lean** and agent-focused; prefer **`AGENTS.md`** for long-form contributor docs if content overlaps.
 - Refresh when **TargetFramework**, CI, or layer boundaries change; remove rules that become universally obvious.
 
-_Last updated: 2026-05-25 (Epic R authorization & ownership hardening merged; Phase C complete, Phase D cleared)_
+Last updated: 2026-05-27 (archive lifecycle policy added; active and historical artifact paths clarified)
 
 ---

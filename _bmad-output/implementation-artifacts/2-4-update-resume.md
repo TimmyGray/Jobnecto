@@ -142,7 +142,7 @@ so that I can keep my skills and preferences current.
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-2-resume-education-management.md` - Story 2.4]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-2-resume-education-management.md` - Story 2.4]
 - [Source: `_bmad-output/planning-artifacts/epics/requirements-inventory.md` - FR7, FR28, NFR2, NFR4, NFR5]
 - [Source: `_bmad-output/planning-artifacts/prd.md` - Product Scope / Resume update journey]
 - [Source: `_bmad-output/planning-artifacts/architecture.md` - CQRS, validation pipeline, soft-delete, ownership]
@@ -157,7 +157,7 @@ so that I can keep my skills and preferences current.
 - [Source: `backend/src/JobNecto.Infrastructure/Persistance/AppDbContext.cs`]
 - [Source: `backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs`]
 - [Source: `backend/tests/JobNecto.Tests/API/ResumesControllerTests.cs`]
-- [Source: `_bmad-output/implementation-artifacts/2-3-get-resume-detail.md`]
+- [Source: `_bmad-output/archive/implementation-artifacts/2-3-get-resume-detail.md`]
 
 ## Story Completion Status
 
@@ -203,3 +203,4 @@ GitHub Copilot (GPT-5.3-Codex)
 ## Change Log
 
 - 2026-04-28: Implemented Story 2.4 (Update Resume), added unit/integration coverage, validated full + Release test gates, and marked story ready for review.
+

@@ -148,7 +148,7 @@ Most recent commits:
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-4-vacancy-browsing-filtering.md` - Story 4.1]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-4-vacancy-browsing-filtering.md` - Story 4.1]
 - [Source: `_bmad-output/planning-artifacts/epics/requirements-inventory.md` - FR24, NFR10]
 - [Source: `_bmad-output/planning-artifacts/architecture/index.md`]
 - [Source: `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md`]
@@ -183,5 +183,6 @@ GPT-5.3-Codex
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/4-1-browse-vacancies-paginated-list.md` (this file)
+- `_bmad-output/archive/implementation-artifacts/4-1-browse-vacancies-paginated-list.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (status update required by create-story workflow)
+

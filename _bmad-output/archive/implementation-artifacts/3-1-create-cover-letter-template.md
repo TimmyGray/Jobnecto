@@ -274,7 +274,7 @@ public async Task Create_ConcurrentDuplicateName_AtLeastOneReturns409()
 | `backend/tests/JobNecto.Tests/Application/CoverLetterTemplates/CreateCoverLetterTemplateCommandValidatorTests.cs` | NEW |
 | `backend/tests/JobNecto.Tests/Application/CoverLetterTemplates/CreateCoverLetterTemplateCommandHandlerTests.cs` | NEW |
 | `backend/tests/JobNecto.Tests/API/CoverLetterTemplates/CoverLetterTemplatesApiTests.cs` | NEW |
-| `_bmad-output/implementation-artifacts/3-1-create-cover-letter-template.md` | THIS FILE |
+| `_bmad-output/archive/implementation-artifacts/3-1-create-cover-letter-template.md` | THIS FILE |
 | `_bmad-output/implementation-artifacts/sprint-status.yaml` | UPDATE — status to ready-for-dev |
 
 Do **not** modify Resume, Education, or any other existing entity handlers or repositories.
@@ -299,7 +299,7 @@ Namespaces must match folder structure:
 
 ### References
 
-- [Epic 3 source](_bmad-output/planning-artifacts/epics/epic-3-cover-letter-template-library.md) — Story 3.1 ACs and readiness constraints
+- [Epic 3 source](_bmad-output/archive/planning-artifacts/epics/epic-3-cover-letter-template-library.md) — Story 3.1 ACs and readiness constraints
 - [Core architectural decisions](_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md) — MediatR, validation, repository patterns
 - [Epic 2 architecture revision](_bmad-output/planning-artifacts/architecture/epic-2-architecture-revision-2026-05-05.md) — Epic 3 guardrails and accepted patterns
 - [Pattern: EducationsController](backend/src/JobNecto.API/Controllers/EducationsController.cs)
@@ -352,7 +352,7 @@ No blockers encountered. EF Core InMemory uniqueness limitation resolved by intr
 - `backend/tests/JobNecto.Tests/Application/CoverLetterTemplates/CreateCoverLetterTemplateCommandHandlerTests.cs` — new
 - `backend/tests/JobNecto.Tests/API/CoverLetterTemplates/CoverLetterTemplatesApiTests.cs` — new (InMemory: auth + validation tests)
 - `backend/tests/JobNecto.Tests/API/CoverLetterTemplates/CoverLetterTemplatesUniquenessApiTests.cs` — new (Postgres: uniqueness + concurrency tests)
-- `_bmad-output/implementation-artifacts/3-1-create-cover-letter-template.md` — this file
+- `_bmad-output/archive/implementation-artifacts/3-1-create-cover-letter-template.md` — this file
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — updated: status to review
 
 ## Change Log
@@ -386,3 +386,4 @@ No blockers encountered. EF Core InMemory uniqueness limitation resolved by intr
 - [x] [Review][Patch] Missing test for content at exactly 10,000 characters — fixed: added `Validate_ContentExactly10000Chars_Passes()` test. [`CreateCoverLetterTemplateCommandValidatorTests.cs`]
 - [x] [Review][Patch] Exception swallowing in `CoverLetterTemplatesPostgresFactory` — fixed: log exception message to `_output` before returning false. [`CoverLetterTemplatesUniquenessApiTests.cs:154-160`]
 - [x] [Review][Defer] Connection string ordering fragility — `_scopedConnectionString` could be uninitialized if `CreateClient` called before `TryInitializeSchemaAsync`. Current test pattern is safe. [`CoverLetterTemplatesUniquenessApiTests.cs:162-169`]
+

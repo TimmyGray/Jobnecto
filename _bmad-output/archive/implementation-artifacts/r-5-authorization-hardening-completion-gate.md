@@ -179,9 +179,9 @@ If the team's process requires a human sign-off before flipping `epic-r: done`, 
 | File | Why |
 | --- | --- |
 | `_bmad-output/implementation-artifacts/sprint-status.yaml` | AC 1 precondition + AC 9 update target |
-| `_bmad-output/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` | AC 2 + R.2 Dev Agent Record (for test count delta) |
-| `_bmad-output/implementation-artifacts/r-3-authorization-regression-integration-suite.md` | AC 2 + R.3 Dev Agent Record (for test count delta) |
-| `_bmad-output/implementation-artifacts/r-4-consistent-forbidden-vs-notfound-contract-matrix.md` | AC 2 + R.4 Dev Agent Record |
+| `_bmad-output/archive/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` | AC 2 + R.2 Dev Agent Record (for test count delta) |
+| `_bmad-output/archive/implementation-artifacts/r-3-authorization-regression-integration-suite.md` | AC 2 + R.3 Dev Agent Record (for test count delta) |
+| `_bmad-output/archive/implementation-artifacts/r-4-consistent-forbidden-vs-notfound-contract-matrix.md` | AC 2 + R.4 Dev Agent Record |
 | `_bmad-output/planning-artifacts/architecture/endpoint-ownership-audit.md` | AC 3 |
 | `_bmad-output/planning-artifacts/architecture/authorization-contract-matrix.md` | AC 5 |
 | `_bmad-output/planning-artifacts/architecture/index.md` | AC 3, AC 5 (link verification) |
@@ -203,7 +203,7 @@ None. This story creates no new files.
 | `_bmad-output/implementation-artifacts/sprint-status.yaml` | epic-r + r-5 + last_updated (AC 9) |
 | `_bmad-output/planning-artifacts/epics/requirements-inventory.md` | FR27 / FR28 coverage annotations (AC 10) |
 | `_bmad-output/planning-artifacts/epics/overview.md` | Epic R Closure paragraph (AC 11) |
-| `_bmad-output/implementation-artifacts/r-5-authorization-hardening-completion-gate.md` (this file) | Go/No-Go Decision + Status + Change Log (AC 12, Task 12) |
+| `_bmad-output/archive/implementation-artifacts/r-5-authorization-hardening-completion-gate.md` (this file) | Go/No-Go Decision + Status + Change Log (AC 12, Task 12) |
 
 ### Build / Test Execution Procedure (For the Gate Run)
 
@@ -244,10 +244,10 @@ Not applicable — no new C# files. Existing namespace rules (`JobNecto.*` mirro
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-r-authorization-ownership-hardening.md` — Story R.5 AC block] — story origin
-- [Source: `_bmad-output/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md`] — R.2 deliverable definition (AC 3)
-- [Source: `_bmad-output/implementation-artifacts/r-3-authorization-regression-integration-suite.md`] — R.3 deliverable definition (AC 4)
-- [Source: `_bmad-output/implementation-artifacts/r-4-consistent-forbidden-vs-notfound-contract-matrix.md`] — R.4 deliverable definition (AC 5)
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-r-authorization-ownership-hardening.md` — Story R.5 AC block] — story origin
+- [Source: `_bmad-output/archive/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md`] — R.2 deliverable definition (AC 3)
+- [Source: `_bmad-output/archive/implementation-artifacts/r-3-authorization-regression-integration-suite.md`] — R.3 deliverable definition (AC 4)
+- [Source: `_bmad-output/archive/implementation-artifacts/r-4-consistent-forbidden-vs-notfound-contract-matrix.md`] — R.4 deliverable definition (AC 5)
 - [Source: `_bmad-output/project-context.md` — CI row of technology-stack table] — CI-parity commands (AC 6, 7)
 - [Source: `_bmad-output/implementation-artifacts/sprint-status.yaml`] — precondition + flip target (AC 1, 9)
 - [Source: `docs/JOBNECTO_BACKEND_ROADMAP.md` — Phase C section + Implementation snapshot] — roadmap update target (AC 8)
@@ -321,15 +321,16 @@ Passed!  - Failed:     0, Passed:   520, Skipped:     0, Total:   520, Duration:
 ### File List
 
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — flipped R.2/R.3/r-5/epic-r to `done`; bumped `last_updated` to 2026-05-25 (AC 1 approval, AC 9)
-- `_bmad-output/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` — Status → `done`; merge Change Log entry (gate approval)
-- `_bmad-output/implementation-artifacts/r-3-authorization-regression-integration-suite.md` — Status → `done`; merge Change Log entry (gate approval)
+- `_bmad-output/archive/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` — Status → `done`; merge Change Log entry (gate approval)
+- `_bmad-output/archive/implementation-artifacts/r-3-authorization-regression-integration-suite.md` — Status → `done`; merge Change Log entry (gate approval)
 - `docs/JOBNECTO_BACKEND_ROADMAP.md` — Phase C line 12 → `[done]`; Implementation snapshot paragraph + header date (AC 8)
 - `_bmad-output/planning-artifacts/epics/requirements-inventory.md` — FR27/FR28 Epic R coverage annotations (AC 10)
 - `_bmad-output/planning-artifacts/epics/overview.md` — `## Epic R Closure` paragraph (AC 11)
-- `_bmad-output/implementation-artifacts/r-5-authorization-hardening-completion-gate.md` — this file: Status → `done`; tasks checked; Go/No-Go GO; Dev Agent Record; Change Log (AC 12, Task 12)
+- `_bmad-output/archive/implementation-artifacts/r-5-authorization-hardening-completion-gate.md` — this file: Status → `done`; tasks checked; Go/No-Go GO; Dev Agent Record; Change Log (AC 12, Task 12)
 
 ## Change Log
 
 - 2026-05-21: Story drafted by Amelia (bmad-create-story). Status set to `ready-for-dev`.
 - 2026-05-23: Gate started by Amelia (claude-sonnet-4-6). HALTED at Task 1 — precondition failed: R.2 and R.3 are `review`, not `done`. Status → `in-progress` (blocked). 14 ACs, 12 tasks. Completion-gate story: verifies R.2 / R.3 / R.4 deliverables, runs the two CI-parity commands, updates roadmap / sprint-status / requirements-inventory / overview docs, issues explicit Go/No-Go for Phase D. Zero production code or test changes. Sprint status `r-5-authorization-hardening-completion-gate` flipped from `backlog` to `ready-for-dev`.
 - 2026-05-25: Gate completed by Amelia (claude-opus-4-7). R.2 and R.3 passed independent review (no blocking issues) — both flipped to `done` as the gate-approval step, satisfying the AC 1 precondition. Verified all R.2/R.3/R.4 deliverable artifacts. CI-parity build clean (0 warnings, 0 errors); CI-parity test green: **Passed: 520, Failed: 0, Skipped: 0, Total: 520**. Updated roadmap / sprint-status / requirements-inventory / overview docs. **Decision: GO — Phase D cleared to start.** Status → `done`.
+

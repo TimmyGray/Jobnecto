@@ -126,7 +126,7 @@ Per Decision 7 and the AC: cross-user detail reads return `404 Not Found` (not `
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-5-cover-letter-application-management.md` — Story 5.3]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-5-cover-letter-application-management.md` — Story 5.3]
 - [Source: `_bmad-output/planning-artifacts/epics/requirements-inventory.md` — FR21]
 - [Source: `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md` — Decision 3, 7]
 
@@ -152,4 +152,5 @@ claude-sonnet-4-6
 - `backend/src/JobNecto.Application/Interfaces/ICoverLetterRepository.cs` (UPDATED — GetDetailByIdAsync added)
 - `backend/src/JobNecto.Infrastructure/Repositories/CoverLetterRepository.cs` (UPDATED — implements GetDetailByIdAsync with vacancy JOIN + IgnoreQueryFilters)
 - `backend/src/JobNecto.API/Controllers/CoverLettersController.cs` (UPDATED — GET /{id} endpoint added)
-- `_bmad-output/implementation-artifacts/5-3-get-cover-letter-detail.md` (this file)
+- `_bmad-output/archive/implementation-artifacts/5-3-get-cover-letter-detail.md` (this file)
+

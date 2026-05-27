@@ -133,12 +133,12 @@ if (string.IsNullOrWhiteSpace(userIdValue) || !Guid.TryParse(userIdValue, out va
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-3-cover-letter-template-library.md` - Story 3.3 acceptance criteria]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-3-cover-letter-template-library.md` - Story 3.3 acceptance criteria]
 - [Source: `_bmad-output/planning-artifacts/architecture/epic-2-architecture-revision-2026-05-05.md` - ownership and response semantics]
 - [Source: `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md` - `GetByIdAsync` contract, soft-delete filters, ownership patterns]
 - [Source: `_bmad-output/planning-artifacts/architecture/project-context-analysis.md` - cross-cutting constraints]
-- [Source: `_bmad-output/implementation-artifacts/3-1-create-cover-letter-template.md` - template entity/mapping/test guardrails]
-- [Source: `_bmad-output/implementation-artifacts/3-2-list-cover-letter-templates.md` - cover-letter test and controller extension patterns]
+- [Source: `_bmad-output/archive/implementation-artifacts/3-1-create-cover-letter-template.md` - template entity/mapping/test guardrails]
+- [Source: `_bmad-output/archive/implementation-artifacts/3-2-list-cover-letter-templates.md` - cover-letter test and controller extension patterns]
 - [Source: `backend/src/JobNecto.API/Controllers/CoverLetterTemplatesController.cs`]
 - [Source: `backend/src/JobNecto.Application/CoverLetterTemplates/Mappers/CoverLetterTemplateMappers.cs`]
 - [Source: `backend/src/JobNecto.Application/Resumes/GetResumeQueryHandler.cs`]
@@ -180,3 +180,4 @@ claude-sonnet-4-6
 - backend/src/JobNecto.API/Controllers/CoverLetterTemplatesController.cs (modified)
 - backend/tests/JobNecto.Tests/Application/CoverLetterTemplates/GetCoverLetterTemplateQueryHandlerTests.cs (new)
 - backend/tests/JobNecto.Tests/API/CoverLetterTemplates/CoverLetterTemplatesApiTests.cs (modified)
+

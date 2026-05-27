@@ -180,7 +180,7 @@ For the "soft-deleted → 404" integration test, there is currently no soft-dele
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-2-resume-education-management.md` — Story 2.3]
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-2-resume-education-management.md` — Story 2.3]
 - [Source: `backend/src/JobNecto.Application/Interfaces/IRepository.cs` — `GetByIdAsync`]
 - [Source: `backend/src/JobNecto.Infrastructure/Repositories/BaseRepository.cs` — `GetByIdAsync` implementation]
 - [Source: `backend/src/JobNecto.API/Controllers/ResumesController.cs` — auth + mediator pattern]
@@ -208,14 +208,15 @@ GitHub Copilot (Claude Sonnet 4.6)
 ### Review Findings
 
 - [x] [Review][Patch] Missing null assertion before null-forgiving operator in cross-user test [`backend/tests/JobNecto.Tests/API/ResumesControllerTests.cs` — `GetById_ResumeBelongingToDifferentUser_Returns404`] — `created` is used as `created!.Id` without a prior `.Should().NotBeNull()` guard; if the create step fails, the test throws NPE instead of surfacing the actual failure.
-- [x] [Review][Defer] AC 4 soft-delete integration test deferred to story 2.5 [`_bmad-output/implementation-artifacts/2-3-get-resume-detail.md` — Tasks section] — deferred, pre-existing (no DELETE endpoint exists yet; documented in story)
+- [x] [Review][Defer] AC 4 soft-delete integration test deferred to story 2.5 [`_bmad-output/archive/implementation-artifacts/2-3-get-resume-detail.md` — Tasks section] — deferred, pre-existing (no DELETE endpoint exists yet; documented in story)
 - [x] [Review][Defer] Entity fetched from DB before ownership check in handler [`backend/src/JobNecto.Application/Resumes/GetResumeQueryHandler.cs`] — deferred, pre-existing (BaseRepository.GetByIdAsync is a generic method; ownership-aware query would require repository interface change outside this story's scope)
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/2-3-get-resume-detail.md`
+- `_bmad-output/archive/implementation-artifacts/2-3-get-resume-detail.md`
 - `backend/src/JobNecto.Application/Resumes/GetResumeQuery.cs`
 - `backend/src/JobNecto.Application/Resumes/GetResumeQueryHandler.cs`
 - `backend/src/JobNecto.API/Controllers/ResumesController.cs`
 - `backend/tests/JobNecto.Tests/Application/Resumes/GetResumeHandlerTests.cs`
 - `backend/tests/JobNecto.Tests/API/ResumesControllerTests.cs`
+

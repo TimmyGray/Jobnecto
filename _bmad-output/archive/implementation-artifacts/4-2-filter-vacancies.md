@@ -95,7 +95,7 @@ claude-sonnet-4-6
 - `backend/tests/JobNecto.Tests/Application/Vacancies/FilterVacanciesQueryHandlerTests.cs` (modified)
 - `backend/tests/JobNecto.Tests/Infrastructure/VacancyRepositoryTests.cs` (modified)
 - `backend/tests/JobNecto.Tests/API/Vacancies/VacanciesApiTests.cs` (modified)
-- `_bmad-output/implementation-artifacts/4-2-filter-vacancies.md` (this file)
+- `_bmad-output/archive/implementation-artifacts/4-2-filter-vacancies.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (status updated)
 
 ## Change Log
@@ -103,3 +103,4 @@ claude-sonnet-4-6
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
 | 2026-05-10 | 1.0 | Story implemented and merged; all gates green; review complete | claude-sonnet-4-6 |
+

@@ -118,4 +118,5 @@ claude-sonnet-4-6
 - `backend/src/JobNecto.API/Controllers/CoverLetterTemplatesController.cs` (modified)
 - `backend/tests/JobNecto.Tests/Application/CoverLetterTemplates/DeleteCoverLetterTemplateCommandHandlerTests.cs` (new)
 - `backend/tests/JobNecto.Tests/API/CoverLetterTemplates/CoverLetterTemplatesApiTests.cs` (modified)
-- `_bmad-output/implementation-artifacts/3-5-delete-cover-letter-template.md` (new)
+- `_bmad-output/archive/implementation-artifacts/3-5-delete-cover-letter-template.md` (new)
+

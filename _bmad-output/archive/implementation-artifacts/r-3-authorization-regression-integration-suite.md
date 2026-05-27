@@ -220,7 +220,7 @@ R.3 fills the matrix consistently for every resource. Where existing tests alrea
 | `backend/src/JobNecto.Application/Users/UpdateCurrentUserCommand.cs` | DTO shape for the impersonation-attempt body |
 | `backend/src/JobNecto.Application/Educations/CreateEducationCommandValidator.cs` | Required fields to seed a valid Education sentinel |
 | `backend/src/JobNecto.Application/CoverLetterTemplates/CreateCoverLetterTemplateCommandValidator.cs` | Required fields for a CoverLetterTemplate sentinel |
-| `_bmad-output/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` | Canonical contract being regression-protected |
+| `_bmad-output/archive/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md` | Canonical contract being regression-protected |
 | `backend/src/JobNecto.API/Infrastructure/ExceptionHandling/GlobalExceptionHandler.cs` | Exception → status mapping (the contract end-to-end tests assert) |
 
 ### Key Implementation Notes
@@ -313,8 +313,8 @@ See existing usage in `backend/tests/JobNecto.Tests/API/Vacancies/VacanciesApiTe
 
 ### References
 
-- [Source: `_bmad-output/planning-artifacts/epics/epic-r-authorization-ownership-hardening.md` — Story R.3 AC block] — story origin
-- [Source: `_bmad-output/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md`] — canonical contract being regression-protected (R.3 builds on R.2's audit findings)
+- [Source: `_bmad-output/archive/planning-artifacts/epics/epic-r-authorization-ownership-hardening.md` — Story R.3 AC block] — story origin
+- [Source: `_bmad-output/archive/implementation-artifacts/r-2-endpoint-ownership-policy-audit-and-gap-closure.md`] — canonical contract being regression-protected (R.3 builds on R.2's audit findings)
 - [Source: `_bmad-output/project-context.md` — "Active HTTP endpoints"] — endpoint inventory
 - [Source: `backend/tests/JobNecto.Tests/API/JobNectoApiFactory.cs`] — test host factory
 - [Source: `backend/tests/JobNecto.Tests/API/CoverLetters/CoverLettersApiTests.cs`] — canonical cross-user patterns and helpers to mirror
@@ -362,10 +362,11 @@ GPT-5.3-Codex
 - `backend/tests/JobNecto.Tests/API/Authorization/CoverLetterTemplatesAuthorizationTests.cs`
 - `backend/tests/JobNecto.Tests/API/Authorization/CoverLettersAuthorizationTests.cs`
 - `backend/tests/JobNecto.Tests/API/Authorization/VacanciesAuthorizationTests.cs`
-- `_bmad-output/implementation-artifacts/r-3-authorization-regression-integration-suite.md`
+- `_bmad-output/archive/implementation-artifacts/r-3-authorization-regression-integration-suite.md`
 
 ## Change Log
 
 - 2026-05-21: Story drafted by Amelia (bmad-create-story). Status set to `ready-for-dev`. 17 ACs, 11 tasks. Test-only story; introduces `backend/tests/JobNecto.Tests/API/Authorization/` suite covering cross-user matrix for resumes, educations, cover-letter-templates, cover-letters, vacancies, plus `/users/me*` JWT-binding regression coverage. Sprint status `r-3-authorization-regression-integration-suite` flipped from `backlog` to `ready-for-dev`.
 - 2026-05-21: Story implemented by Amelia (GPT-5.3-Codex). Added authorization regression suite with 39 new tests across users/me, resumes, educations, cover-letter-templates, cover-letters, and vacancies. Verified default discovery and Release CI parity (`build --warnaserror` and `test --warnaserror` both pass). Status moved to `review`.
 - 2026-05-25: Passed independent code review (no blocking issues); approved and merged. Status → done.
+

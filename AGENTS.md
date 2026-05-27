@@ -102,13 +102,40 @@ Before moving any story to `Status: review` or `Status: done`, the dev agent **m
 
 Skipping any of these steps is the root cause of story artifact drift (observed in Epics 3, 4, and 5). This gate was introduced after the Epic 5 retrospective (2026-05-25).
 
+## Mandatory artifact archive lifecycle
+
+Keep active artifact folders focused on current work. Historical completed artifacts must be archived.
+
+### Active vs archive folders
+
+- Active stories and sprint tracker: `_bmad-output/implementation-artifacts/`
+- Active planning index + inventory: `_bmad-output/planning-artifacts/epics/`
+- Archived implementation artifacts: `_bmad-output/archive/implementation-artifacts/`
+- Archived completed epic specs: `_bmad-output/archive/planning-artifacts/epics/`
+
+### Story archival rule (required)
+
+- When a story is moved to `Status: done`, move its story file from `_bmad-output/implementation-artifacts/` to `_bmad-output/archive/implementation-artifacts/` in the same task.
+- Keep `_bmad-output/implementation-artifacts/sprint-status.yaml` in the active folder. Do not archive it.
+
+### Epic archival rule (required)
+
+- When an epic is complete (`epic-X: done`), archive the corresponding completed epic spec from `_bmad-output/planning-artifacts/epics/` to `_bmad-output/archive/planning-artifacts/epics/`.
+- Archive that epic's retrospective and sprint-plan artifacts (if present) into `_bmad-output/archive/implementation-artifacts/`.
+
+### Link rewrite rule (required)
+
+- After any archive move, update all repository references to point directly to the new archive path.
+- Do not leave compatibility stubs or duplicate files at the old path.
+- Validate that links resolve after rewrite.
+
 ---
 
 ## Mandatory comprehensive PR review workflow
 
 Run this workflow every time a PR is created or updated.
 
-### Trigger
+### Trigger (Post-Merge)
 
 - PR opened, synchronized, rebased, or receives follow-up commits.
 - Any request to "review PR", "review changes", or "code review".
