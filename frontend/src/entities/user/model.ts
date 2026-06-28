@@ -17,12 +17,5 @@ export type CreateUserResult = components['schemas']['CreateUserResult'];
 /** `200 OK` body returned by `GET /api/v1/users/me`. */
 export type GetCurrentUserResult = components['schemas']['GetCurrentUserResult'];
 
-/** The fields the sign-up form collects this story (optional fields omitted). [AC7] */
-export interface SignUpInput {
-  loginName: string;
-  email: string;
-  password: string;
-}
-
 /** The hydrated, authenticated user profile held in client state. */
 export type UserProfile = GetCurrentUserResult;

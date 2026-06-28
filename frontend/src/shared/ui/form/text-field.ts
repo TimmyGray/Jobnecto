@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, forwardRef, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  forwardRef,
+  inject,
+  input,
+} from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 let nextId = 0;
@@ -100,16 +108,14 @@ export class TextFieldComponent implements ControlValueAccessor {
 
   protected value = '';
   protected disabled = false;
-
-  // Use a signal so OnPush re-renders when CVA writes a value.
-  private readonly valueSignal = signal('');
+  private readonly cdr = inject(ChangeDetectorRef);
 
   private onChange: (value: string) => void = () => {};
   private onTouched: () => void = () => {};
 
   writeValue(value: string | null): void {
     this.value = value ?? '';
-    this.valueSignal.set(this.value);
+    this.cdr.markForCheck();
   }
 
   registerOnChange(fn: (value: string) => void): void {
@@ -122,12 +128,12 @@ export class TextFieldComponent implements ControlValueAccessor {
 
   setDisabledState(isDisabled: boolean): void {
     this.disabled = isDisabled;
+    this.cdr.markForCheck();
   }
 
   protected onInput(event: Event): void {
     const next = (event.target as HTMLInputElement).value;
     this.value = next;
-    this.valueSignal.set(next);
     this.onChange(next);
   }
 

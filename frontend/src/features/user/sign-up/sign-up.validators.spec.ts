@@ -63,9 +63,6 @@ describe('emailValidator (mirrors CreateUserCommandValidator)', () => {
   });
 
   it('accepts an email exactly 50 chars long', () => {
-    // local(37) + "@ex.com"(13... build precisely to 50)
-    const email = 'a'.repeat(40) + '@example.com'; // 40 + 12 = 52 -> too long; build 50 below
-    void email;
     const exact50 = 'a'.repeat(38) + '@example.com'; // 38 + 12 = 50
     expect(exact50.length).toBe(50);
     expect(run(emailValidator, exact50)).toBeNull();

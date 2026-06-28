@@ -97,8 +97,8 @@ Path aliases (`@app/*`, `@pages/*`, `@features/*`, `@entities/*`, `@shared/*`,
 
 ## Design tokens
 
-`src/shared/config/tokens.ts` is the single source of truth (Career-OS palette,
-type, spacing, radius, shadow, motion). It is mirrored into CSS custom properties
-in `src/styles.scss`, which Tailwind (`tailwind.config.js`) references. Components
-use token-mapped Tailwind classes (e.g. `bg-canvas`, `text-primary`,
-`bg-action-primary`, `text-brand-accent`) — never hardcoded hex/px values.
+Token values are hand-synced across `src/shared/config/tokens.ts`,
+`src/styles.scss` (CSS custom properties), and `tailwind.config.js` (Tailwind
+theme mapping). Components use token-mapped Tailwind classes (e.g. `bg-canvas`,
+`text-primary`, `bg-action-primary`, `text-brand-accent`) — never hardcoded
+hex/px values.

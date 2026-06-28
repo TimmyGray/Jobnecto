@@ -1,12 +1,10 @@
 /**
- * Career-OS design tokens — typed mirror for TypeScript consumers.
+ * Career-OS design tokens for TypeScript consumers.
  *
- * The canonical CSS-variable source is `src/styles.scss` (`:root`), which Tailwind
- * (`tailwind.config.js`) maps onto utility classes. This file mirrors those same
- * values as typed constants for code that needs token values in TS. The three
- * surfaces (styles.scss, tailwind.config.js, tokens.ts) are currently kept in sync
- * BY HAND — there is no automated generator yet (a real `tokens.ts → CSS`/Tailwind
- * build step is a tracked follow-up). When editing a token, update all three.
+ * Token values are defined across three hand-synced surfaces:
+ * `src/shared/config/tokens.ts`, `src/styles.scss` (`:root` CSS vars), and
+ * `tailwind.config.js` (Tailwind theme mapping). There is currently no generator,
+ * so edits must be mirrored across all three files.
  *
  * Components MUST reference tokens (Tailwind classes mapped to CSS vars, or the
  * CSS vars directly) and never hardcode hex/px values. [AC2, UX-DR1]

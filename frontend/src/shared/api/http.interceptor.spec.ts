@@ -47,6 +47,16 @@ describe('httpInterceptor', () => {
     httpMock.verify();
   });
 
+  it('does not prefix non-absolute URLs that do not start with slash', () => {
+    http.get('users/me').subscribe();
+
+    const testReq = httpMock.expectOne('users/me');
+    expect(testReq.request.url).toBe('users/me');
+    expect(testReq.request.withCredentials).toBe(true);
+    testReq.flush({});
+    httpMock.verify();
+  });
+
   it('leaves absolute URLs untouched (still sets withCredentials)', () => {
     http.get('http://localhost:5000/openapi/v1.json').subscribe();
 

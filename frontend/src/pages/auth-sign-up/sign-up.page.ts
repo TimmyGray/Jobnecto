@@ -3,7 +3,6 @@ import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
-  Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize, switchMap } from 'rxjs';
@@ -194,6 +193,4 @@ export class SignUpPage {
         return 'Password';
     }
   }
-
-  protected readonly Validators = Validators;
 }

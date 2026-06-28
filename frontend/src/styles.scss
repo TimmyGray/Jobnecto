@@ -1,11 +1,10 @@
 /**
  * Global styles + token CSS custom properties.
  *
- * The `:root` custom properties below mirror src/shared/config/tokens.ts (the
- * single source of truth). Tailwind (tailwind.config.js) references these vars,
- * so changing a token value here + in tokens.ts updates every component that
- * uses the corresponding utility class. Components reference tokens, never
- * hardcoded values. [AC2, UX-DR1]
+ * Token values are hand-synced across `src/styles.scss` (`:root`),
+ * `src/shared/config/tokens.ts`, and `tailwind.config.js` (no generator yet).
+ * Tailwind references these CSS vars, so edits must be mirrored in all three
+ * token surfaces. Components reference tokens, never hardcoded values. [AC2, UX-DR1]
  */
 
 /* Font families — Manrope (sans), Newsreader (serif display), IBM Plex Mono. */
