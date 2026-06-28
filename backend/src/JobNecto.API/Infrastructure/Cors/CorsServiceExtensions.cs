@@ -44,7 +44,8 @@ public static class CorsServiceExtensions
 
                 policy
                     .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
-                    .WithHeaders("Authorization", "Content-Type", "Accept");
+                    .WithHeaders("Authorization", "Content-Type", "Accept")
+                    .AllowCredentials();
             })
         );
 

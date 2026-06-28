@@ -1,0 +1,126 @@
+/**
+ * Global styles + token CSS custom properties.
+ *
+ * Token values are hand-synced across `src/styles.scss` (`:root`),
+ * `src/shared/config/tokens.ts`, and `tailwind.config.js` (no generator yet).
+ * Tailwind references these CSS vars, so edits must be mirrored in all three
+ * token surfaces. Components reference tokens, never hardcoded values. [AC2, UX-DR1]
+ */
+
+/* Font families — Manrope (sans), Newsreader (serif display), IBM Plex Mono. */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500;600;700&family=Newsreader:ital,opsz@1,6..72&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Color — Career OS palette */
+  --color-bg-canvas: #f6f4ee;
+  --color-bg-surface: #ffffff;
+  --color-bg-inverse: #0e0f12;
+
+  --color-text-primary: #14151a;
+  --color-text-secondary: #44474f;
+  --color-text-muted: #8a8d96;
+  --color-text-inverse: #fafaf7;
+
+  --color-action-primary: #14151a;
+  --color-action-primary-hover: #000000;
+
+  --color-brand-accent: #2348e0;
+  --color-brand-accent-hover: #1b36b8;
+  --color-brand-spark: #8fe34a;
+
+  --color-status-success: #15803d;
+  --color-status-warning: #b45309;
+  --color-status-warning-bg: #fdf1d6;
+  --color-status-danger: #b42318;
+  --color-status-info: #1d4ed8;
+
+  --color-border-default: #e6e2d8;
+  --color-border-strong: #c9c4b6;
+  --color-border-focus: #2348e0;
+
+  /* Typography */
+  --font-family-sans: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --font-family-serif: 'Newsreader', 'Fraunces', Georgia, serif;
+  --font-family-mono: 'IBM Plex Mono', 'Consolas', monospace;
+
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 20px;
+  --font-size-xl: 28px;
+  --font-size-xxl: 36px;
+  --font-size-display: 44px;
+
+  /* Spacing (base-4) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(14, 15, 18, 0.06);
+  --shadow-md: 0 6px 18px rgba(14, 15, 18, 0.08);
+  --shadow-lg: 0 12px 32px rgba(14, 15, 18, 0.12);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-md); /* body >= 16px (a11y) */
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible focus ring for keyboard users (a11y floor: AC10, NFR10). */
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Honor reduced-motion for all non-essential animation (FE Guide §9, §11). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Screen-reader-only utility for visually-hidden labels/announcements. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
