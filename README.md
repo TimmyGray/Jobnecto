@@ -79,6 +79,30 @@ dotnet test backend/JobNecto.slnx --configuration Release --no-build --warnaserr
 
 > Use **`backend/JobNecto.slnx`** for all CLI operations. The root `Jobnecto.sln` uses legacy path style and does not include the test project.
 
+### Test coverage (80% per-file gate)
+
+CI enforces **≥80% line coverage on every hand-written file**. Generated code
+(EF Core migrations, OpenAPI source generators, the OpenAPI-typed frontend
+schema) and pure wiring/config are excluded; genuinely untestable I/O is marked
+`[ExcludeFromCodeCoverage]`.
+
+Backend — collect coverage and run the per-file gate locally:
+
+```bash
+dotnet test backend/JobNecto.slnx \
+  --collect:"XPlat Code Coverage" \
+  --settings backend/coverlet.runsettings \
+  --results-directory ./coverage/backend
+python scripts/check_coverage.py ./coverage/backend --threshold 80
+```
+
+Frontend — the Angular unit-test builder enforces the per-file threshold itself
+(it fails the run when any file drops below 80%):
+
+```bash
+cd frontend && npx ng test --no-watch
+```
+
 ### Run the API locally
 
 ```bash
@@ -189,7 +213,10 @@ For more database workflows, see [AGENTS.md](AGENTS.md) and the project skill fo
 
 ## Continuous integration
 
-GitHub Actions (`.github/workflows/ci.yml`) runs **restore**, **build**, and **test** on pushes to `master` and on pull requests.
+GitHub Actions (`.github/workflows/ci.yml`) runs on pushes to `master` and on pull requests:
+
+- **`build`** — restores, builds (Release, warnings as errors), runs the .NET tests with coverage, and fails if any hand-written file is below 80% line coverage (`scripts/check_coverage.py`).
+- **`frontend`** — installs the Angular app and runs the Vitest suite with its per-file 80% coverage gate.
 
 ## Comprehensive PR review workflow
 

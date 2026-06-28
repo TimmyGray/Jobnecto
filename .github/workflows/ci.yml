@@ -34,11 +34,45 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Restore
         run: dotnet restore backend/JobNecto.slnx
 
       - name: Build
         run: dotnet build backend/JobNecto.slnx --configuration Release --no-restore --warnaserror
 
-      - name: Test
-        run: dotnet test backend/JobNecto.slnx --configuration Release --no-build --warnaserror
+      - name: Test (with coverage)
+        run: >-
+          dotnet test backend/JobNecto.slnx --configuration Release --no-build --warnaserror
+          --collect:"XPlat Code Coverage"
+          --settings backend/coverlet.runsettings
+          --results-directory ./coverage/backend
+
+      - name: Coverage gate (>=80% per file)
+        run: python scripts/check_coverage.py ./coverage/backend --threshold 80
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Test (with coverage gate >=80% per file)
+        run: npx ng test --no-watch

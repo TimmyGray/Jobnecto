@@ -169,4 +169,58 @@ public sealed class InfrastructureHostingTests
             .Contain("Host")
             .And.Contain("non-empty");
     }
+
+    /// <summary>
+    /// Purpose: cover the "Cloudinary is configured" branch so the startup warning is skipped.
+    /// Contract: registration completes and <see cref="IAvatarStorageService"/> is registered.
+    /// </summary>
+    [Fact]
+    public void AddInfrastructure_with_Cloudinary_configured_skips_warning()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["ConnectionStrings:Postgres"] =
+                        "Host=localhost;Port=5432;Database=JobNecto;Username=test;Password=test",
+                    ["Cloudinary:CloudName"] = "demo",
+                    ["Cloudinary:ApiKey"] = "key",
+                    ["Cloudinary:ApiSecret"] = "secret",
+                }
+            )
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddLogging();
+
+        var act = () => services.AddInfrastructure(configuration);
+
+        act.Should().NotThrow();
+        services.Should().Contain(d => d.ServiceType == typeof(IAvatarStorageService));
+    }
+
+    /// <summary>
+    /// Purpose: cover the warning fallback when no <see cref="ILoggerFactory"/> is registered.
+    /// Contract: registration still completes (warning written to console instead of the log).
+    /// </summary>
+    [Fact]
+    public void AddInfrastructure_without_logging_and_Cloudinary_does_not_throw()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["ConnectionStrings:Postgres"] =
+                        "Host=localhost;Port=5432;Database=JobNecto;Username=test;Password=test",
+                }
+            )
+            .Build();
+
+        var services = new ServiceCollection();
+
+        var act = () => services.AddInfrastructure(configuration);
+
+        act.Should().NotThrow();
+    }
 }

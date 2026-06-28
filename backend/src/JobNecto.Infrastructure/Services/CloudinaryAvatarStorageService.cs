@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using JobNecto.Application.Interfaces;
@@ -29,6 +30,7 @@ public sealed class CloudinaryAvatarStorageService : IAvatarStorageService
     }
 
     /// <inheritdoc />
+    [ExcludeFromCodeCoverage(Justification = "Performs live Cloudinary HTTP upload; not unit-testable without the external service.")]
     public async Task<AvatarUploadResult> UploadUserAvatarAsync(
         Guid userId,
         Stream content,
@@ -73,6 +75,7 @@ public sealed class CloudinaryAvatarStorageService : IAvatarStorageService
     }
 
     /// <inheritdoc />
+    [ExcludeFromCodeCoverage(Justification = "Performs live Cloudinary HTTP delete; not unit-testable without the external service.")]
     public async Task DeleteUserAvatarAsync(Guid userId, CancellationToken ct)
     {
         EnsureConfigured();
@@ -149,12 +152,12 @@ public sealed class CloudinaryAvatarStorageService : IAvatarStorageService
         return new Account(cloudName, apiKey, apiSecret);
     }
 
-    private static string BuildAvatarPublicId(Guid userId)
+    internal static string BuildAvatarPublicId(Guid userId)
     {
         return $"users/{userId:N}/avatar";
     }
 
-    private static string ResolveImageFormat(string? contentType)
+    internal static string ResolveImageFormat(string? contentType)
     {
         if (string.IsNullOrWhiteSpace(contentType))
         {
