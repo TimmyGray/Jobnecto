@@ -33,7 +33,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 | Data | **EF Core** **10.0.3**, **Npgsql** provider **10.0.0**; dev connection string: Npgsql **`Key=Value`** pairs, include **`Port=5432`** |
 | Infra extras | **StackExchange.Redis** **2.11.3**, **Quartz** **3.15.1** — referenced; **no full implementation yet** |
 | Tests | **xUnit** **2.9.3**, **FluentAssertions** **8.9.0**, **Moq** **4.20.72**, **EFCore.InMemory** **10.0.5**, coverlet |
-| CI | `dotnet-version: 10.0.x`; Release **`dotnet build` / `dotnet test`** with **`--warnaserror`** |
+| CI | `dotnet-version: 10.0.x`; Release **`dotnet build` / `dotnet test`** with **`--warnaserror`**, plus a **per-file ≥80% coverage gate** (`scripts/check_coverage.py`) and a separate **frontend** job (`npx ng test --no-watch`) enforcing the same threshold |
 
 **Layers:** API → Application → Domain; **Infrastructure** (+ **Infrastructure.LLM**, **Infrastructure.JobSources**) implement persistence and integrations. **Do not** reference Infrastructure from Domain or invert dependencies.
 
@@ -84,6 +84,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Infrastructure/repository tests: **`UseInMemoryDatabase`** with a **unique database name per test** (e.g. `Guid.NewGuid()`), **`await using`** context where applicable.
 - Test project references **API + Application + Domain + Infrastructure** (+ JobSources/LLM) as needed — follow existing **`JobNecto.Tests.csproj`** pattern.
 - After substantive changes, run **`dotnet test backend/JobNecto.slnx`**; for CI parity on risky edits use **Release** + **`--warnaserror`** (see workflow rules).
+- **Coverage gate (CI-enforced):** every hand-written file must keep **≥80% line coverage** (backend and frontend). New code needs tests, or the gate fails the build. Genuinely untestable I/O boundaries are marked **`[ExcludeFromCodeCoverage]`** with a justification (see `CloudinaryAvatarStorageService`); generated code is excluded via `backend/coverlet.runsettings` / `frontend/angular.json`. Backend exposes helpers as `internal` (+ `InternalsVisibleTo` to `JobNecto.Tests`) rather than `public` to make them testable. Policy detail lives in `AGENTS.md` / `README.md`.
 
 ### Namespace conventions
 
@@ -124,6 +125,6 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Keep this file **lean** and agent-focused; prefer **`AGENTS.md`** for long-form contributor docs if content overlaps.
 - Refresh when **TargetFramework**, CI, or layer boundaries change; remove rules that become universally obvious.
 
-Last updated: 2026-05-27 (archive lifecycle policy added; active and historical artifact paths clarified)
+Last updated: 2026-06-28 (CI per-file ≥80% coverage gate + frontend test job documented; PR #81 merged)
 
 ---

@@ -46,6 +46,7 @@ NFR10: Pagination: cursor-based (`lastSeenId` + `lastSeenUpdatedAt`); `pageSize`
 NFR11: Zero breaking changes to Domain model entities after Phase B is complete.
 NFR12: Passwords must be stored only as one-way salted hashes; plaintext passwords are never persisted or returned, and any migration/backfill required to reach that state is part of auth readiness.
 NFR13: Any business rule surfaced as `409 Conflict` must be backed by a database-level uniqueness constraint and at least one integration test that exercises concurrent create/update attempts.
+NFR14: CI enforces a per-file coverage gate of **>= 80% line coverage on every hand-written file** (backend and frontend); the build fails when any included file drops below the threshold. Backend gate: `dotnet test ... --collect:"XPlat Code Coverage" --settings backend/coverlet.runsettings` then `python scripts/check_coverage.py ./coverage/backend --threshold 80`. Frontend gate: `npx ng test --no-watch` (per-file threshold in `frontend/angular.json`). Generated code is excluded via `backend/coverlet.runsettings` / `angular.json`; genuinely untestable I/O boundaries (e.g. live Cloudinary HTTP calls) use `[ExcludeFromCodeCoverage]` with a justification. This is a stricter superset of NFR3's Application-layer target.
 
 ### Additional Requirements (from Architecture)
 

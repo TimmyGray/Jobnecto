@@ -115,6 +115,7 @@ A job seeker can:
 3. OpenAPI spec includes all endpoints, request/response schemas, status codes (200, 400, 404, 500)
 4. Database supports test-driven setup: migrations allow fresh DB creation and teardown per test run
 5. Documentation: API versioning strategy documented in README or API docs
+6. CI-enforced quality gate: ≥80% line coverage on every hand-written file (backend and frontend); the build fails below threshold (see requirements-inventory NFR14)
 
 ## Product Scope
 
