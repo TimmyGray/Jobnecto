@@ -13,6 +13,14 @@ JobNecto is a .NET 10 backend API for job vacancy aggregation and matching. Clea
 - **Test:** `dotnet test backend/JobNecto.slnx`
 - **CI-equivalent lint/build:** `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror`
 
+### Test coverage policy (enforced in CI)
+
+- **Target:** ≥80% line coverage on **every hand-written file** (backend and frontend). CI fails when any included file drops below 80%.
+- **Backend gate:** `dotnet test ... --collect:"XPlat Code Coverage" --settings backend/coverlet.runsettings --results-directory ./coverage/backend` then `python scripts/check_coverage.py ./coverage/backend --threshold 80`.
+- **Frontend gate:** `cd frontend && npx ng test --no-watch` — the Angular unit-test builder enforces the per-file threshold (`coverageThresholds.perFile` in `frontend/angular.json`).
+- **Excluded from the gate:** generated code (EF Core migrations, OpenAPI source generators, the OpenAPI-typed `frontend/src/shared/api/generated`), barrels/config/bootstrap, and pure design-token/data files. Exclusions live in `backend/coverlet.runsettings` and `frontend/angular.json` (`coverageExclude`).
+- **Genuinely untestable I/O** (e.g. live Cloudinary HTTP calls) is marked `[ExcludeFromCodeCoverage]` with a justification rather than left uncovered. Prefer testing the surrounding logic; only exclude the unavoidable I/O boundary.
+
 ### Running the API
 
 - Start: `cd backend/src/JobNecto.API && ASPNETCORE_ENVIRONMENT=Development DOTNET_URLS="http://localhost:5000" dotnet run`

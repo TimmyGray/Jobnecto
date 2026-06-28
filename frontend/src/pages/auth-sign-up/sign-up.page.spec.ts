@@ -149,4 +149,90 @@ describe('SignUpPage', () => {
       expect(errorEl?.getAttribute('aria-live')).toBe('polite');
     });
   });
+
+  describe('errorFor message mapping', () => {
+    /** Sets one field's value, marks it touched, and returns its message. */
+    function messageFor(field: 'loginName' | 'email' | 'password', value: string): string {
+      const control = page.form.controls[field];
+      control.setValue(value);
+      control.markAsTouched();
+      return page.errorFor(field);
+    }
+
+    it('returns empty string while the control is untouched and pristine', () => {
+      page.form.controls.loginName.setValue('ab'); // invalid, but not touched/dirty
+      expect(page.errorFor('loginName')).toBe('');
+    });
+
+    it.each([
+      ['loginName', '', 'Login name is required.'],
+      ['loginName', 'ab', 'Login name must be between 3 and 50 characters.'],
+      ['loginName', 'bad name', 'Login name may only contain letters, numbers, or underscore.'],
+      ['email', '', 'Email is required.'],
+      ['email', 'bad', 'Enter a valid email address.'],
+      ['email', 'a'.repeat(45) + '@b.com', 'Email must be at most 50 characters.'],
+      ['password', '', 'Password is required.'],
+      ['password', '123', 'Password must be at least 8 characters.'],
+      ['password', 'p'.repeat(51), 'Password must be at most 50 characters.'],
+    ] as const)('maps %s "%s" to a plain-language message', (field, value, expected) => {
+      expect(messageFor(field, value)).toBe(expected);
+    });
+  });
+
+  describe('handleError branches', () => {
+    function submitAndFlush(body: object, status: number, statusText: string) {
+      fillValid();
+      page.onSubmit();
+      httpMock.expectOne(`${env.apiBaseUrl}/users`).flush(body, { status, statusText });
+      fixture.detectChanges();
+    }
+
+    it('maps 400 server errors onto loginName and password controls', () => {
+      submitAndFlush(
+        {
+          title: 'Validation failed',
+          status: 400,
+          errors: {
+            loginName: ['Login name already taken.'],
+            password: ['Password is too weak.'],
+          },
+        },
+        400,
+        'Bad Request',
+      );
+
+      expect(page.errorFor('loginName')).toBe('Login name already taken.');
+      expect(page.errorFor('password')).toBe('Password is too weak.');
+      httpMock.verify();
+    });
+
+    it('shows a generic banner when a 400 carries only unrecognized fields', () => {
+      submitAndFlush(
+        {
+          title: 'Validation failed',
+          status: 400,
+          detail: 'Some fields were invalid.',
+          errors: { captcha: ['Captcha failed.'] },
+        },
+        400,
+        'Bad Request',
+      );
+
+      expect(page.generalError()).toBe('Some fields were invalid.');
+      httpMock.verify();
+    });
+
+    it('shows a generic error for non-conflict, non-validation failures (500)', () => {
+      submitAndFlush(
+        { title: 'Server error', status: 500, detail: 'Something exploded.' },
+        500,
+        'Server Error',
+      );
+
+      expect(page.generalError()).toBe('Something exploded.');
+      expect(page.conflictMessage()).toBe('');
+      expect(page.submitting()).toBe(false);
+      httpMock.verify();
+    });
+  });
 });
