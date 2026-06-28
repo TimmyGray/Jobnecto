@@ -1,5 +1,5 @@
 # generated: 2026-04-18T00:00:00.000Z
-# last_updated: 2026-05-11T00:00:00Z
+# last_updated: 2026-06-28T00:00:00Z
 # project: Jobnecto
 # project_key: NOKEY
 # tracking_system: file-system
@@ -56,13 +56,13 @@ development_status:
   epic-2-retrospective: done
 
   # --- Maintenance / Refactoring (GitHub Issues) ---
-  epic-r: in-progress
+  epic-r: done
   r-1-separate-soft-delete-repository-contract: done
-  r-2-endpoint-ownership-policy-audit-and-gap-closure: backlog
-  r-3-authorization-regression-integration-suite: backlog
-  r-4-consistent-forbidden-vs-notfound-contract-matrix: backlog
-  r-5-authorization-hardening-completion-gate: backlog
-  epic-r-retrospective: optional
+  r-2-endpoint-ownership-policy-audit-and-gap-closure: done
+  r-3-authorization-regression-integration-suite: done
+  r-4-consistent-forbidden-vs-notfound-contract-matrix: done
+  r-5-authorization-hardening-completion-gate: done
+  epic-r-retrospective: done
 
   # --- Epic 3: Cover Letter Template Library ---
   epic-3: done

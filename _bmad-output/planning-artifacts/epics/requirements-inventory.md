@@ -66,6 +66,10 @@ NFR13: Any business rule surfaced as `409 Conflict` must be backed by a database
 
 _No UX design document for this API-only backend phase._
 
+### Post-Merge Note (2026-06-28)
+
+- Demo MVP Story 1.1 frontend foundation is merged (`frontend/` Angular workspace + sign-up integration against `POST /api/v1/users` and `GET /api/v1/users/me`). This does not change backend FR/NFR contracts in this inventory; it operationalizes their consumption from the client.
+
 ### FR Coverage Map
 
 FR1: Epic 1 - Create user account

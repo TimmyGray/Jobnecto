@@ -19,7 +19,7 @@ The architecture document is organized into the following shards:
 
 ## Demo MVP (Phase D — frontend + LLM generation)
 
-9. **[Demo MVP — Architecture Decisions](demo-mvp-architecture-decisions.md)** - Contract-first baseline for the Demo MVP parallel tracks: (1) ratified Angular stack/state/forms remap (Signals + services, native server cache, typed Reactive Forms, spartan-ng/CDK); (2) FR4 sign-in resolved via new `POST /api/v1/users/sessions` (email-or-login, generic 401); (3) pinned `POST /api/v1/cover-letters/generate` contract (200 draft, no persist; 400/401/404/429/502/504; no 409; provider-agnostic `ICoverLetterGenerator` seam)
+9. **[Demo MVP — Architecture Decisions](demo-mvp-architecture-decisions.md)** - Contract-first baseline for the Demo MVP parallel tracks: (1) ratified Angular stack/state/forms remap (Signals + services, native server cache, typed Reactive Forms, spartan-ng/CDK); (2) FR4 sign-in resolved via new `POST /api/v1/users/sessions` (email-or-login, generic 401); (3) pinned `POST /api/v1/cover-letters/generate` contract (200 draft, no persist; 400/401/404/429/502/504; no 409; provider-agnostic `ICoverLetterGenerator` seam). Story 1.1 frontend foundation merged on 2026-06-28.
 
 ## How to Use
 
