@@ -1,5 +1,6 @@
 using FluentAssertions;
 using JobNecto.API.Infrastructure;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,7 +30,7 @@ public class AuthenticationCollectionExtensionsTests
         var act = () => services.AddJwtAuthentication(Config(ValidSecret, "jobnecto", "jobnecto-clients"));
 
         act.Should().NotThrow();
-        services.Should().Contain(d => d.ServiceType.Name.Contains("IAuthenticationService"));
+        services.Should().Contain(d => d.ServiceType == typeof(IAuthenticationService));
     }
 
     [Theory]

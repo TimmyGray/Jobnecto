@@ -75,6 +75,10 @@ def main() -> int:
         return 2
 
     files = collect(reports)
+    # Drop files with no measurable lines (e.g. pure declarations / class
+    # headers). They cannot be meaningfully scored and would otherwise be
+    # counted as trivially "100%", masking a missing or empty source file.
+    files = {name: counts for name, counts in files.items() if counts[1] > 0}
     if not files:
         print("ERROR: no covered source files found in report(s).", file=sys.stderr)
         return 2
