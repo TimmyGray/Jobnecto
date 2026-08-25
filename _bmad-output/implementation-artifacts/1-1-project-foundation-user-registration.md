@@ -1,6 +1,6 @@
 # Story 1.1: Project foundation & user registration
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -249,8 +249,10 @@ _Blueprint placeholders (no code yet — materialized in later stories):_
 
 These were raised in review, do not manifest in Story 1.1, and are tracked for a later story (likely 1.3 sign-in screen or the first form-heavy story):
 
-- **LOW-1** — `shared/ui/form/text-field.ts`: OnPush component binds plain fields `[value]`/`[disabled]`; `writeValue`/`setDisabledState` won't trigger re-render (latent — form is always empty here). Fix: signal-back `value`/`disabled` or call `ChangeDetectorRef.markForCheck()`. Address before any form uses `patchValue`/`reset`/programmatic `disable()`.
+> ⚠️ **This list is STALE as written — see `deferred-work.md` for the verified status (re-checked against code 2026-08-20).** Two items below (**LOW-1**, **NIT-2**) were actually resolved in this story's final commit `f9b2710` but were never struck from this list. **LOW-2**, **LOW-3**, and the token-generator item remain genuinely open.
+
+- **LOW-1** ✅ **RESOLVED in `f9b2710` — not a defect.** — `shared/ui/form/text-field.ts`: OnPush component binds plain fields `[value]`/`[disabled]`; `writeValue`/`setDisabledState` won't trigger re-render (latent — form is always empty here). Fix: signal-back `value`/`disabled` or call `ChangeDetectorRef.markForCheck()`. Address before any form uses `patchValue`/`reset`/programmatic `disable()`. *(The `markForCheck()` fix was applied in both CVA methods — lines 118 and 131 — and is covered by `text-field.spec.ts`. Edit forms are safe.)*
 - **LOW-2** — `pages/auth-sign-up/sign-up.page.ts`: a 201 followed by a failed `GET /users/me` surfaces a sign-up error despite the account being created. Fix: on hydration failure after 201, still navigate to `/dashboard` (degrades gracefully when profile is null).
 - **LOW-3** — `features/user/sign-up/sign-up.validators.ts`: client email regex requires a dotted domain, marginally stricter than the server's `.EmailAddress()`. Reconcile or drop the "exact mirror" claim.
-- **NIT-2** — `entities/user/model.ts`: unused `SignUpInput` type; remove or use it.
+- **NIT-2** ✅ **RESOLVED — already removed.** — `entities/user/model.ts`: unused `SignUpInput` type; remove or use it. *(Zero matches for `SignUpInput` across `frontend/src`.)*
 - **Token generator** — build a real `tokens.ts → CSS vars / Tailwind` generation step so the three token surfaces have a true single source (currently hand-synced).
