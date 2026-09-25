@@ -135,6 +135,26 @@ describe('SignInPage', () => {
     httpMock.verify();
   });
 
+  it('correctly shows "required" (not a stale merged server error) when the errored field is cleared to empty after a 400', () => {
+    fillValid();
+    page.onSubmit();
+    httpMock.expectOne(`${env.apiBaseUrl}/users/sessions`).flush(
+      { title: 'Validation failed', status: 400, errors: { identifier: ['identifier already in use.'] } },
+      { status: 400, statusText: 'Bad Request' },
+    );
+    fixture.detectChanges();
+    expect(page.errorFor('identifier')).toBe('identifier already in use.');
+
+    // Angular's setErrors() replaces the control's errors wholesale, and
+    // setValue() re-runs the validator — so clearing the field to empty must
+    // show the *current* required state, never a stale mix of both errors.
+    page.form.controls.identifier.setValue('');
+    fixture.detectChanges();
+
+    expect(page.errorFor('identifier')).toBe('This field is required.');
+    httpMock.verify();
+  });
+
   it('clears a stale cross-user profile before hydrating, so a failed hydration never leaves a stale identity (cross-user regression guard)', () => {
     vi.spyOn(router, 'navigate').mockResolvedValue(true);
     // Seed a cached profile as if a previous session left one behind.
