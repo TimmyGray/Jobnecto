@@ -1,6 +1,6 @@
 # Story 1.2: Returning-user sign-in endpoint
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -230,6 +230,12 @@ Do **not** reach for the Postgres factory (`CoverLetterTemplatesPostgresFactory`
 ## Dev Agent Record
 
 ### Agent Model Used
+
+Claude (Sonnet 5), via the `jobnecto-dev` skill.
+
+### Baseline
+
+`git rev-parse HEAD` at start: `1175abb2f48fc9e5ec97741b87abc0b74bcf936b`
 
 ### Debug Log References
 

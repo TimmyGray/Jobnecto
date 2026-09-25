@@ -1,3 +1,4 @@
+using JobNecto.Application.Exceptions;
 using JobNecto.Application.Users;
 using JobNecto.Application.Interfaces;
 using JobNecto.API.Contracts.Auth;
@@ -21,15 +22,21 @@ public class UsersController : ControllerBase
     private readonly IMediator _mediator;
     private readonly IJwtTokenService _jwtService;
     private readonly ICookieAuthService _cookieAuthService;
+    private readonly ISignInAttemptTracker _signInAttemptTracker;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UsersController"/> class.
     /// </summary>
-    public UsersController(IMediator mediator, IJwtTokenService jwtService, ICookieAuthService cookieAuthService)
+    public UsersController(
+        IMediator mediator,
+        IJwtTokenService jwtService,
+        ICookieAuthService cookieAuthService,
+        ISignInAttemptTracker signInAttemptTracker)
     {
         _mediator = mediator;
         _jwtService = jwtService;
         _cookieAuthService = cookieAuthService;
+        _signInAttemptTracker = signInAttemptTracker;
     }
 
     /// <summary>
@@ -55,6 +62,70 @@ public class UsersController : ControllerBase
 
         // Return created response with Location header
         return Created("/api/v1/users/me", result);
+    }
+
+    /// <summary>
+    /// Authenticates a returning user by email or login identifier and password, and establishes a
+    /// new session. Rate-limited per (normalized identifier, client IP): after 5 failed attempts
+    /// within 15 minutes, further attempts are rejected with 429 before any credential verification.
+    /// </summary>
+    /// <param name="command">The sign-in command.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The authenticated user projection.</returns>
+    [HttpPost("sessions")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(SignInResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<SignInResponse>> SignIn(SignInCommand command, CancellationToken cancellationToken)
+    {
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var identifier = command.Identifier ?? string.Empty;
+
+        if (_signInAttemptTracker.IsLockedOut(identifier, clientIp, out var retryAfter))
+        {
+            Response.Headers["Retry-After"] = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
+            return StatusCode(StatusCodes.Status429TooManyRequests, new ProblemDetails
+            {
+                Status = StatusCodes.Status429TooManyRequests,
+                Title = "Too Many Requests",
+                Detail = "Too many failed sign-in attempts. Try again later."
+            });
+        }
+
+        JobNecto.Application.Users.SignInResult result;
+        try
+        {
+            result = await _mediator.Send(command, cancellationToken);
+        }
+        catch (InvalidCredentialsException)
+        {
+            _signInAttemptTracker.RecordFailure(identifier, clientIp);
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Unauthorized",
+                Detail = "Invalid credentials"
+            });
+        }
+
+        _signInAttemptTracker.Reset(identifier, clientIp);
+
+        var token = await _jwtService.GenerateTokenAsync(result.Id.ToString());
+        _cookieAuthService.SetAuthCookie(Response, token);
+
+        return Ok(new SignInResponse
+        {
+            Id = result.Id,
+            LoginName = result.LoginName,
+            Email = result.Email,
+            Phone = result.Phone,
+            Location = result.Location,
+            About = result.About,
+            Avatar = result.Avatar,
+            AccessToken = UsesBearerTransport(Request) ? token : string.Empty
+        });
     }
 
     /// <summary>

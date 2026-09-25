@@ -67,6 +67,27 @@ public static class UserMappers
     }
 
     /// <summary>
+    /// Maps a User domain entity to a SignInResult (response DTO) after successful authentication.
+    /// Excludes sensitive fields (Password).
+    /// </summary>
+    public static SignInResult ToSignInResult(this User user)
+    {
+        if (user == null)
+            throw new ArgumentNullException(nameof(user));
+
+        return new SignInResult
+        {
+            Id = user.Id,
+            LoginName = user.Login,
+            Email = user.Email,
+            Phone = user.Phone,
+            Location = user.Location?.ToString(),
+            About = user.AboutMe,
+            Avatar = user.Avatar
+        };
+    }
+
+    /// <summary>
     /// Maps a User domain entity to the current-user profile result.
     /// </summary>
     /// <param name="user">Source user entity.</param>
