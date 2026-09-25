@@ -414,8 +414,9 @@ appsettings.Development.json
 /.cursor/
 /.github/skills/
 /.roo/
-# Claude AI local settings (user-specific)
-/.claude/
+# Claude AI local settings (user-specific); project skills in .claude/skills/ are shared
+/.claude/*
+!/.claude/skills/
 .claude/settings.local.json
 .archon/.env
 
