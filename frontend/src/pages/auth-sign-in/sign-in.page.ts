@@ -5,7 +5,7 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { catchError, finalize, of, switchMap } from 'rxjs';
+import { catchError, finalize, of, switchMap, tap } from 'rxjs';
 import { UserService } from '@entities/user';
 import { ProblemDetails } from '@shared/api';
 import { TextFieldComponent } from '@shared/ui';
@@ -75,8 +75,19 @@ export class SignInPage {
 
   /** Submits the sign-in. Mirrors validation client-side first. [AC1, AC7] */
   onSubmit(): void {
+    if (this.submitting()) {
+      // Guards against a second concurrent POST from a rapid double
+      // Enter/click before change detection disables the submit button.
+      return;
+    }
+
     this.generalError.set('');
     this.rateLimitMessage.set('');
+    // A prior 400 may have left a manual `server` error on a control via
+    // setErrors(), which persists until that control's own value changes —
+    // otherwise the form stays permanently invalid and resubmission is
+    // blocked even after the user fixes a different field.
+    this.clearServerErrors();
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -87,11 +98,16 @@ export class SignInPage {
     const { identifier, password } = this.form.getRawValue();
 
     this.userService
-      .signIn({ identifier, password })
+      .signIn({ identifier: identifier.trim(), password })
       .pipe(
-        // On 200 the cookie is set; hydrate the profile before landing. A
-        // hydration failure must not surface as a sign-in error — the user is
-        // authenticated regardless (AC3 / Trap 2).
+        // On 200 the cookie now belongs to whoever just signed in — drop any
+        // profile cached from a previous identity before hydrating the new
+        // one, so a failed hydration below never leaves a stale cross-user
+        // profile behind.
+        tap(() => this.userService.invalidate()),
+        // Hydrate the profile before landing. A hydration failure must not
+        // surface as a sign-in error — the user is authenticated regardless
+        // (AC3 / Trap 2).
         switchMap(() => this.userService.fetchCurrentUser().pipe(catchError(() => of(null)))),
         finalize(() => this.submitting.set(false)),
       )
@@ -101,6 +117,17 @@ export class SignInPage {
         },
         error: (problem: ProblemDetails) => this.handleError(problem),
       });
+  }
+
+  /** Clears any manually-set `server` validation errors left by a previous 400. */
+  private clearServerErrors(): void {
+    for (const control of Object.values(this.form.controls)) {
+      if (control.errors?.['server']) {
+        // Propagate (onlySelf: false, the default) so the parent form's
+        // `valid` status is recomputed from the control's fresh state.
+        control.updateValueAndValidity();
+      }
+    }
   }
 
   /** Maps a typed ProblemDetails into a banner, rate-limit message, or inline field errors. [AC4-AC6, AC9] */

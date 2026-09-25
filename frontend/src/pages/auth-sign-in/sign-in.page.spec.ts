@@ -11,6 +11,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { httpInterceptor } from '@shared/api/http.interceptor';
 import { env } from '@shared/config';
+import { UserService } from '@entities/user';
 import { SignInPage } from './sign-in.page';
 
 describe('SignInPage', () => {
@@ -18,6 +19,7 @@ describe('SignInPage', () => {
   let page: SignInPage;
   let httpMock: HttpTestingController;
   let router: Router;
+  let userService: UserService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -33,6 +35,7 @@ describe('SignInPage', () => {
     page = fixture.componentInstance;
     httpMock = TestBed.inject(HttpTestingController);
     router = TestBed.inject(Router);
+    userService = TestBed.inject(UserService);
     fixture.detectChanges();
   });
 
@@ -75,6 +78,101 @@ describe('SignInPage', () => {
     meReq.flush({ id: 'u1', loginName: 'daria_dev' });
 
     expect(navSpy).toHaveBeenCalledWith(['/dashboard']);
+    expect(page.submitting()).toBe(false);
+    httpMock.verify();
+  });
+
+  it('trims leading/trailing whitespace from the identifier before sending it', () => {
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    page.form.setValue({ identifier: '  daria_dev  ', password: 'sup3rsecret' });
+    page.form.markAsDirty();
+    page.onSubmit();
+
+    const req = httpMock.expectOne(`${env.apiBaseUrl}/users/sessions`);
+    expect(req.request.body.identifier).toBe('daria_dev');
+    req.flush({ id: 'u1', loginName: 'daria_dev', accessToken: '' }, { status: 200, statusText: 'OK' });
+    httpMock.expectOne(`${env.apiBaseUrl}/users/me`).flush({ id: 'u1', loginName: 'daria_dev' });
+    httpMock.verify();
+  });
+
+  it('does not fire a second POST when onSubmit is called again while the first is still in flight', () => {
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    fillValid();
+    page.onSubmit();
+    page.onSubmit();
+
+    const requests = httpMock.match(`${env.apiBaseUrl}/users/sessions`);
+    expect(requests.length).toBe(1);
+    requests[0].flush(
+      { id: 'u1', loginName: 'daria_dev', accessToken: '' },
+      { status: 200, statusText: 'OK' },
+    );
+    httpMock.expectOne(`${env.apiBaseUrl}/users/me`).flush({ id: 'u1', loginName: 'daria_dev' });
+    httpMock.verify();
+  });
+
+  it('clears a stale server-set field error on resubmit so a fix to a different field is not permanently blocked', () => {
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    fillValid();
+    page.onSubmit();
+    httpMock.expectOne(`${env.apiBaseUrl}/users/sessions`).flush(
+      { title: 'Validation failed', status: 400, errors: { identifier: ['identifier is required.'] } },
+      { status: 400, statusText: 'Bad Request' },
+    );
+    fixture.detectChanges();
+    expect(page.form.valid).toBe(false); // stuck after the 400, as expected
+
+    // User edits only the password field; identifier is left as-is.
+    page.form.controls.password.setValue('anotherPassword1');
+    fixture.detectChanges();
+
+    page.onSubmit();
+    httpMock.expectOne(`${env.apiBaseUrl}/users/sessions`).flush(
+      { id: 'u1', loginName: 'daria_dev', accessToken: '' },
+      { status: 200, statusText: 'OK' },
+    );
+    httpMock.expectOne(`${env.apiBaseUrl}/users/me`).flush({ id: 'u1', loginName: 'daria_dev' });
+    httpMock.verify();
+  });
+
+  it('clears a stale cross-user profile before hydrating, so a failed hydration never leaves a stale identity (cross-user regression guard)', () => {
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    // Seed a cached profile as if a previous session left one behind.
+    page.form.setValue({ identifier: 'previous_user', password: 'sup3rsecret' });
+    page.form.markAsDirty();
+    page.onSubmit();
+    httpMock
+      .expectOne(`${env.apiBaseUrl}/users/sessions`)
+      .flush({ id: 'u_old', loginName: 'previous_user', accessToken: '' }, { status: 200, statusText: 'OK' });
+    httpMock.expectOne(`${env.apiBaseUrl}/users/me`).flush({ id: 'u_old', loginName: 'previous_user' });
+    expect(userService.profile()?.loginName).toBe('previous_user');
+
+    // Now a different user signs in, and hydration fails.
+    page.form.setValue({ identifier: 'new_user', password: 'sup3rsecret2' });
+    page.form.markAsDirty();
+    page.onSubmit();
+    httpMock
+      .expectOne(`${env.apiBaseUrl}/users/sessions`)
+      .flush({ id: 'u_new', loginName: 'new_user', accessToken: '' }, { status: 200, statusText: 'OK' });
+    httpMock
+      .expectOne(`${env.apiBaseUrl}/users/me`)
+      .flush({ title: 'Server error', status: 500 }, { status: 500, statusText: 'Server Error' });
+
+    expect(userService.profile()).toBeNull();
+    httpMock.verify();
+  });
+
+  it('a non-401/429/400 failure (e.g. 500) on the sign-in call itself shows the server detail in the general error banner', () => {
+    fillValid();
+    page.onSubmit();
+
+    httpMock.expectOne(`${env.apiBaseUrl}/users/sessions`).flush(
+      { title: 'Server error', status: 500, detail: 'Something exploded.' },
+      { status: 500, statusText: 'Server Error' },
+    );
+    fixture.detectChanges();
+
+    expect(page.generalError()).toBe('Something exploded.');
     expect(page.submitting()).toBe(false);
     httpMock.verify();
   });
@@ -126,11 +224,11 @@ describe('SignInPage', () => {
     fixture.detectChanges();
 
     expect(page.rateLimitMessage()).not.toContain('429');
-    expect(page.rateLimitMessage().length).toBeGreaterThan(0);
+    expect(page.rateLimitMessage()).toContain('2 minutes');
     httpMock.verify();
   });
 
-  it('429 without Retry-After still shows a friendly message, no NaN/undefined leaking', () => {
+  it('429 without Retry-After still shows a friendly, generic message distinct from the Retry-After copy, no NaN/undefined leaking', () => {
     fillValid();
     page.onSubmit();
 
@@ -140,7 +238,23 @@ describe('SignInPage', () => {
     fixture.detectChanges();
 
     expect(page.rateLimitMessage()).not.toMatch(/NaN|undefined/);
-    expect(page.rateLimitMessage().length).toBeGreaterThan(0);
+    expect(page.rateLimitMessage()).not.toContain('minute');
+    expect(page.rateLimitMessage()).toContain('please wait a moment');
+    httpMock.verify();
+  });
+
+  it('429 with a blank Retry-After header falls back to the generic message, not "about a minute"', () => {
+    fillValid();
+    page.onSubmit();
+
+    httpMock.expectOne(`${env.apiBaseUrl}/users/sessions`).flush(
+      { title: 'Too Many Requests', status: 429 },
+      { status: 429, statusText: 'Too Many Requests', headers: { 'Retry-After': '' } },
+    );
+    fixture.detectChanges();
+
+    expect(page.rateLimitMessage()).toContain('please wait a moment');
+    expect(page.rateLimitMessage()).not.toContain('minute');
     httpMock.verify();
   });
 
@@ -177,7 +291,7 @@ describe('SignInPage', () => {
       }
     });
 
-    it('marks inputs aria-invalid and ties error via aria-describedby when errored', () => {
+    it('marks inputs aria-invalid and ties error via aria-describedby when errored, with the plain-language message rendered', () => {
       page.form.controls.identifier.setValue('  ');
       page.form.controls.identifier.markAsTouched();
       fixture.detectChanges();
@@ -188,6 +302,19 @@ describe('SignInPage', () => {
       expect(describedBy).toBeTruthy();
       const errorEl = fixture.nativeElement.querySelector(`#${describedBy}`);
       expect(errorEl?.getAttribute('aria-live')).toBe('polite');
+      expect(errorEl?.textContent?.trim()).toBe('This field is required.');
     });
+
+    it('sets house autocomplete values: username on identifier, current-password on password', () => {
+      const identifierInput = fixture.nativeElement.querySelector('input[name="identifier"]');
+      const passwordInput = fixture.nativeElement.querySelector('input[name="password"]');
+      expect(identifierInput.getAttribute('autocomplete')).toBe('username');
+      expect(passwordInput.getAttribute('autocomplete')).toBe('current-password');
+    });
+  });
+
+  it('offers a route to sign-up for users without an account (AC11)', () => {
+    const link: HTMLAnchorElement = fixture.nativeElement.querySelector('a[routerLink="/sign-up"]');
+    expect(link).toBeTruthy();
   });
 });

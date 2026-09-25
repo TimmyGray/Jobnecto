@@ -46,11 +46,13 @@ function toProblemDetails(error: unknown): ProblemDetails {
   return normalizeProblemDetails(null, 0);
 }
 
-/** Parses a delta-seconds `Retry-After` header value; returns undefined when missing or non-numeric. */
+/** Parses a delta-seconds `Retry-After` header value; returns undefined when missing, blank, or non-numeric. */
 function parseRetryAfter(header: string | null): number | undefined {
-  if (header === null) {
+  if (header === null || header.trim().length === 0) {
     return undefined;
   }
+  // `Number('')` coerces to 0 (a valid-looking finite value), so blank must be
+  // rejected above rather than relying on Number.isFinite alone.
   const seconds = Number(header);
   return Number.isFinite(seconds) ? seconds : undefined;
 }

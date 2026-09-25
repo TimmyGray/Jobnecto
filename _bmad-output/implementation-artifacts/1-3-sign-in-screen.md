@@ -1,6 +1,6 @@
 # Story 1.3: Sign-in screen
 
-Status: in-progress
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -201,8 +201,63 @@ Required cases:
 
 ### Agent Model Used
 
+Sonnet 5 (`claude-sonnet-5`), Jobnecto Dev persona.
+
 ### Debug Log References
+
+`cd frontend && npx ng test --no-watch` (final run, after review-driven fixes):
+```
+ Test Files  12 passed (12)
+      Tests  109 passed (109)
+Statements   : 94.99% ( 493/519 )
+Branches     : 91.18% ( 331/363 )
+Functions    : 95.06% ( 77/81 )
+Lines        : 96.05% ( 390/406 )
+```
+`sign-in.page.ts` file-level coverage: 93.54% lines, 82.75% branches — clears the 80% per-file gate the builder enforces.
+
+Backend Verify commands (`dotnet build`/`dotnet test`) could not be run — `dotnet` is not installed in this environment. No backend files were touched by this story, which limits the risk; this is noted rather than claimed as passing.
 
 ### Completion Notes List
 
+- Story 1.2 was confirmed merged (PR #86, commit `4255c19`) before starting; archived its story file to `_bmad-output/archive/implementation-artifacts/` and marked it `done` in the tracker, per AGENTS.md's archive lifecycle.
+- Implemented Tasks 1–8 test-first (red → green) per the story's task order.
+- Ran the four self-review lenses (adversarial, edge-case, verification-gap, acceptance) in parallel per `jobnecto-dev`'s `references/review.md`. See Review Findings below for the full triage.
+- Fixed 5 real defects surfaced by review before moving to `review`: a stale-server-error resubmit lock, a missing re-entrancy guard, an untrimmed-identifier bug, a stale cross-user profile after a failed hydration, and a blank-`Retry-After`-header parsing gap. Strengthened the 429 and a11y tests, and closed the route/sign-up-link/autocomplete coverage gaps the verification-gap lens found.
+
 ### File List
+
+- `frontend/src/shared/api/problem-details.ts` (UPDATED — added `retryAfterSeconds?: number`)
+- `frontend/src/shared/api/http.interceptor.ts` (UPDATED — lifts `Retry-After` header into `retryAfterSeconds`; blank-header guard added in review fix-up)
+- `frontend/src/shared/api/http.interceptor.spec.ts` (UPDATED — Retry-After parsing tests, incl. blank-header regression test)
+- `frontend/src/entities/user/model.ts` (UPDATED — hand-added `SignInCommand`/`SignInResult`, pending Story 1.2's schema generation)
+- `frontend/src/entities/user/user.service.ts` (UPDATED — added `signIn()`)
+- `frontend/src/entities/user/user.service.spec.ts` (UPDATED — `signIn()` test)
+- `frontend/src/features/user/sign-in/sign-in.validators.ts` (CREATED)
+- `frontend/src/features/user/sign-in/sign-in.validators.spec.ts` (CREATED)
+- `frontend/src/pages/auth-sign-in/sign-in.page.ts` (CREATED; UPDATED in review fix-up — resubmit/re-entrancy/trim/invalidate fixes)
+- `frontend/src/pages/auth-sign-in/sign-in.page.html` (CREATED)
+- `frontend/src/pages/auth-sign-in/sign-in.page.spec.ts` (CREATED; UPDATED in review fix-up — regression + coverage-gap tests)
+- `frontend/src/app/app.routes.ts` (UPDATED — registered `/sign-in`)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (UPDATED — 1.2 `done`, 1.3 status)
+- `_bmad-output/archive/implementation-artifacts/1-2-returning-user-sign-in-endpoint.md` (MOVED from `_bmad-output/implementation-artifacts/`, `Status: done`)
+
+### Review Findings
+
+Four lenses (adversarial, edge-case hunter, verification gap, acceptance) run in parallel per `references/review.md`. Acceptance: all 11 ACs met, no findings.
+
+- [x] [Review][Patch] Stale `server`-set field error (from a prior 400) left `form.invalid === true` after the user fixed a *different* field, permanently blocking resubmission `frontend/src/pages/auth-sign-in/sign-in.page.ts` — fixed via `clearServerErrors()` called at the top of `onSubmit()`; regression test added.
+- [x] [Review][Patch] No re-entrancy guard on `onSubmit()` — a rapid double Enter/click before change detection disables the button could fire two concurrent `POST /users/sessions` `sign-in.page.ts` — fixed with an early return when `submitting()` is already true; regression test added.
+- [x] [Review][Patch] Untrimmed identifier sent to the server despite trim-based client validation — a pasted value like `" daria_dev "` would pass validation but could fail an exact-match backend lookup `sign-in.page.ts` `onSubmit()` — fixed by trimming the identifier (not the password) before the `signIn()` call; regression test added.
+- [x] [Review][Patch] Stale cross-user profile: a failed `/users/me` hydration after a successful sign-in left any previously-cached profile in place, so `UserService.profile()` could report the wrong identity `sign-in.page.ts` — fixed by calling `userService.invalidate()` immediately after a successful sign-in and before hydrating; regression test added.
+- [x] [Review][Patch] `Retry-After: ''` (present but blank) parsed as `0` (a "valid" value) instead of missing, because `Number('') === 0` is finite — rendered "about a minute" for a blank header `frontend/src/shared/api/http.interceptor.ts` `parseRetryAfter()` — fixed with an explicit blank-string guard; regression tests added in both the interceptor spec and the page spec.
+- [x] [Review][Patch] Verification-gap: several behaviors were untested — the non-401/429/400 catch-all branch, the sign-up link (AC11), the `autocomplete` attribute values, and the required-field error *text* — added targeted tests for each.
+- [x] [Review][Patch] Verification-gap: the two 429 tests only asserted "not empty" / "no raw code", never that `retryAfterSeconds` actually changes the copy — strengthened to assert the minute-count and the distinct generic-vs-timed message text.
+- [Review][Dismiss] Negative or decimal `Retry-After` values (e.g. `'-30'`, `'900.4'`) are not clamped/rounded — dismissed: Story 1.2's backend only emits positive integer delta-seconds (per the pinned wire contract); guarding a value the real backend never sends adds complexity for no reachable case.
+- [Review][Dismiss] A 400 body with one mapped field error + one unmapped field name would silently drop the unmapped message (`anyFieldHasServerError()` short-circuits the generic-banner fallback) — dismissed: the pinned wire contract's 400 only ever names `identifier`/`password`, both of which `matchControl()` recognizes, so this path is unreachable under the documented contract. Logged here rather than in `deferred-work.md` since it isn't reachable, not deferred.
+- [Review][Dismiss] No route-resolution test for `app.routes.ts` (`/sign-in` → `SignInPage`) — dismissed: consistent with the existing convention (no equivalent test exists for `/sign-up` either), `app.routes.ts` is in the coverage-gate's `coverageExclude`, and the codebase has no route-level test harness to extend without introducing a new test pattern out of this story's scope.
+
+## Change Log
+
+- 2026-09-25: Story created (ready-for-dev).
+- 2026-09-25: Implemented (Tasks 1-8), self-reviewed (4 parallel lenses), fixed 5 real defects + closed verification gaps found in review. Status → review.
