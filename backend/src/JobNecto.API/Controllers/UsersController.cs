@@ -110,10 +110,12 @@ public class UsersController : ControllerBase
             });
         }
 
-        _signInAttemptTracker.Reset(identifier, clientIp);
-
         var token = await _jwtService.GenerateTokenAsync(result.Id.ToString());
         _cookieAuthService.SetAuthCookie(Response, token);
+
+        // Reset only after the session is fully established: if token issuance or cookie-setting
+        // above throws, the client never received a 200, so the attempt window must stay intact.
+        _signInAttemptTracker.Reset(identifier, clientIp);
 
         return Ok(new SignInResponse
         {

@@ -165,6 +165,21 @@ public class SessionsApiTests
     }
 
     [Fact]
+    public async Task SignIn_IdentifierFieldOmittedEntirely_Returns400WithErrors()
+    {
+        // Distinct from the empty-string case: model binding leaves Identifier null here,
+        // exercising the `command.Identifier ?? string.Empty` fallback used for the lockout key.
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/v1/users/sessions", new { password = Password });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("errors");
+    }
+
+    [Fact]
     public async Task SignIn_FiveFailuresThenSixth_Returns429WithRetryAfterHeader()
     {
         await using var factory = new JobNectoApiFactory();
@@ -185,10 +200,12 @@ public class SessionsApiTests
 
         lockedResponse.StatusCode.Should().Be((HttpStatusCode)429);
         lockedResponse.Headers.Should().ContainKey("Retry-After");
+        var retryAfterSeconds = int.Parse(lockedResponse.Headers.GetValues("Retry-After").First());
+        retryAfterSeconds.Should().BePositive();
     }
 
     [Fact]
-    public async Task SignIn_LockedOut_EvenWithCorrectPassword_Returns429BeforeVerifyingCredentials()
+    public async Task SignIn_LockedOut_WithCorrectPassword_StillReturns429()
     {
         await using var factory = new JobNectoApiFactory();
         var client = factory.CreateClient();

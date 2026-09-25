@@ -21,6 +21,25 @@ public class SignInAttemptTrackerTests
     }
 
     [Fact]
+    public void MissingConfiguration_FallsBackToDefaultFiveAttemptThreshold()
+    {
+        var emptyConfiguration = new ConfigurationBuilder().Build();
+        var tracker = new SignInAttemptTracker(new MemoryCache(new MemoryCacheOptions()), emptyConfiguration);
+
+        for (var i = 0; i < 4; i++)
+        {
+            tracker.RecordFailure("bob", "127.0.0.1");
+        }
+        tracker.IsLockedOut("bob", "127.0.0.1", out _).Should().BeFalse();
+
+        tracker.RecordFailure("bob", "127.0.0.1");
+        tracker.IsLockedOut("bob", "127.0.0.1", out var retryAfter).Should().BeTrue();
+        // Default window is 15 minutes, so retryAfter should be close to (but not exceed) that.
+        retryAfter.Should().BeLessThanOrEqualTo(TimeSpan.FromMinutes(15));
+        retryAfter.Should().BeGreaterThan(TimeSpan.FromMinutes(14));
+    }
+
+    [Fact]
     public void IsLockedOut_NoPriorFailures_ReturnsFalse()
     {
         var tracker = CreateTracker();
@@ -32,7 +51,7 @@ public class SignInAttemptTrackerTests
     }
 
     [Fact]
-    public void ThresholdBoundary_FifthFailure_StillNotLockedOut_SixthFailure_IsLockedOut()
+    public void ThresholdBoundary_FifthFailure_IsLockedOut_SixthFailure_StaysLockedOut()
     {
         var tracker = CreateTracker(maxAttempts: 5);
 
@@ -129,5 +148,27 @@ public class SignInAttemptTrackerTests
 
         tracker.IsLockedOut("bob", "127.0.0.1", out _).Should().BeTrue();
         tracker.IsLockedOut("bob", "10.0.0.1", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task FixedWindow_SubsequentFailureAfterLockout_DoesNotExtendTheWindow()
+    {
+        // Window is anchored to the first failure and must not slide on later failures.
+        var tracker = CreateTracker(maxAttempts: 3, windowMinutes: "0.05"); // 3s window
+
+        for (var i = 0; i < 3; i++)
+        {
+            tracker.RecordFailure("bob", "127.0.0.1");
+        }
+
+        await Task.Delay(TimeSpan.FromSeconds(1.5));
+
+        // A failure recorded well after the window started, while still locked out.
+        tracker.RecordFailure("bob", "127.0.0.1");
+
+        tracker.IsLockedOut("bob", "127.0.0.1", out var retryAfter).Should().BeTrue();
+        // If the window had reset to a fresh 3s, retryAfter would be close to 3s here.
+        // Anchored to the first failure, only ~1.5s of the original 3s window remains.
+        retryAfter.Should().BeLessThan(TimeSpan.FromSeconds(2.2));
     }
 }

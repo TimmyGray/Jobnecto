@@ -19,6 +19,7 @@ public sealed class SignInAttemptTracker : ISignInAttemptTracker
     private readonly IMemoryCache _cache;
     private readonly int _maxAttempts;
     private readonly TimeSpan _window;
+    private readonly object _lock = new();
 
     public SignInAttemptTracker(IMemoryCache cache, IConfiguration configuration)
     {
@@ -58,12 +59,18 @@ public sealed class SignInAttemptTracker : ISignInAttemptTracker
     public void RecordFailure(string identifier, string ip)
     {
         var key = BuildKey(identifier, ip);
-        var existing = _cache.Get<AttemptState>(key);
 
-        var windowExpiresAt = existing?.WindowExpiresAt ?? DateTimeOffset.UtcNow.Add(_window);
-        var failureCount = (existing?.FailureCount ?? 0) + 1;
+        // Read-then-write must be atomic: concurrent failed attempts for the same key would
+        // otherwise race on the read and collapse into a single increment (lost update).
+        lock (_lock)
+        {
+            var existing = _cache.Get<AttemptState>(key);
 
-        _cache.Set(key, new AttemptState(failureCount, windowExpiresAt), windowExpiresAt);
+            var windowExpiresAt = existing?.WindowExpiresAt ?? DateTimeOffset.UtcNow.Add(_window);
+            var failureCount = (existing?.FailureCount ?? 0) + 1;
+
+            _cache.Set(key, new AttemptState(failureCount, windowExpiresAt), windowExpiresAt);
+        }
     }
 
     /// <inheritdoc />

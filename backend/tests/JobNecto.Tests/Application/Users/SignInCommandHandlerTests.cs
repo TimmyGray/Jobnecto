@@ -80,6 +80,25 @@ public class SignInCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhitespacePaddedIdentifier_IsTrimmedBeforeLookup()
+    {
+        var command = new SignInCommand { Identifier = "  daria_dev  ", Password = "Password123!" };
+        var user = new User { Id = Guid.NewGuid(), Email = "daria@example.com", Login = "daria_dev", Password = "hashed" };
+
+        _userRepoMock.Setup(x => x.GetByEmailAsync("daria_dev", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+        _userRepoMock.Setup(x => x.GetByLoginAsync("daria_dev", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+        _passwordHasherMock.Setup(x => x.VerifyHashedPassword(user.Password, command.Password)).Returns(true);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        result.Id.Should().Be(user.Id);
+        _userRepoMock.Verify(x => x.GetByEmailAsync("daria_dev", It.IsAny<CancellationToken>()), Times.Once);
+        _userRepoMock.Verify(x => x.GetByLoginAsync("daria_dev", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_UnknownIdentifier_ThrowsInvalidCredentialsException()
     {
         var command = new SignInCommand { Identifier = "ghost", Password = "Password123!" };

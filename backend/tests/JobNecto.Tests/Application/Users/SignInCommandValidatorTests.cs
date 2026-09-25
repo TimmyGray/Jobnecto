@@ -47,13 +47,57 @@ public class SignInCommandValidatorTests
     }
 
     [Fact]
-    public void NoLengthOrFormatRulesOnIdentifier_ShortOrUnusualIdentifierPasses()
+    public void NoFormatOrMinimumLengthRulesOnIdentifier_ShortOrUnusualIdentifierPasses()
     {
-        // The validator enforces non-empty only, so it must never leak "that isn't a valid login shape".
+        // No format/regex/minimum-length rules, so this must never leak "that isn't a valid login shape".
         var cmd = new SignInCommand { Identifier = "x", Password = "y" };
 
         var result = _validator.Validate(cmd);
 
         result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IdentifierAtMaxLength_Passes()
+    {
+        var cmd = new SignInCommand { Identifier = new string('a', 1000), Password = "anything" };
+
+        var result = _validator.Validate(cmd);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IdentifierOverMaxLength_Fails()
+    {
+        // Bounds PBKDF2/payload cost per request, not "valid shape" — 1000 chars is far above any real identifier.
+        var cmd = new SignInCommand { Identifier = new string('a', 1001), Password = "anything" };
+
+        var result = _validator.Validate(cmd);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "Identifier");
+    }
+
+    [Fact]
+    public void PasswordAtMaxLength_Passes()
+    {
+        var cmd = new SignInCommand { Identifier = "daria_dev", Password = new string('a', 1000) };
+
+        var result = _validator.Validate(cmd);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void PasswordOverMaxLength_Fails()
+    {
+        // Bounds PBKDF2 hashing cost per request — the not-found path always hashes too.
+        var cmd = new SignInCommand { Identifier = "daria_dev", Password = new string('a', 1001) };
+
+        var result = _validator.Validate(cmd);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "Password");
     }
 }
