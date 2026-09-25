@@ -293,7 +293,7 @@ Repository agent profiles:
 
 The following are **directional** items implied by the solution structure and dependencies; timelines are not fixed here.
 
-- **Frontend baseline**: Story 1.1 (Angular frontend foundation + user registration) is merged; the `frontend/` workspace now provides the Demo MVP client scaffold, tokenized UI layer, and sign-up integration against `/api/v1/users` + `/api/v1/users/me`. Story 1.3 (sign-in screen) is also merged: an unguarded `/sign-in` route against `POST /api/v1/users/sessions`.
+- **Frontend baseline**: Story 1.1 (Angular frontend foundation + user registration) is merged; the `frontend/` workspace now provides the Demo MVP client scaffold, tokenized UI layer, and sign-up integration against `/api/v1/users` + `/api/v1/users/me`. Story 1.3 (sign-in screen) is also merged: an unguarded `/sign-in` route against `POST /api/v1/users/sessions`. Story 1.4 (session continuity, route guards & expiry recovery) is merged: every other route is now guarded, a silent session restore runs `POST /api/v1/users/token/refresh` on a cold load, and a mid-task `401` redirects to `/sign-in` preserving the intended destination.
 - **HTTP surface**: Expand beyond current user onboarding + token refresh to include profile, vacancy, resume, education, and cover-letter resource endpoints.
 - **Infrastructure**: Register Infrastructure services in the API host where appropriate; use PostgreSQL for reads/writes; optional **Redis** caching and **Quartz**-based jobs when requirements solidify.
 - **Integrations**: Expand **JobNecto.Infrastructure.JobSources** for ingestion from multiple boards and feeds; use **JobNecto.Infrastructure.LLM** for ranking, summarization, or matching assistance.
