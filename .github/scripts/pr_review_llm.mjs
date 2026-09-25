@@ -13,11 +13,23 @@
  * Environment (set by the workflow):
  * - GITHUB_TOKEN, GITHUB_REPOSITORY, PR_NUMBER — post comment via REST
  * - OPENROUTER_API_KEY — required for the model call (secret)
- * - OPENROUTER_MODEL — optional; falls back to DEFAULT_MODEL
+ * - OPENROUTER_MODEL — optional primary model; falls back to DEFAULT_MODEL
+ * - OPENROUTER_FALLBACK_MODELS — optional comma-separated models tried after the primary
+ * - OPENROUTER_MAX_RETRIES — optional retries per model for transient errors (default 10)
+ * - OPENROUTER_BACKOFF_BASE_MS — optional first backoff delay (default 2000)
+ * - OPENROUTER_TOTAL_BUDGET_MS — optional wall-clock budget for all attempts (default 20 min)
+ *
+ * Model resilience: free OpenRouter models are withdrawn without notice, so the script
+ * walks a chain — primary, configured fallbacks, free models discovered from the live
+ * catalog, then the `openrouter/free` router — and retries transient failures (429,
+ * 5xx, timeouts, network errors) on each model with exponential backoff + jitter,
+ * honoring Retry-After. Non-transient model errors (404 unavailable, 400, 402, 413…)
+ * skip straight to the next model; 401 and exhausted daily free quota stop the chain.
  */
 
 import { readFileSync, existsSync } from "node:fs";
 import { stderr } from "node:process";
+import { pathToFileURL } from "node:url";
 
 /** OpenRouter chat completions (OpenAI-compatible). */
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -28,8 +40,40 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
  */
 const MAX_DIFF_CHARS = 900_000;
 
-/** Used when OPENROUTER_MODEL is unset or empty. */
-const DEFAULT_MODEL = "openai/gpt-oss-120b:free";
+/** OpenRouter public model catalog (no auth needed); used to discover free fallbacks. */
+const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
+
+/** Used when OPENROUTER_MODEL is unset or empty. 1M-token context fits large diffs. */
+const DEFAULT_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
+
+/** OpenRouter's meta-router that picks any currently available free model; last resort. */
+const FREE_ROUTER_MODEL = "openrouter/free";
+
+/** How many free models discovered from the live catalog to append as fallbacks. */
+const DISCOVERED_FALLBACK_LIMIT = 4;
+
+/** Retries per model for transient failures (so up to MAX_RETRIES + 1 attempts). */
+const MAX_RETRIES = envInt("OPENROUTER_MAX_RETRIES", 10);
+
+/** First backoff delay; doubles each retry up to MAX_BACKOFF_MS. */
+const BACKOFF_BASE_MS = envInt("OPENROUTER_BACKOFF_BASE_MS", 2_000);
+
+/** Ceiling for a single computed backoff delay. */
+const MAX_BACKOFF_MS = 60_000;
+
+/** Ceiling for a server-requested wait (Retry-After / X-RateLimit-Reset). */
+const MAX_SERVER_WAIT_MS = 120_000;
+
+/** Wall-clock budget across every model and attempt; keep below the job timeout. */
+const TOTAL_BUDGET_MS = envInt("OPENROUTER_TOTAL_BUDGET_MS", 20 * 60_000);
+
+/** Per-request timeout so a stuck connection cannot eat the whole budget. */
+const REQUEST_TIMEOUT_MS = 180_000;
+
+function envInt(name, fallback) {
+  const n = Number.parseInt(process.env[name] ?? "", 10);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
 
 /** Include only the most recent LLM reviews to keep context useful and compact. */
 const PREVIOUS_REVIEWS_LIMIT = 3;
@@ -37,8 +81,12 @@ const PREVIOUS_REVIEWS_LIMIT = 3;
 /** Per-review character cap when folding previous findings into the prompt context. */
 const MAX_PREVIOUS_REVIEW_CHARS = 5_000;
 
-/** Cap completion size so comments stay detailed but not overly long. */
-const OPENROUTER_MAX_TOKENS = 1_400;
+/**
+ * Cap completion size. The prompt's own hard cap is 1600 words (~2.1k tokens), and
+ * reasoning models can spend part of the budget thinking, so leave generous headroom
+ * to avoid reviews cut off mid-sentence.
+ */
+const OPENROUTER_MAX_TOKENS = 4_000;
 
 /**
  * Paths whose entire diff hunks we drop before calling the LLM.
@@ -204,45 +252,192 @@ When reviewing new changes, consider:
 }
 
 /**
- * Retry with exponential backoff for transient failures.
- * @param {Function} fn - Async function to retry
- * @param {number} maxAttempts - Max retry attempts (default 3)
- * @param {number} initialDelayMs - Initial delay in ms (default 1000)
+ * Error raised for a failed OpenRouter call, tagged with how the caller should react.
+ * kind: "retryable" (same model again after backoff), "next-model" (skip to the next
+ * model in the chain), or "fatal" (stop the whole chain, e.g. bad key or daily quota).
  */
-async function retryWithBackoff(fn, maxAttempts = 3, initialDelayMs = 1000) {
-  let lastError;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastError = err;
-      // Determine if error is retryable:
-      // - Network/fetch errors: bubbled from fetch API
-      // - Timeout errors: explicit timeout or network delay (ETIMEDOUT, EHOSTUNREACH)
-      // - HTTP status codes in message: 429 (rate limit), 502/503/504 (server errors)
-      const isRetryable =
-        err.message?.includes("fetch") ||
-        err.message?.includes("timeout") ||
-        err.message?.includes("ETIMEDOUT") ||
-        err.message?.includes("EHOSTUNREACH") ||
-        /\b(429|502|503|504)\b/.test(err.message); // HTTP status codes
-
-      if (attempt < maxAttempts && isRetryable) {
-        const delay = initialDelayMs * Math.pow(2, attempt - 1);
-        stderr.write(
-          `Retryable error (attempt ${attempt}/${maxAttempts}): ${err.message}\n` +
-            `Waiting ${delay}ms before retry...\n`
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      } else {
-        throw err;
-      }
-    }
+class OpenRouterError extends Error {
+  constructor(message, { kind, status = null, retryAfterMs = null } = {}) {
+    super(message);
+    this.name = "OpenRouterError";
+    this.kind = kind;
+    this.status = status;
+    this.retryAfterMs = retryAfterMs;
   }
-  throw lastError;
 }
 
-async function openrouterReview(diffText, model, previousReviewContext = null) {
+/** HTTP statuses worth retrying on the same model: timeouts, rate limits, upstream outages. */
+const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504, 520, 522, 524, 529]);
+
+/**
+ * Map an HTTP status (from the response or an error object in a 200 body) to a reaction.
+ * @param {number} status - HTTP-like status code.
+ * @param {string} detail - Error text, used to spot an exhausted daily free quota.
+ * @returns {"retryable"|"next-model"|"fatal"}
+ */
+function classifyStatus(status, detail) {
+  if (status === 401) return "fatal"; // bad or missing key: no model will work
+  // The free-tier daily cap is account-wide, so every other free model would 429 too.
+  if (status === 429 && /per[- ]day|daily/i.test(detail)) return "fatal";
+  if (RETRYABLE_STATUSES.has(status)) return "retryable";
+  // 400/402/403/404/413/422, and non-transient 5xx like 501/505: this model cannot serve it.
+  return "next-model";
+}
+
+/**
+ * Read a server-requested wait from Retry-After (seconds or HTTP date) or OpenRouter's
+ * X-RateLimit-Reset (epoch ms). Returns null when absent or unparseable.
+ * @param {Headers} headers
+ * @returns {number|null} Wait in ms, capped at MAX_SERVER_WAIT_MS.
+ */
+function serverRequestedWaitMs(headers) {
+  const now = Date.now();
+  let wait = null;
+  const retryAfter = headers?.get?.("retry-after");
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    wait = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(retryAfter) - now;
+  }
+  const reset = Number(headers?.get?.("x-ratelimit-reset"));
+  if (wait == null && Number.isFinite(reset) && reset > 0) {
+    // Seconds vs milliseconds: epoch seconds are ~1e9, epoch ms ~1e12.
+    wait = (reset < 1e11 ? reset * 1000 : reset) - now;
+  }
+  if (wait == null || !Number.isFinite(wait) || wait <= 0) return null;
+  return Math.min(wait, MAX_SERVER_WAIT_MS);
+}
+
+/**
+ * Exponential backoff with equal jitter: half the delay is fixed, half random, so
+ * concurrent runs spread out while still waiting at least half the nominal delay.
+ * @param {number} retry - 1-based retry number.
+ * @param {number|null} serverWaitMs - Wait the server asked for, if any; always honored.
+ */
+function backoffDelayMs(retry, serverWaitMs) {
+  const nominal = Math.min(MAX_BACKOFF_MS, BACKOFF_BASE_MS * 2 ** (retry - 1));
+  const jittered = nominal / 2 + Math.random() * (nominal / 2);
+  return Math.round(Math.max(jittered, serverWaitMs ?? 0));
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Normalize anything thrown by fetch/parsing into an OpenRouterError.
+ * Network failures and timeouts are transient; unknown errors get one more model.
+ */
+function toOpenRouterError(err) {
+  if (err instanceof OpenRouterError) return err;
+  const name = err?.name ?? "";
+  const msg = err?.message ?? String(err);
+  const isTransient =
+    name === "TimeoutError" ||
+    name === "AbortError" ||
+    (name === "TypeError" && /fetch/i.test(msg)) ||
+    /ECONNRESET|ETIMEDOUT|EHOSTUNREACH|ENOTFOUND|EAI_AGAIN|socket hang up/i.test(msg);
+  return new OpenRouterError(msg, { kind: isTransient ? "retryable" : "next-model" });
+}
+
+/**
+ * Discover currently free text models from the public catalog, largest context first,
+ * keeping only models whose context can hold the prompt. Failures return [] — discovery
+ * is best effort and must never block the review.
+ * @param {number} minContextTokens - Rough token size of the prompt plus completion.
+ * @returns {Promise<string[]>}
+ */
+async function discoverFreeModels(minContextTokens) {
+  try {
+    const res = await fetch(OPENROUTER_MODELS_URL, {
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) {
+      stderr.write(`Free-model discovery skipped: HTTP ${res.status}\n`);
+      return [];
+    }
+    const { data } = await res.json();
+    if (!Array.isArray(data)) return [];
+    const isZero = (v) => v != null && Number(v) === 0;
+    return data
+      .filter(
+        (m) =>
+          typeof m?.id === "string" &&
+          m.id.endsWith(":free") &&
+          isZero(m.pricing?.prompt) &&
+          isZero(m.pricing?.completion) &&
+          (m.architecture?.output_modalities ?? ["text"]).includes("text") &&
+          (m.context_length ?? 0) >= minContextTokens,
+      )
+      .sort((a, b) => (b.context_length ?? 0) - (a.context_length ?? 0))
+      .slice(0, DISCOVERED_FALLBACK_LIMIT)
+      .map((m) => m.id);
+  } catch (err) {
+    stderr.write(`Free-model discovery skipped: ${err.message}\n`);
+    return [];
+  }
+}
+
+/**
+ * Ordered, de-duplicated model chain: primary, configured fallbacks, discovered free
+ * models, then the free router as the last resort.
+ * @param {string} primary
+ * @param {number} minContextTokens
+ */
+async function buildModelChain(primary, minContextTokens) {
+  const configured = (process.env.OPENROUTER_FALLBACK_MODELS ?? "")
+    .split(",")
+    .map((m) => m.trim())
+    .filter(Boolean);
+  const discovered = await discoverFreeModels(minContextTokens);
+  if (discovered.length) {
+    stderr.write(`Discovered free fallback models: ${discovered.join(", ")}\n`);
+  }
+  return [...new Set([primary, ...configured, ...discovered, FREE_ROUTER_MODEL])];
+}
+
+/**
+ * Try each model in order. Transient errors are retried on the same model with
+ * exponential backoff (up to MAX_RETRIES); model-specific errors move to the next
+ * model; fatal errors or an exhausted wall-clock budget stop the chain.
+ * @param {string[]} models - Ordered model chain.
+ * @param {(model: string, timeoutMs: number) => Promise<string>} call - One attempt.
+ * @returns {Promise<{ review: string, model: string, log: string[] }>}
+ * @throws {Error} With a per-model attempt log when every model fails.
+ */
+async function reviewWithFallbacks(models, call) {
+  const deadline = Date.now() + TOTAL_BUDGET_MS;
+  const log = [];
+
+  for (const model of models) {
+    for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        throw new Error(`Time budget exhausted.\n${log.join("\n")}`);
+      }
+      try {
+        const review = await call(model, Math.min(REQUEST_TIMEOUT_MS, remaining));
+        return { review, model, log };
+      } catch (raw) {
+        const err = toOpenRouterError(raw);
+        const line = `${model} attempt ${attempt}: ${err.message.slice(0, 300)}`;
+        log.push(line);
+        stderr.write(`${line}\n`);
+
+        if (err.kind === "fatal") throw new Error(`Stopped: ${err.message}\n${log.join("\n")}`);
+        if (err.kind === "next-model" || attempt > MAX_RETRIES) break;
+
+        const delay = backoffDelayMs(attempt, err.retryAfterMs);
+        if (Date.now() + delay >= deadline) {
+          throw new Error(`Time budget exhausted before retry.\n${log.join("\n")}`);
+        }
+        stderr.write(`Retrying ${model} in ${delay}ms (retry ${attempt}/${MAX_RETRIES})\n`);
+        await sleep(delay);
+      }
+    }
+    stderr.write(`Moving on from ${model}\n`);
+  }
+  throw new Error(`All models failed.\n${log.join("\n")}`);
+}
+
+async function openrouterReview(diffText, model, previousReviewContext = null, timeoutMs = REQUEST_TIMEOUT_MS) {
   const apiKey = (process.env.OPENROUTER_API_KEY ?? "").trim();
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
 
@@ -368,12 +563,16 @@ and approve.`;
       max_tokens: OPENROUTER_MAX_TOKENS,
     }),
     // Avoid hanging the Actions runner indefinitely on a stuck connection.
-    signal: AbortSignal.timeout(300_000), // 5 minutes
+    signal: AbortSignal.timeout(timeoutMs),
   });
 
   const raw = await res.text();
   if (!res.ok) {
-    throw new Error(`OpenRouter HTTP ${res.status}: ${raw.slice(0, 2000)}`);
+    throw new OpenRouterError(`OpenRouter HTTP ${res.status}: ${raw.slice(0, 2000)}`, {
+      kind: classifyStatus(res.status, raw),
+      status: res.status,
+      retryAfterMs: serverRequestedWaitMs(res.headers),
+    });
   }
 
   if (raw.length === 0) {
@@ -386,32 +585,45 @@ and approve.`;
   try {
     parsed = JSON.parse(raw);
   } catch (err) {
-    throw new Error(
-      `OpenRouter invalid JSON: ${raw.slice(0, 500)} (parse error: ${err.message})`
+    // A truncated body usually means a gateway hiccup; worth another attempt.
+    throw new OpenRouterError(
+      `OpenRouter invalid JSON: ${raw.slice(0, 500)} (parse error: ${err.message})`,
+      { kind: "retryable", status: res.status }
     );
   }
 
-  // Check for error message in response (common when model unavailable, rate limited, etc.)
+  // Errors can arrive in a 200 body (model unavailable, upstream rate limit, etc.).
   if (parsed.error) {
-    throw new Error(
-      `OpenRouter API error: ${JSON.stringify(parsed.error)} (status: ${res.status})`
-    );
+    const detail = JSON.stringify(parsed.error);
+    const code = Number(parsed.error.code);
+    throw new OpenRouterError(`OpenRouter API error: ${detail} (status: ${res.status})`, {
+      kind: Number.isFinite(code) ? classifyStatus(code, detail) : "retryable",
+      status: Number.isFinite(code) ? code : res.status,
+      retryAfterMs: serverRequestedWaitMs(res.headers),
+    });
   }
 
   const choices = parsed.choices ?? [];
   if (!choices.length) {
-    throw new Error(
-      `OpenRouter returned no choices. Full response: ${JSON.stringify(parsed).slice(0, 1500)}`
+    throw new OpenRouterError(
+      `OpenRouter returned no choices. Full response: ${JSON.stringify(parsed).slice(0, 1500)}`,
+      { kind: "retryable", status: res.status }
     );
   }
 
   const content = choices[0]?.message?.content;
   if (content == null || String(content).trim() === "") {
-    throw new Error(
-      `OpenRouter returned empty content. Full response: ${JSON.stringify(parsed).slice(0, 1500)}`
+    // Typically a reasoning model spending the whole token budget on thinking: another
+    // model is likelier to succeed than the same one again.
+    throw new OpenRouterError(
+      `OpenRouter returned empty content. Full response: ${JSON.stringify(parsed).slice(0, 1500)}`,
+      { kind: "next-model", status: res.status }
     );
   }
-  const review = String(content).trim();
+  let review = String(content).trim();
+  if (choices[0]?.finish_reason === "length") {
+    review += "\n\n…_(review truncated: the model hit its output token limit)_";
+  }
   stderr.write(`OpenRouter review length: ${review.length} chars\n`);
   stderr.write(`OpenRouter review preview (first 1000 chars): ${review.slice(0, 1000)}\n`);
   return review;
@@ -433,13 +645,14 @@ async function main() {
     MAX_DIFF_CHARS,
   );
 
-  const model =
+  const primaryModel =
     (process.env.OPENROUTER_MODEL ?? "").trim() || DEFAULT_MODEL;
-  const header =
+  const buildHeader = (modelLabel) =>
     "### LLM PR review (OpenRouter)\n\n" +
-    `_Model: \`${model}\`_` +
+    `_Model: ${modelLabel}_` +
     (wasTruncated ? " · _diff truncated_" : "") +
     "\n\n---\n\n";
+  const header = buildHeader(`\`${primaryModel}\``);
 
   // Nothing left after filters: still comment so the PR thread shows the run completed.
   if (!filtered.trim()) {
@@ -462,12 +675,19 @@ async function main() {
       stderr.write("Found previous reviews; including context for new analysis...\n");
     }
 
-    const review = await retryWithBackoff(
-      () => openrouterReview(truncated, model, previousReviewContext),
-      3, // maxAttempts
-      1000 // initialDelayMs
+    // Rough token estimate (~3 chars/token) plus room for the prompt and completion.
+    const minContextTokens = Math.ceil(truncated.length / 3) + 8_000;
+    const models = await buildModelChain(primaryModel, minContextTokens);
+    stderr.write(`Model chain: ${models.join(" -> ")}\n`);
+
+    const { review, model } = await reviewWithFallbacks(models, (m, timeoutMs) =>
+      openrouterReview(truncated, m, previousReviewContext, timeoutMs)
     );
-    await githubPostComment(header + review);
+    const label =
+      model === primaryModel
+        ? `\`${model}\``
+        : `\`${model}\` (fallback; \`${primaryModel}\` unavailable)`;
+    await githubPostComment(buildHeader(label) + review);
   } catch (e) {
     stderr.write(`${e}\n`);
     const msg = e instanceof Error ? e.message : String(e);
@@ -488,6 +708,17 @@ async function main() {
   return;
 }
 
-await main().catch((err) => {
-  stderr.write(`Unexpected failure in pr_review_llm.mjs: ${err}\n`);
-});
+export {
+  classifyStatus,
+  serverRequestedWaitMs,
+  backoffDelayMs,
+  reviewWithFallbacks,
+  buildModelChain,
+  OpenRouterError,
+};
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  await main().catch((err) => {
+    stderr.write(`Unexpected failure in pr_review_llm.mjs: ${err}\n`);
+  });
+}
