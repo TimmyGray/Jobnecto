@@ -1,6 +1,6 @@
 # Story 2.8: Get, Update & Delete Education Records
 
-Status: review
+Status: done
 
 ## Story
 

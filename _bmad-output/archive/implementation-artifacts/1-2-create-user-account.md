@@ -1,6 +1,6 @@
 # Story 1.2: Create User Account
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -153,7 +153,7 @@ public static CreateUserResult ToCreateUserResult(this User user) { ... }
 - [Source: `backend/src/JobNecto.Domain/Entities/User.cs`]
 - [Source: `backend/src/JobNecto.Domain/Enums/Location.cs`]
 - [Source: `backend/tests/JobNecto.Tests/API/AuthenticationTests.cs`]
-- [Source: `_bmad-output/implementation-artifacts/1-1-global-exception-handling.md`]
+- [Source: `_bmad-output/archive/implementation-artifacts/1-1-global-exception-handling.md`]
 
 ## Dev Agent Record
 
@@ -175,7 +175,7 @@ GitHub Copilot (Gemini 1.5 Flash)
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/1-2-create-user-account.md`
+- `_bmad-output/archive/implementation-artifacts/1-2-create-user-account.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `backend/src/JobNecto.API/Controllers/UsersController.cs`
 - `backend/src/JobNecto.API/Infrastructure/CookieAuthService.cs`

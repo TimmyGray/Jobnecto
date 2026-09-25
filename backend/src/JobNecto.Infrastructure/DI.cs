@@ -40,6 +40,7 @@ public static class InfrastructureCollectionExtensions
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
+        services.AddSingleton<ISignInAttemptTracker, SignInAttemptTracker>();
         services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
 
         // Log a clear warning at startup when Cloudinary settings are missing or incomplete.

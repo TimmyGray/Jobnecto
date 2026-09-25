@@ -1,6 +1,6 @@
 # Story 2.4: Update Resume
 
-Status: review
+Status: done
 
 ## Story
 
@@ -190,7 +190,7 @@ GitHub Copilot (GPT-5.3-Codex)
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/2-4-update-resume.md`
+- `_bmad-output/archive/implementation-artifacts/2-4-update-resume.md`
 - `backend/src/JobNecto.Application/Resumes/UpdateResumeCommand.cs`
 - `backend/src/JobNecto.Application/Resumes/UpdateResumeCommandHandler.cs`
 - `backend/src/JobNecto.Application/Resumes/Validators/UpdateResumeCommandValidator.cs`

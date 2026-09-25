@@ -1,6 +1,6 @@
 # Story 1.4: Update User Profile
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -163,7 +163,7 @@ so that I can keep my professional identity and contact info current.
 - [Source: `_bmad-output/archive/planning-artifacts/epics/epic-1-foundation-user-profile-management.md` - Story 1.4]
 - [Source: `_bmad-output/planning-artifacts/prd.md` - Feature: Update User Profile (PATCH /api/v1/users/me)]
 - [Source: `_bmad-output/planning-artifacts/architecture.md` - Cross-Cutting Concerns (Validation, Ownership), Decision 1, Decision 4, Decision 5, Decision 7]
-- [Source: `_bmad-output/implementation-artifacts/1-3-retrieve-current-user-profile.md`]
+- [Source: `_bmad-output/archive/implementation-artifacts/1-3-retrieve-current-user-profile.md`]
 - [Source: `_bmad-output/archive/implementation-artifacts/epic-1-retro-2026-04-22.md`]
 - [Source: `backend/src/JobNecto.API/Controllers/UsersController.cs`]
 - [Source: `backend/src/JobNecto.API/Infrastructure/AuthContext.cs`]
@@ -221,7 +221,7 @@ Dismissed during re-review as false positives:
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/1-4-update-user-profile.md`
+- `_bmad-output/archive/implementation-artifacts/1-4-update-user-profile.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `backend/src/JobNecto.API/Controllers/UsersController.cs`
 - `backend/src/JobNecto.Application/Interfaces/IAvatarStorageService.cs`

@@ -1,6 +1,6 @@
 # Story 1.2: Returning-user sign-in endpoint
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -33,7 +33,8 @@ so that **I can establish a new session without re-registering**.
 
 **Validation**
 
-7. Missing, empty, or whitespace-only `identifier` or `password` returns `400` (RFC 7807) with the `errors[field]` dictionary the existing `ValidationBehavior` → `GlobalExceptionHandler` pipeline produces. The validator enforces **non-empty only** — no length, format, or regex rules (those would leak "that isn't a valid login shape"). [AR2]
+7. Missing, empty, or whitespace-only `identifier` or `password` returns `400` (RFC 7807) with the `errors[field]` dictionary the existing `ValidationBehavior` → `GlobalExceptionHandler` pipeline produces. The validator enforces **non-empty only** — no format or regex rules (those would leak "that isn't a valid login shape"). [AR2]
+   > **Amended during code review (2026-09-25, decision: Timmy):** a `MaximumLength(1000)` rule was added to both fields. This is not a "valid shape" check — 1000 chars is far above any real identifier or password — it exists solely to bound PBKDF2 hashing cost per request, since `Password` is hashed (including against the not-found dummy hash) on every attempt, before any rate limit applies. Two independent adversarial/edge-case reviews flagged unbounded length as a CPU-exhaustion vector.
 
 **Rate limiting**
 
@@ -48,29 +49,29 @@ so that **I can establish a new session without re-registering**.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Application layer: command, result, validator (AC: 1, 7)**
-  - [ ] `backend/src/JobNecto.Application/Users/SignInCommand.cs` — `namespace JobNecto.Application.Users;` — `SignInCommand : IRequest<SignInResult>` with `Identifier` and `Password` (plain `string`, `= null!`, matching `CreateUserCommand` style). `SignInResult` in the same file with the **7 fields of `CreateUserResult`**: `Id (Guid), LoginName, Email, Phone?, Location?, About?, Avatar?`. **Do not** mirror `GetCurrentUserResult` — it carries `CreatedAt`/`UpdatedAt` which this contract excludes.
-  - [ ] `backend/src/JobNecto.Application/Users/Validators/SignInCommandValidator.cs` — `namespace JobNecto.Application.Users.Validators;` — `AbstractValidator<SignInCommand>` with only `RuleFor(x => x.Identifier).NotEmpty()` and `RuleFor(x => x.Password).NotEmpty()`.
-  - [ ] **No DI registration needed** — `AddApplication()` calls `AddMediatR(cfg => cfg.RegisterServicesFromAssembly(...))` and `AddValidatorsFromAssembly(...)` over this assembly. Both are picked up automatically. *(Verified: `ApplicationCollectionExtensions.cs:22-28`.)*
-- [ ] **Task 2 — Credential-failure signal (AC: 4)**
-  - [ ] `backend/src/JobNecto.Application/Exceptions/InvalidCredentialsException.cs` — follow the existing exception style in that folder (parameterless default message + custom-message ctor). This is the handler's failure signal only; it is caught in the controller and never reaches `GlobalExceptionHandler`.
-  - [ ] ⚠️ **Do NOT add a case for it to `GlobalExceptionHandler`, and do NOT modify the existing `UnauthorizedException` case.** The 401 body is written directly by the controller (Task 5) using the established `new ProblemDetails { ... }` pattern. See Trap 1 in Dev Notes.
-- [ ] **Task 3 — Sign-in handler (AC: 2, 4, 5, 6)**
-  - [ ] `backend/src/JobNecto.Application/Users/SignInCommandHandler.cs` — inject `IUnitOfWork` and `IPasswordHasher` (mirror `CreateUserCommandHandler`'s ctor; inject `IUnitOfWork`, **not** `IUserRepository` directly).
-  - [ ] Resolve: try `GetByEmailAsync(identifier.Trim().ToLowerInvariant())`; if null, try `GetByLoginAsync(identifier.Trim())`. ⚠️ **See Trap 2 — the casing differs between the two lookups and getting it wrong breaks sign-in for mixed-case logins.**
-  - [ ] On user found: `_passwordHasher.VerifyHashedPassword(user.Password, request.Password)`; on false → `throw new InvalidCredentialsException()`.
-  - [ ] On user **not** found: still call `VerifyHashedPassword` against a **constant dummy PBKDF2 hash**, discard the result, then throw the same exception. ⚠️ **See Trap 3.**
-  - [ ] No explicit `IsDeleted` check — the EF global query filter on `User` already excludes soft-deleted rows from both repository lookups. *(Verified: `AppDbContext.ConfigureSoftDeleteFilters`.)*
-- [ ] **Task 4 — Sign-in attempt tracker (AC: 8, 9, 10, 11)**
-  - [ ] `ISignInAttemptTracker` in `backend/src/JobNecto.Application/Interfaces/` — `bool IsLockedOut(string identifier, string ip, out TimeSpan retryAfter)`, `void RecordFailure(string identifier, string ip)`, `void Reset(string identifier, string ip)`.
-  - [ ] Implementation in `backend/src/JobNecto.Infrastructure/Services/` backed by `IMemoryCache`, reading `RateLimit:SignIn:MaxAttempts` / `:WindowMinutes` from `IConfiguration` with the 5 / 15 defaults. Normalize the identifier (`Trim().ToLowerInvariant()`) before composing the cache key (AC 11).
-  - [ ] Register the tracker in `AddInfrastructure(...)`, and add `builder.Services.AddMemoryCache();` to `Program.cs` — **`AddMemoryCache` is not currently called anywhere**, so `IMemoryCache` is not resolvable until you add it.
-  - [ ] Add the `RateLimit:SignIn` section to base `appsettings.json` (see Dev Notes for the exact block).
-  - [ ] ⚠️ **Do NOT use `AddRateLimiter` / `UseRateLimiter` for this.** See Trap 4 — the built-in middleware structurally cannot express this rule.
-- [ ] **Task 5 — Controller action (AC: 1, 2, 3, 8, 12)**
-  - [ ] Add a `SignIn` action to `UsersController` alongside `Create`. The ctor already injects `IMediator`, `IJwtTokenService`, `ICookieAuthService` — add `ISignInAttemptTracker`.
-  - [ ] Order of operations: resolve client IP → `IsLockedOut` check → **return 429 + `Retry-After` before sending the command** (never verify credentials while locked out) → `_mediator.Send` → on `InvalidCredentialsException`, `RecordFailure` then return the 401 directly (below) → on success, `Reset`, generate token, set cookie, return 200.
-  - [ ] Write the 401 body inline, matching the established controller-level pattern (`UsersController.cs:229-234`, `CoverLettersController.cs:82-87`, `VacanciesController.cs:77-91` all use this shape for 400s):
+- [x] **Task 1 — Application layer: command, result, validator (AC: 1, 7)**
+  - [x] `backend/src/JobNecto.Application/Users/SignInCommand.cs` — `namespace JobNecto.Application.Users;` — `SignInCommand : IRequest<SignInResult>` with `Identifier` and `Password` (plain `string`, `= null!`, matching `CreateUserCommand` style). `SignInResult` in the same file with the **7 fields of `CreateUserResult`**: `Id (Guid), LoginName, Email, Phone?, Location?, About?, Avatar?`. **Do not** mirror `GetCurrentUserResult` — it carries `CreatedAt`/`UpdatedAt` which this contract excludes.
+  - [x] `backend/src/JobNecto.Application/Users/Validators/SignInCommandValidator.cs` — `namespace JobNecto.Application.Users.Validators;` — `AbstractValidator<SignInCommand>` with only `RuleFor(x => x.Identifier).NotEmpty()` and `RuleFor(x => x.Password).NotEmpty()`.
+  - [x] **No DI registration needed** — `AddApplication()` calls `AddMediatR(cfg => cfg.RegisterServicesFromAssembly(...))` and `AddValidatorsFromAssembly(...)` over this assembly. Both are picked up automatically. *(Verified: `ApplicationCollectionExtensions.cs:22-28`.)*
+- [x] **Task 2 — Credential-failure signal (AC: 4)**
+  - [x] `backend/src/JobNecto.Application/Exceptions/InvalidCredentialsException.cs` — follow the existing exception style in that folder (parameterless default message + custom-message ctor). This is the handler's failure signal only; it is caught in the controller and never reaches `GlobalExceptionHandler`.
+  - [x] ⚠️ **Do NOT add a case for it to `GlobalExceptionHandler`, and do NOT modify the existing `UnauthorizedException` case.** The 401 body is written directly by the controller (Task 5) using the established `new ProblemDetails { ... }` pattern. See Trap 1 in Dev Notes.
+- [x] **Task 3 — Sign-in handler (AC: 2, 4, 5, 6)**
+  - [x] `backend/src/JobNecto.Application/Users/SignInCommandHandler.cs` — inject `IUnitOfWork` and `IPasswordHasher` (mirror `CreateUserCommandHandler`'s ctor; inject `IUnitOfWork`, **not** `IUserRepository` directly).
+  - [x] Resolve: try `GetByEmailAsync(identifier.Trim().ToLowerInvariant())`; if null, try `GetByLoginAsync(identifier.Trim())`. ⚠️ **See Trap 2 — the casing differs between the two lookups and getting it wrong breaks sign-in for mixed-case logins.**
+  - [x] On user found: `_passwordHasher.VerifyHashedPassword(user.Password, request.Password)`; on false → `throw new InvalidCredentialsException()`.
+  - [x] On user **not** found: still call `VerifyHashedPassword` against a **constant dummy PBKDF2 hash**, discard the result, then throw the same exception. ⚠️ **See Trap 3.**
+  - [x] No explicit `IsDeleted` check — the EF global query filter on `User` already excludes soft-deleted rows from both repository lookups. *(Verified: `AppDbContext.ConfigureSoftDeleteFilters`.)*
+- [x] **Task 4 — Sign-in attempt tracker (AC: 8, 9, 10, 11)**
+  - [x] `ISignInAttemptTracker` in `backend/src/JobNecto.Application/Interfaces/` — `bool IsLockedOut(string identifier, string ip, out TimeSpan retryAfter)`, `void RecordFailure(string identifier, string ip)`, `void Reset(string identifier, string ip)`.
+  - [x] Implementation in `backend/src/JobNecto.Infrastructure/Services/` backed by `IMemoryCache`, reading `RateLimit:SignIn:MaxAttempts` / `:WindowMinutes` from `IConfiguration` with the 5 / 15 defaults. Normalize the identifier (`Trim().ToLowerInvariant()`) before composing the cache key (AC 11).
+  - [x] Register the tracker in `AddInfrastructure(...)`, and add `builder.Services.AddMemoryCache();` to `Program.cs` — **`AddMemoryCache` is not currently called anywhere**, so `IMemoryCache` is not resolvable until you add it.
+  - [x] Add the `RateLimit:SignIn` section to base `appsettings.json` (see Dev Notes for the exact block).
+  - [x] ⚠️ **Do NOT use `AddRateLimiter` / `UseRateLimiter` for this.** See Trap 4 — the built-in middleware structurally cannot express this rule.
+- [x] **Task 5 — Controller action (AC: 1, 2, 3, 8, 12)**
+  - [x] Add a `SignIn` action to `UsersController` alongside `Create`. The ctor already injects `IMediator`, `IJwtTokenService`, `ICookieAuthService` — add `ISignInAttemptTracker`.
+  - [x] Order of operations: resolve client IP → `IsLockedOut` check → **return 429 + `Retry-After` before sending the command** (never verify credentials while locked out) → `_mediator.Send` → on `InvalidCredentialsException`, `RecordFailure` then return the 401 directly (below) → on success, `Reset`, generate token, set cookie, return 200.
+  - [x] Write the 401 body inline, matching the established controller-level pattern (`UsersController.cs:229-234`, `CoverLettersController.cs:82-87`, `VacanciesController.cs:77-91` all use this shape for 400s):
     ```csharp
     return Unauthorized(new ProblemDetails
     {
@@ -80,13 +81,13 @@ so that **I can establish a new session without re-registering**.
     });
     ```
     Because this bypasses `GlobalExceptionHandler`, no `traceId` extension is attached — which is what makes the two failure responses **byte-identical** (AC 4). Emit the 429 body the same way.
-  - [ ] Reuse the existing private `UsesBearerTransport(Request)` helper already in `UsersController` for the `accessToken` field (AC 3) — do not write a second one.
-  - [ ] `backend/src/JobNecto.API/Contracts/Auth/SignInResponse.cs` — the 7 user fields + `AccessToken`. This mirrors where `RefreshAccessTokenResult` already lives, and keeps the transport-only `accessToken` concern out of the Application DTO.
-  - [ ] `[ProducesResponseType]` for 200 / 400 / 401 / 429 (AC 12).
-- [ ] **Task 6 — Tests (all ACs)** — see Testing Requirements in Dev Notes for the full required matrix.
-- [ ] **Task 7 — Verify green**
-  - [ ] `dotnet test backend/JobNecto.slnx --configuration Release --warnaserror`
-  - [ ] Coverage gate: every new file ≥80% line coverage (see Dev Notes).
+  - [x] Reuse the existing private `UsesBearerTransport(Request)` helper already in `UsersController` for the `accessToken` field (AC 3) — do not write a second one.
+  - [x] `backend/src/JobNecto.API/Contracts/Auth/SignInResponse.cs` — the 7 user fields + `AccessToken`. This mirrors where `RefreshAccessTokenResult` already lives, and keeps the transport-only `accessToken` concern out of the Application DTO.
+  - [x] `[ProducesResponseType]` for 200 / 400 / 401 / 429 (AC 12).
+- [x] **Task 6 — Tests (all ACs)** — see Testing Requirements in Dev Notes for the full required matrix.
+- [x] **Task 7 — Verify green**
+  - [x] `dotnet test backend/JobNecto.slnx --configuration Release --warnaserror`
+  - [x] Coverage gate: every new file ≥80% line coverage (see Dev Notes).
 
 ## Dev Notes
 
@@ -231,8 +232,71 @@ Do **not** reach for the Postgres factory (`CoverLetterTemplatesPostgresFactory`
 
 ### Agent Model Used
 
+Claude (Sonnet 5), via the `jobnecto-dev` skill.
+
+### Baseline
+
+`git rev-parse HEAD` at start: `1175abb2f48fc9e5ec97741b87abc0b74bcf936b`
+
 ### Debug Log References
+
+`dotnet test backend/JobNecto.slnx --configuration Release --warnaserror` (final run):
+```
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+Passed!  - Failed:     0, Passed:   626, Skipped:     0, Total:   626, Duration: 17 s - JobNecto.Tests.dll (net10.0)
+```
+
+Coverage gate: `python scripts/check_coverage.py ./coverage/backend --threshold 80` → `Coverage: 1871/1943 lines = 96.3% across 97 files (threshold 80%)` → `PASS: all files meet the threshold.`
+
+Frontend suite not run — no `frontend/` changes in this story.
 
 ### Completion Notes List
 
+- Implemented all 5 production tasks and the full test matrix (Task 6) exactly as specified, including both `Trap 1`–`Trap 4` mitigations.
+- **Deviation from Task 5's literal ordering, found and fixed during self-review:** the task text says "on success, `Reset`, generate token, set cookie, return 200". Implemented as written first, then an edge-case review lens caught that if `GenerateTokenAsync`/`SetAuthCookie` throws *after* `Reset`, the attempt counter is cleared even though the client never got a 200 — a free attempt-budget refill on a transient failure. Reordered so `Reset` fires only after the cookie is set, immediately before `return Ok(...)`. No AC or the pinned wire contract is affected; this is a correctness fix to the task's suggested ordering, not a scope change.
+- **AC 7 amended during review (decision: Timmy, 2026-09-25):** added `MaximumLength(1000)` to both `Identifier` and `Password` in `SignInCommandValidator`, which AC 7's original text explicitly said not to add. Two independent review lenses (adversarial + edge-case) flagged that an always-hashed (even on the not-found/dummy-hash path), unbounded-length password is a PBKDF2 CPU-exhaustion vector reachable by any anonymous caller. 1000 chars is far above any real credential, so it doesn't leak "valid shape" information — the concern AC 7 was protecting against. See the inline note under AC 7 above and the story's Change Log.
+- **Self-review process:** wrote the full diff to a temp file and ran four review lenses in parallel (adversarial, edge-case, verification-gap, acceptance) as subagents against the diff only (no shared context/opinion). Triaged every finding myself — see Review Findings below. One finding (unbounded rate-limiter distribution across instances, and the check-then-record TOCTOU race) was deliberately deferred rather than patched; see `deferred-work.md`.
+- All Testing Requirements from Dev Notes are covered, plus additional tests added during triage (mapper, whitespace-trim, config-fallback, fixed-window-doesn't-slide, missing-identifier-field, max-length boundary).
+
 ### File List
+
+**Created:**
+- `backend/src/JobNecto.Application/Users/SignInCommand.cs`
+- `backend/src/JobNecto.Application/Users/SignInCommandHandler.cs`
+- `backend/src/JobNecto.Application/Users/Validators/SignInCommandValidator.cs`
+- `backend/src/JobNecto.Application/Exceptions/InvalidCredentialsException.cs`
+- `backend/src/JobNecto.Application/Interfaces/ISignInAttemptTracker.cs`
+- `backend/src/JobNecto.Infrastructure/Services/SignInAttemptTracker.cs`
+- `backend/src/JobNecto.API/Contracts/Auth/SignInResponse.cs`
+- `backend/tests/JobNecto.Tests/Application/Users/SignInCommandValidatorTests.cs`
+- `backend/tests/JobNecto.Tests/Application/Users/SignInCommandHandlerTests.cs`
+- `backend/tests/JobNecto.Tests/Application/Exceptions/InvalidCredentialsExceptionTests.cs`
+- `backend/tests/JobNecto.Tests/Application/Users/Mappers/UserMappersToSignInResultTests.cs`
+- `backend/tests/JobNecto.Tests/Infrastructure/Services/SignInAttemptTrackerTests.cs`
+- `backend/tests/JobNecto.Tests/API/SessionsApiTests.cs`
+
+**Updated:**
+- `backend/src/JobNecto.API/Controllers/UsersController.cs` (UPDATED — added `SignIn` action, `ISignInAttemptTracker` ctor param, `InvalidCredentialsException` catch, `using JobNecto.Application.Exceptions;`)
+- `backend/src/JobNecto.API/Program.cs` (UPDATED — `builder.Services.AddMemoryCache();`)
+- `backend/src/JobNecto.API/appsettings.json` (UPDATED — added `RateLimit:SignIn` config block)
+- `backend/src/JobNecto.Application/Users/Mappers/UserMappers.cs` (UPDATED — added `ToSignInResult` extension)
+- `backend/src/JobNecto.Infrastructure/DI.cs` (UPDATED — registered `ISignInAttemptTracker`)
+- `backend/src/JobNecto.Infrastructure/JobNecto.Infrastructure.csproj` (UPDATED — added `Microsoft.Extensions.Caching.Memory` package reference)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (UPDATED — story status)
+- `_bmad-output/implementation-artifacts/deferred-work.md` (UPDATED — 2 new deferred findings from this story's review)
+
+### Review Findings
+
+Self-review: 4 parallel lenses (adversarial, edge-case, verification-gap, acceptance) run against the full diff as subagents, then triaged.
+
+- [x] **[Patch]** Lost-update race in `SignInAttemptTracker.RecordFailure` (non-atomic read-then-write on the failure counter) — found independently by both the adversarial and edge-case lenses. `backend/src/JobNecto.Infrastructure/Services/SignInAttemptTracker.cs` — fixed with a `lock` around the read-modify-write.
+- [x] **[Patch]** `Reset` fired before token issuance/cookie-setting completed, so a transient failure after `Reset` would silently clear the attempt window without the client ever getting a 200 — found by the edge-case lens. `backend/src/JobNecto.API/Controllers/UsersController.cs` — reordered `Reset` to after `SetAuthCookie`.
+- [x] **[Patch]** Unbounded `Identifier`/`Password` length lets an anonymous caller drive expensive PBKDF2 hashing on every request (found independently by the adversarial and edge-case lenses); this directly tensioned with AC 7's original "no length rules" wording, so I stopped and asked the user rather than guessing. Decision: add a generous `MaximumLength(1000)`. `backend/src/JobNecto.Application/Users/Validators/SignInCommandValidator.cs` — patched; AC 7 amended with a note.
+- [x] **[Patch]** Several real test-coverage gaps (verification-gap lens): `ToSignInResult` null-arg/full-field mapping untested, whitespace-trim behavior untested, tracker default-config-fallback untested, "fixed window doesn't slide" semantics unproven, missing-`identifier`-field (vs. empty-string) request shape untested, `Retry-After` header value not asserted to be sane. All patched with new tests (see File List).
+- [x] **[Patch]** Two misleading test names (acceptance + verification-gap lenses): `ThresholdBoundary_FifthFailure_StillNotLockedOut_...` asserted the opposite of its name; `SignIn_LockedOut_EvenWithCorrectPassword_Returns429BeforeVerifyingCredentials` claimed an ordering guarantee it didn't actually prove. Both renamed to match what they assert.
+- [x] **[Defer]** `SignInAttemptTracker` is per-process (`IMemoryCache`), not distributed — ineffective across multiple horizontally-scaled API instances (adversarial lens). This is the direct, accepted consequence of Trap 4's 2026-08-20 decision; Redis has no implementation anywhere in this repo yet. Logged in `deferred-work.md`.
+- [x] **[Defer]** TOCTOU race between the `IsLockedOut` check and the later `RecordFailure` call, across the `await _mediator.Send(...)` boundary (edge-case lens) — under concurrent load, several requests can slip past the lockout check before any of their failures are recorded. A full fix needs a per-key lock held across the async dispatch, which is a larger behavioral change (serializes concurrent sign-in attempts per identifier) than this story's scope. PBKDF2's 100k iterations remains the primary brute-force defense. Logged in `deferred-work.md`.
+- [x] **[Dismiss]** Reverse-proxy `X-Forwarded-For` / `RemoteIpAddress` collapse (adversarial lens) — real, but already explicitly out-of-scope per this story's own "Known-adjacent issues (do not fix here, do not make worse)" section, and already logged in `deferred-work.md` from the 2026-08-20 story-context pass. No new action; not duplicated.
+- [x] **[Dismiss]** Untested `"unknown"` fallback when `RemoteIpAddress` is null, and no standalone DI-resolution test for `ISignInAttemptTracker` (verification-gap lens) — the former is a defensive branch `WebApplicationFactory`/`TestServer` cannot realistically trigger (Kestrel/TestServer always populate a synthetic connection IP); the latter is already transitively proven by every `SessionsApiTests` call (a broken registration would fail at first request). Fix would add disproportionate test complexity for negligible risk.

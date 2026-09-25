@@ -1,6 +1,6 @@
 # Story 1.3: Retrieve Current User Profile
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -202,7 +202,7 @@ Examine `EditableRepository<T>` in `backend/src/JobNecto.Infrastructure/Reposito
 - [Source: `backend/src/JobNecto.Infrastructure/Repositories/UserRepository.cs`]
 - [Source: `backend/tests/JobNecto.Tests/API/JobNectoApiFactory.cs`]
 - [Source: `backend/tests/JobNecto.Tests/API/UsersControllerTests.cs`]
-- [Source: `_bmad-output/implementation-artifacts/1-2-create-user-account.md`]
+- [Source: `_bmad-output/archive/implementation-artifacts/1-2-create-user-account.md`]
 
 ## Dev Agent Record
 
@@ -229,7 +229,7 @@ GitHub Copilot (GPT-5.3-Codex)
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/1-3-retrieve-current-user-profile.md`
+- `_bmad-output/archive/implementation-artifacts/1-3-retrieve-current-user-profile.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `backend/src/JobNecto.API/Controllers/UsersController.cs`
 - `backend/src/JobNecto.Application/Interfaces/IEditableRepository.cs`

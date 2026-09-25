@@ -1,6 +1,6 @@
 # Story 1.1: JWT Authentication & Global Exception Handling Infrastructure
 
-Status: ✅ COMPLETE (100% — Exception Handling DONE, JWT Authentication DONE)
+Status: done
 
 <!-- Note: Complete story prepared with all context for implementation. -->
 
