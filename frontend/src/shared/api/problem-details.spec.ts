@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeProblemDetails } from './problem-details';
+import { normalizeProblemDetails, mapProblemToUxState, ProblemDetails } from './problem-details';
 
 describe('normalizeProblemDetails', () => {
   it('normalizes a 400 body with a field errors map', () => {
@@ -89,5 +89,23 @@ describe('normalizeProblemDetails', () => {
 
     expect(result.status).toBe(0);
     expect(result.title).toBe('Something went wrong');
+  });
+});
+
+describe('mapProblemToUxState (Story 1.4 AC4)', () => {
+  function problem(status: number): ProblemDetails {
+    return { status, title: 'x' };
+  }
+
+  it('maps 403 to forbidden', () => {
+    expect(mapProblemToUxState(problem(403))).toBe('forbidden');
+  });
+
+  it('maps 404 to not-found', () => {
+    expect(mapProblemToUxState(problem(404))).toBe('not-found');
+  });
+
+  it.each([400, 401, 409, 429, 500, 502, 504, 0])('maps %i to error', (status) => {
+    expect(mapProblemToUxState(problem(status))).toBe('error');
   });
 });

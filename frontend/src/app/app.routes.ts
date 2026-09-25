@@ -1,10 +1,11 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './auth.guard';
 
 /**
- * Router skeleton for Story 1.1. Only `/sign-up` (unguarded) and a minimal
- * authenticated `/dashboard` landing stub exist. The guard system (1.4), app
- * shell (1.5), and full dashboard (1.6) are out of scope — all routes except
- * `/sign-up` and `/sign-in` will be guarded later. [Decision 1.6, AR13]
+ * Router skeleton. `/sign-up` and `/sign-in` are unguarded; every other route
+ * carries `authGuard` (Story 1.4) — an unauthenticated visitor is redirected
+ * to `/sign-in` with the attempted path preserved as `returnUrl`. The app
+ * shell (1.5) and full dashboard (1.6) are still out of scope. [Decision 1.6, AR13]
  */
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'sign-up' },
@@ -20,6 +21,7 @@ export const routes: Routes = [
   },
   {
     path: 'dashboard',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('@pages/dashboard/dashboard.page').then((m) => m.DashboardPage),
   },

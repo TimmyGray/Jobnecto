@@ -35,6 +35,25 @@ export interface ProblemDetails {
 /** Generic fallback title when the body carries none. */
 const DEFAULT_TITLE = 'Something went wrong';
 
+/** The UX-state family a page renders for a given error, per the Journey 4 recovery model (AR15). */
+export type ProblemUxState = 'forbidden' | 'not-found' | 'error';
+
+/**
+ * Maps a normalized {@link ProblemDetails} to the UX-state a page should
+ * render, so callers branch on a stable name rather than string-matching a
+ * status code. `403` -> forbidden (cross-user), `404` -> not-found; every
+ * other status is a generic error/retry state. [Story 1.4 AC4]
+ */
+export function mapProblemToUxState(problem: ProblemDetails): ProblemUxState {
+  if (problem.status === 403) {
+    return 'forbidden';
+  }
+  if (problem.status === 404) {
+    return 'not-found';
+  }
+  return 'error';
+}
+
 /**
  * Normalizes an arbitrary error body + HTTP status into a typed {@link ProblemDetails}.
  *

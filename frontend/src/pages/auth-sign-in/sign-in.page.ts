@@ -4,7 +4,7 @@ import {
   FormGroup,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, finalize, of, switchMap, tap } from 'rxjs';
 import { UserService } from '@entities/user';
 import { ProblemDetails } from '@shared/api';
@@ -36,6 +36,7 @@ interface SignInForm {
 export class SignInPage {
   private readonly userService = inject(UserService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   /** The typed reactive form. Validators are non-empty-only (Story 1.2 AC7). */
   readonly form = new FormGroup<SignInForm>({
@@ -108,15 +109,28 @@ export class SignInPage {
         // Hydrate the profile before landing. A hydration failure must not
         // surface as a sign-in error — the user is authenticated regardless
         // (AC3 / Trap 2).
-        switchMap(() => this.userService.fetchCurrentUser().pipe(catchError(() => of(null)))),
+        switchMap(() => this.userService.fetchCurrentUser(true).pipe(catchError(() => of(null)))),
         finalize(() => this.submitting.set(false)),
       )
       .subscribe({
         next: () => {
-          void this.router.navigate(['/dashboard']);
+          void this.router.navigate([this.intendedDestination()]);
         },
         error: (problem: ProblemDetails) => this.handleError(problem),
       });
+  }
+
+  /**
+   * Resolves where to land after a successful sign-in: the guard-preserved
+   * `returnUrl` (Story 1.4 AC3), or `/dashboard` when absent. Only a single
+   * leading `/` with no backslash is honored — a protocol-relative value
+   * (`//host/...`) or a backslash variant some browsers normalize to one
+   * (`/\host/...`) is rejected as an open-redirect vector and falls back to
+   * `/dashboard`.
+   */
+  private intendedDestination(): string {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    return returnUrl && /^\/[^/\\]/.test(returnUrl) ? returnUrl : '/dashboard';
   }
 
   /** Clears any manually-set `server` validation errors left by a previous 400. */

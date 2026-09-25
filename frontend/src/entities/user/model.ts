@@ -39,3 +39,6 @@ export interface SignInCommand {
 
 /** `200 OK` body returned by `POST /api/v1/users/sessions`. */
 export type SignInResult = CreateUserResult & { accessToken: string };
+
+/** `200 OK` body returned by `POST /api/v1/users/token/refresh`. Already generated (unlike sign-in). */
+export type RefreshAccessTokenResult = components['schemas']['RefreshAccessTokenResult'];
