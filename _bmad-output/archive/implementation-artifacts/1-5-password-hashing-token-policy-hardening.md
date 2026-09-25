@@ -1,6 +1,6 @@
 # Story 1.5: Password Hashing & Token Policy Hardening
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -91,7 +91,7 @@ so that all authenticated features in later epics build on a secure and explicit
 - [Source: `_bmad-output/archive/planning-artifacts/epics/epic-1-foundation-user-profile-management.md` - Story 1.5]
 - [Source: `_bmad-output/planning-artifacts/prd.md`]
 - [Source: `_bmad-output/planning-artifacts/architecture.md`]
-- [Source: `_bmad-output/implementation-artifacts/1-2-create-user-account.md`]
+- [Source: `_bmad-output/archive/implementation-artifacts/1-2-create-user-account.md`]
 
 ## Dev Agent Record
 
@@ -112,7 +112,7 @@ GitHub Copilot
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/1-5-password-hashing-token-policy-hardening.md`
+- `_bmad-output/archive/implementation-artifacts/1-5-password-hashing-token-policy-hardening.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/planning-artifacts/prd.md`
 - `_bmad-output/planning-artifacts/architecture.md`

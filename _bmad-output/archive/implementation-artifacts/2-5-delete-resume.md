@@ -1,6 +1,6 @@
 # Story 2.5: Delete Resume
 
-Status: review
+Status: done
 
 ## Story
 
@@ -100,7 +100,7 @@ GitHub Copilot (GPT-5.3-Codex)
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/2-5-delete-resume.md`
+- `_bmad-output/archive/implementation-artifacts/2-5-delete-resume.md`
 - `backend/src/JobNecto.Application/Resumes/DeleteResumeCommand.cs`
 - `backend/src/JobNecto.Application/Resumes/DeleteResumeCommandHandler.cs`
 - `backend/src/JobNecto.Application/Resumes/Validators/DeleteResumeCommandValidator.cs`
