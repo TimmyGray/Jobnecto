@@ -136,6 +136,36 @@ describe('httpInterceptor', () => {
     httpMock.verify();
   });
 
+  it('leaves retryAfterSeconds undefined when Retry-After is negative', () => {
+    let captured: ProblemDetails | undefined;
+    http.post('/users/sessions', {}).subscribe({
+      error: (err: ProblemDetails) => (captured = err),
+    });
+
+    httpMock.expectOne(`${env.apiBaseUrl}/users/sessions`).flush(
+      { title: 'Too Many Requests', status: 429 },
+      { status: 429, statusText: 'Too Many Requests', headers: { 'Retry-After': '-30' } },
+    );
+
+    expect(captured!.retryAfterSeconds).toBeUndefined();
+    httpMock.verify();
+  });
+
+  it('floors a decimal Retry-After to whole seconds', () => {
+    let captured: ProblemDetails | undefined;
+    http.post('/users/sessions', {}).subscribe({
+      error: (err: ProblemDetails) => (captured = err),
+    });
+
+    httpMock.expectOne(`${env.apiBaseUrl}/users/sessions`).flush(
+      { title: 'Too Many Requests', status: 429 },
+      { status: 429, statusText: 'Too Many Requests', headers: { 'Retry-After': '90.9' } },
+    );
+
+    expect(captured!.retryAfterSeconds).toBe(90);
+    httpMock.verify();
+  });
+
   it('leaves retryAfterSeconds undefined when Retry-After is a blank string (not absent)', () => {
     let captured: ProblemDetails | undefined;
     http.post('/users/sessions', {}).subscribe({

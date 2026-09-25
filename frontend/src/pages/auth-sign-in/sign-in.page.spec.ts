@@ -258,6 +258,29 @@ describe('SignInPage', () => {
     httpMock.verify();
   });
 
+  it('shows the general banner when a 400 mixes a mapped field with an unmapped one, instead of silently dropping the unmapped message', () => {
+    fillValid();
+    page.onSubmit();
+
+    httpMock.expectOne(`${env.apiBaseUrl}/users/sessions`).flush(
+      {
+        title: 'Validation failed',
+        status: 400,
+        detail: 'Some fields were invalid.',
+        errors: {
+          identifier: ['identifier is required.'],
+          captcha: ['Captcha verification failed.'],
+        },
+      },
+      { status: 400, statusText: 'Bad Request' },
+    );
+    fixture.detectChanges();
+
+    expect(page.errorFor('identifier')).toBe('identifier is required.');
+    expect(page.generalError()).toBe('Some fields were invalid.');
+    httpMock.verify();
+  });
+
   it('400 maps server validation errors to inline field errors', () => {
     fillValid();
     page.onSubmit();

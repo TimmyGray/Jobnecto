@@ -145,14 +145,22 @@ export class SignInPage {
     }
 
     if (problem.status === 400 && problem.errors) {
+      let hasUnmappedField = false;
       for (const [field, messages] of Object.entries(problem.errors)) {
         const control = this.matchControl(field);
         if (control && messages.length > 0) {
           control.setErrors({ server: messages[0] });
           control.markAsTouched();
+        } else if (messages.length > 0) {
+          hasUnmappedField = true;
         }
       }
-      if (!this.anyFieldHasServerError()) {
+      // Fall back to the general banner both when nothing was mapped and when
+      // any field error couldn't be attributed to a known control — otherwise
+      // an unrecognized field's message (e.g. a future server-only rule) would
+      // be silently dropped whenever another field in the same response *was*
+      // mapped.
+      if (!this.anyFieldHasServerError() || hasUnmappedField) {
         this.generalError.set(problem.detail ?? problem.title);
       }
       return;
