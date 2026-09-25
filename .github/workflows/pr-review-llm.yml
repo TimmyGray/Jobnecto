@@ -101,7 +101,9 @@ jobs:
           git fetch --no-tags "https://github.com/${{ github.repository }}.git" ${{ steps.pr_meta.outputs.base_sha }}
           since="${{ steps.pr_meta.outputs.since_sha }}"
           if [ -n "$since" ]; then
-            git fetch --no-tags "https://github.com/${{ github.repository }}.git" "$since" || true
+            if ! git fetch --no-tags "https://github.com/${{ github.repository }}.git" "$since"; then
+              echo "::warning::Could not fetch since_sha=$since (likely pruned by a force-push/rebase) — will fall back to the full base diff."
+            fi
           fi
 
       - name: Write unified diff
@@ -114,9 +116,13 @@ jobs:
           # force-push/rebase since the event fired) or not an ancestor of head (history rewritten).
           if [ -n "$since" ] && git cat-file -e "${since}^{commit}" 2>/dev/null && git merge-base --is-ancestor "$since" "$head"; then
             echo "diff_mode=incremental" >> "$GITHUB_ENV"
+            echo "Review mode: incremental (since=$since, head=$head)"
             git diff "$since" "$head" > pr.diff
           else
             echo "diff_mode=full" >> "$GITHUB_ENV"
+            reason="no since_sha (first review)"
+            [ -n "$since" ] && reason="since_sha=$since unusable (not fetched or not an ancestor of head)"
+            echo "Review mode: full ($reason; base=$base, head=$head)"
             git diff "$base" "$head" > pr.diff
           fi
           wc -c pr.diff || true
