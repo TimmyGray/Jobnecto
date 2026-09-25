@@ -279,8 +279,9 @@ function classifyStatus(status, detail) {
   if (status === 401) return "fatal"; // bad or missing key: no model will work
   // The free-tier daily cap is account-wide, so every other free model would 429 too.
   if (status === 429 && /per[- ]day|daily/i.test(detail)) return "fatal";
-  if (RETRYABLE_STATUSES.has(status) || status >= 500) return "retryable";
-  return "next-model"; // 400/402/403/404/413/422…: this model cannot serve the request
+  if (RETRYABLE_STATUSES.has(status)) return "retryable";
+  // 400/402/403/404/413/422, and non-transient 5xx like 501/505: this model cannot serve it.
+  return "next-model";
 }
 
 /**
