@@ -25,6 +25,10 @@ export type UserProfile = GetCurrentUserResult;
  * isn't in `generated/schema.ts` yet (see Story 1.3 Trap 5). Names deliberately
  * match the backend types so the swap to `components['schemas'][...]` aliases is
  * mechanical once `npm run gen:api` is re-run against the shipped endpoint.
+ *
+ * TODO(https://github.com/TimmyGray/Jobnecto/pull/86): replace with generated
+ * `components['schemas']['SignInCommand']` / `['SignInResult']` aliases once
+ * `gen:api` is re-run against a backend that has merged Story 1.2.
  */
 
 /** Request body for `POST /api/v1/users/sessions` (sign-in). */
