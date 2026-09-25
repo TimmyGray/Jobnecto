@@ -39,7 +39,25 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
 /** Converts an HttpErrorResponse (or any thrown value) into a typed ProblemDetails. */
 function toProblemDetails(error: unknown): ProblemDetails {
   if (error instanceof HttpErrorResponse) {
-    return normalizeProblemDetails(error.error, error.status);
+    const problem = normalizeProblemDetails(error.error, error.status);
+    const retryAfterSeconds = parseRetryAfter(error.headers.get('Retry-After'));
+    return retryAfterSeconds === undefined ? problem : { ...problem, retryAfterSeconds };
   }
   return normalizeProblemDetails(null, 0);
+}
+
+/** Parses a delta-seconds `Retry-After` header value; returns undefined when missing, blank, negative, or non-numeric. */
+function parseRetryAfter(header: string | null): number | undefined {
+  if (header === null || header.trim().length === 0) {
+    return undefined;
+  }
+  // `Number('')` coerces to 0 (a valid-looking finite value), so blank must be
+  // rejected above rather than relying on Number.isFinite alone.
+  const seconds = Number(header);
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return undefined;
+  }
+  // Story 1.2 emits whole delta-seconds; floor defensively against a
+  // fractional value from any other source that hits this shared interceptor.
+  return Math.floor(seconds);
 }

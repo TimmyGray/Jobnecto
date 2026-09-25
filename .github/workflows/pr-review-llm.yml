@@ -76,6 +76,18 @@ jobs:
             core.setOutput("head_sha", pr.head.sha);
             core.setOutput("head_repo", pr.head.repo.full_name);
 
+            // On a `synchronize` push, `before` is the PR's head before this push. Diffing
+            // from there (not the PR base) means an unchanged-since-last-review hunk is never
+            // shown to the model again — it can't re-flag (or word differently and re-flag) a
+            // finding on code it no longer sees, regardless of whether it reads the review
+            // history correctly. `opened`/`reopened`/`ready_for_review`/workflow_dispatch have
+            // no meaningful "since" point, so they still get the full base..head diff.
+            const before = context.eventName === "pull_request" && context.payload.action === "synchronize"
+              ? String(context.payload.before ?? "")
+              : "";
+            const isRealSha = /^[0-9a-f]{40}$/i.test(before) && !/^0+$/.test(before);
+            core.setOutput("since_sha", isRealSha ? before : "");
+
       - name: Checkout PR head (full history)
         uses: actions/checkout@v4
         with:
@@ -83,16 +95,36 @@ jobs:
           repository: ${{ steps.pr_meta.outputs.head_repo }}
           ref: ${{ steps.pr_meta.outputs.head_sha }}
 
-      - name: Fetch base commit (supports forks)
-        run: >-
-          git fetch --no-tags
-          "https://github.com/${{ github.repository }}.git"
-          ${{ steps.pr_meta.outputs.base_sha }}
+      - name: Fetch base and since commits (supports forks)
+        run: |
+          set -e
+          git fetch --no-tags "https://github.com/${{ github.repository }}.git" ${{ steps.pr_meta.outputs.base_sha }}
+          since="${{ steps.pr_meta.outputs.since_sha }}"
+          if [ -n "$since" ]; then
+            if ! git fetch --no-tags "https://github.com/${{ github.repository }}.git" "$since"; then
+              echo "::warning::Could not fetch since_sha=$since (likely pruned by a force-push/rebase) — will fall back to the full base diff."
+            fi
+          fi
 
       - name: Write unified diff
         run: |
           set -e
-          git diff ${{ steps.pr_meta.outputs.base_sha }} ${{ steps.pr_meta.outputs.head_sha }} > pr.diff
+          base="${{ steps.pr_meta.outputs.base_sha }}"
+          head="${{ steps.pr_meta.outputs.head_sha }}"
+          since="${{ steps.pr_meta.outputs.since_sha }}"
+          # Fall back to the full base diff if `since` is unusable: not fetched (pruned by a
+          # force-push/rebase since the event fired) or not an ancestor of head (history rewritten).
+          if [ -n "$since" ] && git cat-file -e "${since}^{commit}" 2>/dev/null && git merge-base --is-ancestor "$since" "$head"; then
+            echo "diff_mode=incremental" >> "$GITHUB_ENV"
+            echo "Review mode: incremental (since=$since, head=$head)"
+            git diff "$since" "$head" > pr.diff
+          else
+            echo "diff_mode=full" >> "$GITHUB_ENV"
+            reason="no since_sha (first review)"
+            [ -n "$since" ] && reason="since_sha=$since unusable (not fetched or not an ancestor of head)"
+            echo "Review mode: full ($reason; base=$base, head=$head)"
+            git diff "$base" "$head" > pr.diff
+          fi
           wc -c pr.diff || true
 
       - name: Setup Node.js
@@ -105,6 +137,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr_meta.outputs.number }}
+          DIFF_MODE: ${{ env.diff_mode }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENROUTER_MODEL: ${{ inputs.model || vars.OPENROUTER_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free' }}
           # Comma-separated models tried after the primary; free models discovered from the
