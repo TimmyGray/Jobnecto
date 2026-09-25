@@ -64,6 +64,8 @@ UX §2.5 requires the active draft to survive tab-close/refresh/nav/connection-l
 
 Adopt FE-Guide routes plus the IA growth from the UX spec (flat sidebar adds Vacancies + Cover Letters as peers): add `/sign-in`, `/vacancies`, `/vacancies/:id`, `/cover-letters`, `/cover-letters/:id`. **All routes guarded except `/sign-up` and `/sign-in`** (NFR4, FR6). 401 → re-auth with intended-destination return (FR5).
 
+- **Implementation status:** `/sign-in` shipped unguarded and lazy-loaded as Story 1.3, merged 2026-09-25 (PR #88). Guard infrastructure and the 401 re-auth/intended-destination return remain Story 1.4 scope, as planned.
+
 ---
 
 ## Decision 2 — FR4 Sign-In (open flag resolved)
