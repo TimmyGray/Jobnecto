@@ -1,6 +1,6 @@
 # Story 1.4: Session continuity, route guards & expiry recovery
 
-Status: review
+Status: done
 
 ## Story
 
