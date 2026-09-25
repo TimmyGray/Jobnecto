@@ -17,10 +17,10 @@ on:
         required: true
         type: string
       model:
-        description: OpenRouter model to use (optional)
+        description: Primary OpenRouter model (optional; fallbacks still apply)
         required: false
         type: string
-        default: 'openai/gpt-oss-120b:free'
+        default: 'nvidia/nemotron-3-ultra-550b-a55b:free'
 
 concurrency:
   group: pr-review-llm-${{ github.event.pull_request.number || inputs.pr_number || github.run_id }}
@@ -39,6 +39,8 @@ jobs:
       !contains(github.event.pull_request.title, '[skip-review]') &&
       !contains(github.event.pull_request.body || '', '[skip-review]'))
     runs-on: ubuntu-latest
+    # Above OPENROUTER_TOTAL_BUDGET_MS (20 min) so retries/fallbacks can finish and still comment.
+    timeout-minutes: 30
     steps:
       - name: Resolve PR metadata
         id: pr_meta
@@ -104,5 +106,9 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr_meta.outputs.number }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          OPENROUTER_MODEL: ${{ inputs.model || 'openai/gpt-oss-120b:free' }}
+          OPENROUTER_MODEL: ${{ inputs.model || vars.OPENROUTER_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free' }}
+          # Comma-separated models tried after the primary; free models discovered from the
+          # live catalog and the `openrouter/free` router are appended automatically.
+          OPENROUTER_FALLBACK_MODELS: ${{ vars.OPENROUTER_FALLBACK_MODELS || '' }}
+          OPENROUTER_MAX_RETRIES: "10"
         run: node .github/scripts/pr_review_llm.mjs pr.diff
