@@ -94,6 +94,12 @@ const MAX_MAINTAINER_COMMENT_CHARS = 1_500;
  */
 const MAINTAINER_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 
+/** Timeout for each GitHub REST call, so a hung API cannot stall the job. */
+const GITHUB_TIMEOUT_MS = 30_000;
+
+/** Page cap when listing PR comments (100 per page), bounding API calls on huge PRs. */
+const GITHUB_MAX_PAGES = 10;
+
 /** Marker in the bot's own comments; used to find previous reviews. */
 const REVIEW_MARKER = "### LLM PR review";
 
@@ -203,6 +209,7 @@ async function githubPostComment(body) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ body }),
+    signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS),
   });
   if (!res.ok) {
     const t = await res.text();
@@ -211,27 +218,37 @@ async function githubPostComment(body) {
 }
 
 /**
- * GET a GitHub REST list endpoint for this PR (first 100 items).
+ * GET every page of a GitHub REST list endpoint (up to GITHUB_MAX_PAGES), following the
+ * Link header. Paging matters: the first page holds the *oldest* items, so a single page
+ * would drop exactly the latest reviews and replies on a long PR.
  * @param {string} path - Path after /repos/{repo}/, e.g. `issues/12/comments`.
- * @returns {Promise<object[]>} Items, or [] on any failure.
+ * @returns {Promise<object[]>} Items in API order, or what was fetched before a failure.
  */
 async function githubList(path) {
   const token = process.env.GITHUB_TOKEN ?? "";
   const repo = process.env.GITHUB_REPOSITORY ?? "";
   if (!token || !repo) return [];
-  const res = await fetch(`https://api.github.com/repos/${repo}/${path}?per_page=100`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-  });
-  if (!res.ok) {
-    stderr.write(`GitHub GET ${path} -> ${res.status}\n`);
-    return [];
+  const items = [];
+  let url = `https://api.github.com/repos/${repo}/${path}?per_page=100`;
+  for (let page = 0; url && page < GITHUB_MAX_PAGES; page++) {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      stderr.write(`GitHub GET ${path} -> ${res.status}\n`);
+      break;
+    }
+    const data = await res.json();
+    if (!Array.isArray(data)) break;
+    items.push(...data);
+    url = res.headers.get("link")?.match(/<([^>]+)>;\s*rel="next"/)?.[1] ?? null;
   }
-  const data = await res.json();
-  return Array.isArray(data) ? data : [];
+  return items;
 }
 
 const clip = (text, limit) =>
@@ -600,10 +617,10 @@ function buildUserMessage(diffText, history) {
  */
 function extractReview(content) {
   const text = content.trim();
-  const start = text.search(/^## Summary\b/m);
+  const start = text.search(/^##\s*Summary\b/m);
   if (start >= 0) return text.slice(start).trim();
   // Tolerate a missing Summary heading as long as the findings section is there.
-  return /^## Findings\b/m.test(text) ? text : null;
+  return /^##\s*Findings\b/m.test(text) ? text : null;
 }
 
 async function openrouterReview(diffText, model, reviewHistory = null, timeoutMs = REQUEST_TIMEOUT_MS) {
@@ -805,6 +822,7 @@ export {
   buildUserMessage,
   compactPreviousReview,
   extractReview,
+  getReviewHistory,
 };
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
