@@ -81,8 +81,12 @@ const PREVIOUS_REVIEWS_LIMIT = 3;
 /** Per-review character cap when folding previous findings into the prompt context. */
 const MAX_PREVIOUS_REVIEW_CHARS = 5_000;
 
-/** Cap completion size so comments stay detailed but not overly long. */
-const OPENROUTER_MAX_TOKENS = 1_400;
+/**
+ * Cap completion size. The prompt's own hard cap is 1600 words (~2.1k tokens), and
+ * reasoning models can spend part of the budget thinking, so leave generous headroom
+ * to avoid reviews cut off mid-sentence.
+ */
+const OPENROUTER_MAX_TOKENS = 4_000;
 
 /**
  * Paths whose entire diff hunks we drop before calling the LLM.
@@ -615,7 +619,10 @@ and approve.`;
       { kind: "next-model", status: res.status }
     );
   }
-  const review = String(content).trim();
+  let review = String(content).trim();
+  if (choices[0]?.finish_reason === "length") {
+    review += "\n\n…_(review truncated: the model hit its output token limit)_";
+  }
   stderr.write(`OpenRouter review length: ${review.length} chars\n`);
   stderr.write(`OpenRouter review preview (first 1000 chars): ${review.slice(0, 1000)}\n`);
   return review;
