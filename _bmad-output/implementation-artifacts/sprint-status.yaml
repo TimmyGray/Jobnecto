@@ -55,7 +55,7 @@
 #   [SEED] Data/seed track - mocked vacancies behind the JobSource seam
 
 generated: 2026-08-20T00:00:00Z
-last_updated: 2026-09-25T00:00:00Z
+last_updated: 2026-09-25T00:01:00Z
 project: Jobnecto
 project_key: NOKEY
 tracking_system: file-system
@@ -65,7 +65,7 @@ development_status:
   # --- Epic 1: Foundation, Access & Orientation (FR1-FR6, FR37) ---
   epic-1: in-progress
   1-1-project-foundation-user-registration: done # [FE] merged 2026-06-28 (f9b2710)
-  1-2-returning-user-sign-in-endpoint: review # [BE] NEW POST /api/v1/users/sessions
+  1-2-returning-user-sign-in-endpoint: done # [BE] merged 2026-09-25 (4255c19, PR #86)
   1-3-sign-in-screen: ready-for-dev # [FE] parallel with 1.2, contract-first
   1-4-session-continuity-route-guards-expiry-recovery: backlog # [FE]
   1-5-application-shell-navigation: backlog # [FE]

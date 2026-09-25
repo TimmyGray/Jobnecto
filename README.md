@@ -124,6 +124,8 @@ curl -i http://localhost:5000/
 
 - `POST /api/v1/users`
   - Creates a user account, persists password as PBKDF2 hash, sets HTTP-only auth cookie, returns `201 Created`.
+- `POST /api/v1/users/sessions`
+  - Signs in a returning user by email or login name and password; sets the HTTP-only auth cookie, returns `200 OK` with the user projection. Anti-enumeration: unknown identifier, wrong password, and soft-deleted users all return a byte-identical `401`. Rate-limited to 5 failed attempts per 15 minutes per (identifier, client IP); further attempts return `429` with `Retry-After` until the window clears or a success resets it.
 - `POST /api/v1/users/token/refresh`
   - Requires authentication, renews JWT cookie, and returns body token only for bearer transport clients.
 - `GET /api/v1/users/me`

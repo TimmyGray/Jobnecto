@@ -188,7 +188,7 @@ Required cases:
 ### References
 
 - [Source: `_bmad-output/planning-artifacts/epics.md#Story-1.3`] — story statement and acceptance criteria
-- [Source: `_bmad-output/implementation-artifacts/1-2-returning-user-sign-in-endpoint.md`] — the pinned wire contract this page codes against
+- [Source: `_bmad-output/archive/implementation-artifacts/1-2-returning-user-sign-in-endpoint.md`] — the pinned wire contract this page codes against
 - [Source: `_bmad-output/planning-artifacts/architecture/demo-mvp-architecture-decisions.md#Decision-1`] — AR11-AR17 (Angular stack, HTTP/errors, routing)
 - [Source: `_bmad-output/planning-artifacts/ux-design-specification.md`] — UX-DR1 tokens, UX-DR15 button/feedback, UX-DR17 a11y floor. **No sign-in screen is specified; layout is extrapolated from sign-up.**
 - [Source: `frontend/src/pages/auth-sign-up/sign-up.page.ts`, `.html`, `.spec.ts`] — the pattern to mirror, and the source of Trap 2

@@ -103,7 +103,7 @@ Prior art: OWASP's Authentication Cheat Sheet historically stated *"Make sure yo
     ```
     Update the XML doc comment, which currently explains the email-vs-login split.
   - [ ] Delete `Buckets_EmailStyleIdentifiers_AreCaseNormalized` and `Buckets_LoginStyleIdentifiers_AreCaseSensitiveAndIndependent`; restore a single `Buckets_AreCaseNormalized` asserting `Bob`/`bob`/`BOB` share one bucket.
-  - [ ] Edit `_bmad-output/implementation-artifacts/1-2-returning-user-sign-in-endpoint.md`: restore AC11's original wording, strike the "Deliberate AC deviation" paragraph as resolved (reference this story), and mark Trap 2 obsolete.
+  - [ ] Edit `_bmad-output/archive/implementation-artifacts/1-2-returning-user-sign-in-endpoint.md`: restore AC11's original wording, strike the "Deliberate AC deviation" paragraph as resolved (reference this story), and mark Trap 2 obsolete.
 - [ ] **Task 5 — Tests (AC: all)** — see Testing Requirements. ⚠️ **Read Trap 1 first: the default in-memory test setup cannot verify any of this.**
 - [ ] **Task 6 — Verify green**
   - [ ] `dotnet test backend/JobNecto.slnx` — full suite green.
@@ -180,7 +180,7 @@ It is tempting to mirror the `Email` treatment and lowercase at write time. **Th
 - [Npgsql EF Core — Collations and Case Sensitivity](https://www.npgsql.org/efcore/misc/collations-and-case-sensitivity.html)
 - [RFC 8265 — PRECIS usernames](https://www.rfc-editor.org/rfc/rfc8265) (context for Trap 3; not applicable here)
 - [OWASP Authentication Cheat Sheet — current](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html) · [older revision containing the case-insensitivity line](https://github.com/OWASP/CheatSheetSeries/blob/7d94e9a29174b8fd76235ca60f47245d1f34df1e/cheatsheets/Authentication_Cheat_Sheet.md)
-- Origin: `_bmad-output/implementation-artifacts/1-2-returning-user-sign-in-endpoint.md` — Remediation Notes items 4 and "Deliberate AC deviation"
+- Origin: `_bmad-output/archive/implementation-artifacts/1-2-returning-user-sign-in-endpoint.md` — Remediation Notes items 4 and "Deliberate AC deviation"
 
 ## Dev Agent Record
 

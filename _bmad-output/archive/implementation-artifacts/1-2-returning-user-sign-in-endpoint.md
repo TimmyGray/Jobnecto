@@ -1,6 +1,6 @@
 # Story 1.2: Returning-user sign-in endpoint
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -259,6 +259,7 @@ Frontend suite not run — no `frontend/` changes in this story.
 - **AC 7 amended during review (decision: Timmy, 2026-09-25):** added `MaximumLength(1000)` to both `Identifier` and `Password` in `SignInCommandValidator`, which AC 7's original text explicitly said not to add. Two independent review lenses (adversarial + edge-case) flagged that an always-hashed (even on the not-found/dummy-hash path), unbounded-length password is a PBKDF2 CPU-exhaustion vector reachable by any anonymous caller. 1000 chars is far above any real credential, so it doesn't leak "valid shape" information — the concern AC 7 was protecting against. See the inline note under AC 7 above and the story's Change Log.
 - **Self-review process:** wrote the full diff to a temp file and ran four review lenses in parallel (adversarial, edge-case, verification-gap, acceptance) as subagents against the diff only (no shared context/opinion). Triaged every finding myself — see Review Findings below. One finding (unbounded rate-limiter distribution across instances, and the check-then-record TOCTOU race) was deliberately deferred rather than patched; see `deferred-work.md`.
 - All Testing Requirements from Dev Notes are covered, plus additional tests added during triage (mapper, whitespace-trim, config-fallback, fixed-window-doesn't-slide, missing-identifier-field, max-length boundary).
+- **Merged 2026-09-25** via [PR #86](https://github.com/TimmyGray/Jobnecto/pull/86), merge commit `4255c19`. The CI LLM review bot raised two more rounds of findings post-PR; one genuine nit (`DummyPasswordHash` → `internal`) was fixed in a follow-up commit (`f5b00e1`), the rest were verified as false positives against the actual code (see the PR's comment thread) and left as-is.
 
 ### File List
 
@@ -284,6 +285,7 @@ Frontend suite not run — no `frontend/` changes in this story.
 - `backend/src/JobNecto.Application/Users/Mappers/UserMappers.cs` (UPDATED — added `ToSignInResult` extension)
 - `backend/src/JobNecto.Infrastructure/DI.cs` (UPDATED — registered `ISignInAttemptTracker`)
 - `backend/src/JobNecto.Infrastructure/JobNecto.Infrastructure.csproj` (UPDATED — added `Microsoft.Extensions.Caching.Memory` package reference)
+- `backend/src/JobNecto.Application/JobNecto.Application.csproj` (UPDATED — added `InternalsVisibleTo` for `JobNecto.Tests`, follow-up commit `f5b00e1`)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (UPDATED — story status)
 - `_bmad-output/implementation-artifacts/deferred-work.md` (UPDATED — 2 new deferred findings from this story's review)
 

@@ -107,9 +107,10 @@ Content-Type: application/json
 - **Resolution:** try `GetByEmailAsync(identifier)`; if null, `GetByLoginAsync(identifier)`. Soft-deleted users do not authenticate.
 - **Anti-enumeration:** one generic 401 for unknown-identifier *and* wrong-password; keep timing reasonably constant (the PBKDF2 verify already dominates). Never reveal which field failed.
 - **Session issuance:** identical to registration — `IJwtTokenService.GenerateTokenAsync(userId)` → `CookieAuthService.SetAuthCookie`. No new token mechanics.
-- **Rate limiting:** **5 failed attempts per 15 min per identifier+IP**, then `429` + `Retry-After`; count failures only, a success resets the window (blunts credential stuffing without locking out a fat-fingered friend). Same limiter family as generation (Decision 3). Config: `RateLimit:SignIn:MaxAttempts = 5`, `RateLimit:SignIn:WindowMinutes = 15`.
-- **Application shape (follows house MediatR convention):** `SignInCommand { Identifier, Password } : IRequest<SignInResult>` + `SignInCommandValidator` (non-empty) + handler (resolve → verify → return user projection); controller issues cookie. No domain change, no migration.
+- **Rate limiting:** **5 failed attempts per 15 min per identifier+IP**, then `429` + `Retry-After`; count failures only, a success resets the window (blunts credential stuffing without locking out a fat-fingered friend). ~~Same limiter family as generation (Decision 3).~~ **Correction (Story 1.2 implementation, 2026-09-25):** this claim was wrong — ASP.NET Core's built-in rate limiter cannot express "count only failures, reset on success" (identifier isn't available pre-model-binding, and built-in limiters decrement on acquisition, not outcome). Sign-in uses a dedicated `IMemoryCache`-backed `ISignInAttemptTracker` instead; generation (Decision 3) can still use the built-in middleware. Config: `RateLimit:SignIn:MaxAttempts = 5`, `RateLimit:SignIn:WindowMinutes = 15`.
+- **Application shape (follows house MediatR convention):** `SignInCommand { Identifier, Password } : IRequest<SignInResult>` + `SignInCommandValidator` (non-empty, plus `MaximumLength(1000)` added during code review to bound PBKDF2 hashing cost per request — see `deferred-work.md` and Story 1.2's Review Findings) + handler (resolve → verify → return user projection); controller issues cookie. No domain change, no migration.
 - **No new auth scheme** — the existing JWT-in-cookie pipeline (`AuthenticationCollectionExtensions`) is unchanged.
+- **Implementation status:** shipped as Story 1.2, merged 2026-09-25 (PR #86).
 
 ---
 

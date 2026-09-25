@@ -308,14 +308,14 @@ This prioritizes the Product Scope tiers above for delivery sequencing; it does 
 
 ## Functional Requirements
 
-> **Capability contract.** This list is binding: UX designs, architecture, and epics implement only what is listed here. **Open flag:** FR4 (returning-user sign-in) may require a new backend capability — the shipped backend currently exposes registration and token-refresh but no explicit credential sign-in endpoint. Resolve in the architecture step.
+> **Capability contract.** This list is binding: UX designs, architecture, and epics implement only what is listed here. **FR4 flag resolved (2026-09-25):** the sign-in capability was pinned in `architecture/demo-mvp-architecture-decisions.md#Decision-2` and shipped as `POST /api/v1/users/sessions` (Story 1.2, merged in [#86](https://github.com/TimmyGray/Jobnecto/pull/86)).
 
 ### Account & Session
 
 - **FR1:** A visitor can register a new account with login name, email, and password.
 - **FR2:** A user obtains an authenticated session upon successful registration.
 - **FR3:** A user's active session can be renewed without re-entering credentials.
-- **FR4:** A returning user can sign in with their credentials to establish a session. *(May require new backend capability — see flag.)*
+- **FR4:** A returning user can sign in with their credentials to establish a session.
 - **FR5:** A user with an expired/invalid session is routed to authentication and returned to their intended destination afterward.
 - **FR6:** The system restricts all capabilities except registration and sign-in to authenticated users.
 
