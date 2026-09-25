@@ -14,7 +14,7 @@ public class SignInCommandHandler : IRequestHandler<SignInCommand, SignInResult>
     /// A constant, validly-formatted PBKDF2 hash that matches no real password. Verified against on the
     /// not-found path so response timing does not disclose whether an account exists (Trap 3).
     /// </summary>
-    public const string DummyPasswordHash =
+    internal const string DummyPasswordHash =
         "pbkdf2-sha256$100000$AAECAwQFBgcICQoLDA0ODw==$B4cStVV1JkyKk2UQW7mBhM443S94rEf9DmSl9DvOCyU=";
 
     private readonly IUnitOfWork _unitOfWork;
