@@ -50,7 +50,7 @@ const DEFAULT_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
 const FREE_ROUTER_MODEL = "openrouter/free";
 
 /** How many free models discovered from the live catalog to append as fallbacks. */
-const DISCOVERED_FALLBACK_LIMIT = 4;
+const DISCOVERED_FALLBACK_LIMIT = 6; // some free models reject API use (403), so keep spares
 
 /** Retries per model for transient failures (so up to MAX_RETRIES + 1 attempts). */
 const MAX_RETRIES = envInt("OPENROUTER_MAX_RETRIES", 10);
@@ -75,8 +75,17 @@ function envInt(name, fallback) {
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
-/** Include only the most recent LLM reviews to keep context useful and compact. */
-const PREVIOUS_REVIEWS_LIMIT = 3;
+/**
+ * Include only the most recent LLM reviews: large histories push reasoning models into
+ * narrating instead of answering, and older reviews add little over the latest two.
+ */
+const PREVIOUS_REVIEWS_LIMIT = 2;
+
+/**
+ * Attempts per model for failures that are unlikely to clear on the same model: a
+ * timeout (slow model stays slow) or output that ignored the review format.
+ */
+const LIMITED_ATTEMPTS = 2;
 
 /** Per-review character cap when folding previous findings into the prompt context. */
 const MAX_PREVIOUS_REVIEW_CHARS = 5_000;
@@ -179,7 +188,10 @@ function compactPreviousReview(body) {
   );
 
   const startIndex = findingsStart >= 0 ? findingsStart : summaryStart;
-  const selected = startIndex >= 0 ? lines.slice(startIndex).join("\n") : body;
+  // Findings are what later reviews need; Checks/Suggestions/Verdict only add tokens.
+  const tail = startIndex >= 0 ? lines.slice(startIndex) : lines;
+  const stop = tail.findIndex((l, i) => i > 0 && /^## (Checks|Suggestions|Verdict)\b/.test(l));
+  const selected = (stop > 0 ? tail.slice(0, stop) : tail).join("\n").trim();
 
   if (selected.length <= MAX_PREVIOUS_REVIEW_CHARS) return selected;
   return (
@@ -338,12 +350,14 @@ async function getReviewHistory() {
  * model in the chain), or "fatal" (stop the whole chain, e.g. bad key or daily quota).
  */
 class OpenRouterError extends Error {
-  constructor(message, { kind, status = null, retryAfterMs = null } = {}) {
+  constructor(message, { kind, status = null, retryAfterMs = null, maxAttempts = null } = {}) {
     super(message);
     this.name = "OpenRouterError";
     this.kind = kind;
     this.status = status;
     this.retryAfterMs = retryAfterMs;
+    /** Optional cap on attempts for this model when this kind of error repeats. */
+    this.maxAttempts = maxAttempts;
   }
 }
 
@@ -415,7 +429,12 @@ function toOpenRouterError(err) {
     name === "AbortError" ||
     (name === "TypeError" && /fetch/i.test(msg)) ||
     /ECONNRESET|ETIMEDOUT|EHOSTUNREACH|ENOTFOUND|EAI_AGAIN|socket hang up/i.test(msg);
-  return new OpenRouterError(msg, { kind: isTransient ? "retryable" : "next-model" });
+  const isTimeout = name === "TimeoutError" || name === "AbortError";
+  return new OpenRouterError(msg, {
+    kind: isTransient ? "retryable" : "next-model",
+    // A model that timed out once is likely to again; do not let it eat the budget.
+    maxAttempts: isTimeout ? LIMITED_ATTEMPTS : null,
+  });
 }
 
 /**
@@ -503,7 +522,13 @@ async function reviewWithFallbacks(models, call) {
         stderr.write(`${line}\n`);
 
         if (err.kind === "fatal") throw new Error(`Stopped: ${err.message}\n${log.join("\n")}`);
-        if (err.kind === "next-model" || attempt > MAX_RETRIES) break;
+        if (
+          err.kind === "next-model" ||
+          attempt > MAX_RETRIES ||
+          (err.maxAttempts != null && attempt >= err.maxAttempts)
+        ) {
+          break;
+        }
 
         const delay = backoffDelayMs(attempt, err.retryAfterMs);
         if (Date.now() + delay >= deadline) {
@@ -632,6 +657,24 @@ function extractReview(content) {
   return /^##\s*Findings\b/m.test(text) ? text : null;
 }
 
+/**
+ * Models whose endpoint rejected `reasoning: { enabled: false }` ("reasoning is mandatory").
+ * Those are retried with low-effort, excluded reasoning instead.
+ */
+const REASONING_MANDATORY = new Set();
+
+/**
+ * Reasoning settings for a model. Disable reasoning by default: asking for any effort
+ * level turns reasoning ON for models where it is optional, and some providers return
+ * that thinking inside `content`, which then crowds out the review.
+ * @param {string} model
+ */
+function reasoningFor(model) {
+  return REASONING_MANDATORY.has(model)
+    ? { effort: "low", exclude: true }
+    : { enabled: false };
+}
+
 async function openrouterReview(diffText, model, reviewHistory = null, timeoutMs = REQUEST_TIMEOUT_MS) {
   const apiKey = (process.env.OPENROUTER_API_KEY ?? "").trim();
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
@@ -662,16 +705,25 @@ async function openrouterReview(diffText, model, reviewHistory = null, timeoutMs
       // Low temperature: more consistent review tone; less creative drift.
       temperature: 0.3,
       max_tokens: OPENROUTER_MAX_TOKENS,
-      // Reasoning models otherwise spend the budget thinking, and some providers put that
-      // thinking in `content`. OpenRouter returns reasoning separately and drops it with
-      // exclude; models without reasoning support ignore this field.
-      reasoning: { effort: "low", exclude: true },
+      reasoning: reasoningFor(model),
     }),
     // Avoid hanging the Actions runner indefinitely on a stuck connection.
     signal: AbortSignal.timeout(timeoutMs),
   });
 
   const raw = await res.text();
+  if (
+    res.status === 400 &&
+    !REASONING_MANDATORY.has(model) &&
+    /reasoning[^"]*(mandatory|cannot be disabled|required)/i.test(raw)
+  ) {
+    // This endpoint cannot turn reasoning off: retry it with excluded low-effort reasoning.
+    REASONING_MANDATORY.add(model);
+    throw new OpenRouterError(`OpenRouter HTTP 400 (reasoning mandatory, retrying with it on): ${raw.slice(0, 300)}`, {
+      kind: "retryable",
+      status: 400,
+    });
+  }
   if (!res.ok) {
     throw new OpenRouterError(`OpenRouter HTTP ${res.status}: ${raw.slice(0, 2000)}`, {
       kind: classifyStatus(res.status, raw),
@@ -728,11 +780,11 @@ async function openrouterReview(diffText, model, reviewHistory = null, timeoutMs
   let review = extractReview(String(content));
   if (review == null) {
     // The model narrated its analysis instead of writing the review; posting that would
-    // bury the PR thread in noise, and retrying the same model tends to repeat it.
+    // bury the PR thread in noise. It is stochastic, so give the model one more try.
     throw new OpenRouterError(
       `Model output did not follow the review format (no "## Summary"/"## Findings" heading). ` +
         `Preview: ${String(content).slice(0, 300)}`,
-      { kind: "next-model", status: res.status }
+      { kind: "retryable", status: res.status, maxAttempts: LIMITED_ATTEMPTS }
     );
   }
   if (choices[0]?.finish_reason === "length") {
@@ -832,6 +884,8 @@ export {
   compactPreviousReview,
   extractReview,
   getReviewHistory,
+  reasoningFor,
+  openrouterReview,
 };
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
