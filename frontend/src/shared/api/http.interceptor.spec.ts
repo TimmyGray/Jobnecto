@@ -105,4 +105,49 @@ describe('httpInterceptor', () => {
     expect(captured!.errors).toBeUndefined();
     httpMock.verify();
   });
+
+  it('lifts a numeric Retry-After header into retryAfterSeconds on 429', () => {
+    let captured: ProblemDetails | undefined;
+    http.post('/users/sessions', {}).subscribe({
+      error: (err: ProblemDetails) => (captured = err),
+    });
+
+    httpMock.expectOne(`${env.apiBaseUrl}/users/sessions`).flush(
+      { title: 'Too Many Requests', status: 429 },
+      { status: 429, statusText: 'Too Many Requests', headers: { 'Retry-After': '900' } },
+    );
+
+    expect(captured!.status).toBe(429);
+    expect(captured!.retryAfterSeconds).toBe(900);
+    httpMock.verify();
+  });
+
+  it('leaves retryAfterSeconds undefined on 429 without a Retry-After header', () => {
+    let captured: ProblemDetails | undefined;
+    http.post('/users/sessions', {}).subscribe({
+      error: (err: ProblemDetails) => (captured = err),
+    });
+
+    httpMock
+      .expectOne(`${env.apiBaseUrl}/users/sessions`)
+      .flush({ title: 'Too Many Requests', status: 429 }, { status: 429, statusText: 'Too Many Requests' });
+
+    expect(captured!.retryAfterSeconds).toBeUndefined();
+    httpMock.verify();
+  });
+
+  it('leaves retryAfterSeconds undefined when Retry-After is non-numeric', () => {
+    let captured: ProblemDetails | undefined;
+    http.post('/users/sessions', {}).subscribe({
+      error: (err: ProblemDetails) => (captured = err),
+    });
+
+    httpMock.expectOne(`${env.apiBaseUrl}/users/sessions`).flush(
+      { title: 'Too Many Requests', status: 429 },
+      { status: 429, statusText: 'Too Many Requests', headers: { 'Retry-After': 'not-a-number' } },
+    );
+
+    expect(captured!.retryAfterSeconds).toBeUndefined();
+    httpMock.verify();
+  });
 });

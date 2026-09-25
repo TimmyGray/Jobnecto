@@ -28,6 +28,8 @@ export interface ProblemDetails {
   traceId?: string;
   /** Optional machine-readable error code from extensions (e.g. generation_timeout). */
   code?: string;
+  /** Seconds to wait before retrying, lifted from the `Retry-After` response header (429 only). */
+  retryAfterSeconds?: number;
 }
 
 /** Generic fallback title when the body carries none. */

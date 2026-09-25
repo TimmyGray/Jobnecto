@@ -1,6 +1,6 @@
 # Story 1.3: Sign-in screen
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -47,13 +47,13 @@ so that **I can get back into my account with my credentials**.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Surface `Retry-After` through the error pipeline (AC: 6)** ⚠️ *Shared-code change — required, see Trap 1.*
-  - [ ] Add an optional `retryAfterSeconds?: number` to the `ProblemDetails` interface in `frontend/src/shared/api/problem-details.ts`.
-  - [ ] Populate it in `http.interceptor.ts`'s `toProblemDetails()` — **after** calling `normalizeProblemDetails(error.error, error.status)`, read `error.headers.get('Retry-After')` and parse it as an integer number of seconds. Story 1.2 emits it as a delta-seconds string. Guard `NaN`/null → leave `undefined`.
-  - [ ] **Do not change `normalizeProblemDetails`'s signature** — it is a pure `(body, status)` function with its own passing spec. Attach the header-derived field in the interceptor layer only.
-  - [ ] Extend `http.interceptor.spec.ts`: a 429 with `Retry-After: 900` yields `retryAfterSeconds === 900`; a 429 without the header yields `undefined`; a non-numeric header yields `undefined`.
-- [ ] **Task 2 — Types for the not-yet-generated contract (AC: 1)**
-  - [ ] Hand-add to `frontend/src/entities/user/model.ts`:
+- [x] **Task 1 — Surface `Retry-After` through the error pipeline (AC: 6)** ⚠️ *Shared-code change — required, see Trap 1.*
+  - [x] Add an optional `retryAfterSeconds?: number` to the `ProblemDetails` interface in `frontend/src/shared/api/problem-details.ts`.
+  - [x] Populate it in `http.interceptor.ts`'s `toProblemDetails()` — **after** calling `normalizeProblemDetails(error.error, error.status)`, read `error.headers.get('Retry-After')` and parse it as an integer number of seconds. Story 1.2 emits it as a delta-seconds string. Guard `NaN`/null → leave `undefined`.
+  - [x] **Do not change `normalizeProblemDetails`'s signature** — it is a pure `(body, status)` function with its own passing spec. Attach the header-derived field in the interceptor layer only.
+  - [x] Extend `http.interceptor.spec.ts`: a 429 with `Retry-After: 900` yields `retryAfterSeconds === 900`; a 429 without the header yields `undefined`; a non-numeric header yields `undefined`.
+- [x] **Task 2 — Types for the not-yet-generated contract (AC: 1)**
+  - [x] Hand-add to `frontend/src/entities/user/model.ts`:
     ```ts
     /** Request body for `POST /api/v1/users/sessions` (sign-in). */
     export interface SignInCommand { identifier: string; password: string }
@@ -61,44 +61,44 @@ so that **I can get back into my account with my credentials**.
     /** `200 OK` body returned by `POST /api/v1/users/sessions`. */
     export type SignInResult = CreateUserResult & { accessToken: string };
     ```
-  - [ ] Add a comment noting these are **hand-written pending Story 1.2**, and should be replaced with `components['schemas'][...]` aliases once the backend ships and `npm run gen:api` is re-run. The names deliberately match the backend types so the swap is mechanical.
-  - [ ] ⚠️ Do **not** run `npm run gen:api` expecting sign-in types — see Trap 5.
-- [ ] **Task 3 — `signIn()` on `UserService` (AC: 1)**
-  - [ ] Add directly after `register()` in `frontend/src/entities/user/user.service.ts`, mirroring it exactly — a bare POST that does **not** write the profile signal:
+  - [x] Add a comment noting these are **hand-written pending Story 1.2**, and should be replaced with `components['schemas'][...]` aliases once the backend ships and `npm run gen:api` is re-run. The names deliberately match the backend types so the swap is mechanical.
+  - [x] ⚠️ Do **not** run `npm run gen:api` expecting sign-in types — see Trap 5. (Confirmed: `generated/schema.ts` has no `SignIn`/`sessions` entries yet.)
+- [x] **Task 3 — `signIn()` on `UserService` (AC: 1)**
+  - [x] Add directly after `register()` in `frontend/src/entities/user/user.service.ts`, mirroring it exactly — a bare POST that does **not** write the profile signal:
     ```ts
     signIn(input: SignInCommand): Observable<SignInResult> {
       return this.http.post<SignInResult>('/users/sessions', input);
     }
     ```
-  - [ ] Extend `user.service.spec.ts`: asserts POST to `/users/sessions`, request body, `withCredentials`, and a flushed 200.
-- [ ] **Task 4 — Sign-in validators (AC: 7)**
-  - [ ] New `frontend/src/features/user/sign-in/sign-in.validators.ts` following the house `ValidatorFn`-factory pattern. Both validators are **non-empty after trim** only, returning `{ required: true }`.
-  - [ ] ⚠️ **Do not import or reuse sign-up's `passwordValidator()`** — it enforces min 8 / max 50. See Trap 4.
-  - [ ] Spec file mirroring `sign-up.validators.spec.ts`'s bare-`FormControl` `run()` helper — cover `''`, `'   '`, and a valid value for each.
-- [ ] **Task 5 — The page component (AC: 1, 2, 3, 4, 5, 8, 9)**
-  - [ ] `frontend/src/pages/auth-sign-in/sign-in.page.ts` + `.html`, mirroring `pages/auth-sign-up/` structure: standalone, `ChangeDetectionStrategy.OnPush`, `imports: [ReactiveFormsModule, TextFieldComponent]`, external `templateUrl`.
-  - [ ] Typed form: `interface SignInForm { identifier: FormControl<string>; password: FormControl<string> }`, both `nonNullable: true`.
-  - [ ] Signals: `submitting`, `generalError`, `rateLimitMessage`. **No `conflictMessage`** — sign-in has no 409.
-  - [ ] `canSubmit` getter: `form.dirty && form.valid && !submitting()`.
-  - [ ] `errorFor(field)` gated on `touched || dirty`, same as sign-up.
-  - [ ] Submit: `signIn()` → `switchMap(fetchCurrentUser())` → navigate. **`finalize()` to clear `submitting`.** Handle the hydration-failure case per AC 3 (Trap 2).
-  - [ ] `handleError(problem)` branches — note the ordering differs from sign-up's:
+  - [x] Extend `user.service.spec.ts`: asserts POST to `/users/sessions`, request body, `withCredentials`, and a flushed 200.
+- [x] **Task 4 — Sign-in validators (AC: 7)**
+  - [x] New `frontend/src/features/user/sign-in/sign-in.validators.ts` following the house `ValidatorFn`-factory pattern. Both validators are **non-empty after trim** only, returning `{ required: true }`.
+  - [x] ⚠️ **Do not import or reuse sign-up's `passwordValidator()`** — it enforces min 8 / max 50. See Trap 4.
+  - [x] Spec file mirroring `sign-up.validators.spec.ts`'s bare-`FormControl` `run()` helper — cover `''`, `'   '`, and a valid value for each.
+- [x] **Task 5 — The page component (AC: 1, 2, 3, 4, 5, 8, 9)**
+  - [x] `frontend/src/pages/auth-sign-in/sign-in.page.ts` + `.html`, mirroring `pages/auth-sign-up/` structure: standalone, `ChangeDetectionStrategy.OnPush`, `imports: [ReactiveFormsModule, TextFieldComponent]`, external `templateUrl`. (Also imports `RouterLink` for the AC 11 sign-up link.)
+  - [x] Typed form: `interface SignInForm { identifier: FormControl<string>; password: FormControl<string> }`, both `nonNullable: true`.
+  - [x] Signals: `submitting`, `generalError`, `rateLimitMessage`. **No `conflictMessage`** — sign-in has no 409.
+  - [x] `canSubmit` getter: `form.dirty && form.valid && !submitting()`.
+  - [x] `errorFor(field)` gated on `touched || dirty`, same as sign-up.
+  - [x] Submit: `signIn()` → `switchMap(fetchCurrentUser())` → navigate. **`finalize()` to clear `submitting`.** Handle the hydration-failure case per AC 3 (Trap 2) via `catchError(() => of(null))` on the inner `fetchCurrentUser()`.
+  - [x] `handleError(problem)` branches — note the ordering differs from sign-up's:
     - `401` → `generalError.set('Invalid credentials')`. **Never** touch field errors.
     - `429` → `rateLimitMessage.set(...)`, incorporating `problem.retryAfterSeconds` when present.
     - `400 && problem.errors` → per-field via `setErrors({ server: ... })`, same as sign-up.
     - anything else → `generalError.set(problem.detail ?? problem.title)`.
-  - [ ] Template mirrors `sign-up.page.html`: `<main>` flex-centered → `<section aria-labelledby>` card → mono eyebrow `<p>` → single `<h1 id>` (serif-italic accent word permitted) → subtitle → banner divs with `role="alert"` + `aria-live="assertive"` → `<form novalidate [formGroup] (ngSubmit)>` → two `<ui-text-field formControlName …>` → submit button with spinner. Reference **tokens only**, never hardcoded hex/px (UX-DR1).
-  - [ ] `autocomplete`: `username` on identifier, `current-password` on password (**not** `new-password` — that's sign-up's value and suppresses password-manager fill on a login form).
-  - [ ] Add the sign-up link for AC 11.
-- [ ] **Task 6 — Route registration (AC: 1)**
-  - [ ] Add to `frontend/src/app/app.routes.ts`, lazy-loaded and unguarded (no guards exist yet — Story 1.4's job):
+  - [x] Template mirrors `sign-up.page.html`: `<main>` flex-centered → `<section aria-labelledby>` card → mono eyebrow `<p>` → single `<h1 id>` (serif-italic accent word permitted) → subtitle → banner divs with `role="alert"` + `aria-live="assertive"` → `<form novalidate [formGroup] (ngSubmit)>` → two `<ui-text-field formControlName …>` → submit button with spinner. Reference **tokens only**, never hardcoded hex/px (UX-DR1).
+  - [x] `autocomplete`: `username` on identifier, `current-password` on password (**not** `new-password` — that's sign-up's value and suppresses password-manager fill on a login form).
+  - [x] Add the sign-up link for AC 11.
+- [x] **Task 6 — Route registration (AC: 1)**
+  - [x] Add to `frontend/src/app/app.routes.ts`, lazy-loaded and unguarded (no guards exist yet — Story 1.4's job):
     ```ts
     { path: 'sign-in', loadComponent: () => import('@pages/auth-sign-in/sign-in.page').then((m) => m.SignInPage) },
     ```
-  - [ ] Leave the existing `''` → `sign-up` redirect and `**` fallback **unchanged** — retargeting them is Story 1.4/1.5 scope.
-- [ ] **Task 7 — Tests (all ACs)** — see Testing Requirements.
-- [ ] **Task 8 — Verify green**
-  - [ ] `cd frontend && npx ng test --no-watch` (this is the CI command; the builder enforces the coverage gate itself).
+  - [x] Leave the existing `''` → `sign-up` redirect and `**` fallback **unchanged** — retargeting them is Story 1.4/1.5 scope.
+- [x] **Task 7 — Tests (all ACs)** — see Testing Requirements.
+- [x] **Task 8 — Verify green**
+  - [x] `cd frontend && npx ng test --no-watch` (this is the CI command; the builder enforces the coverage gate itself).
 
 ## Dev Notes
 

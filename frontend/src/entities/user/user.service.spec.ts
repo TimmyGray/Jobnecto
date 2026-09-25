@@ -53,6 +53,20 @@ describe('UserService', () => {
     httpMock.verify();
   });
 
+  it('signIn() POSTs to /users/sessions with the credentials and does not cache the profile', () => {
+    const payload = { identifier: 'daria_dev', password: 'sup3rsecret' };
+    service.signIn(payload).subscribe();
+
+    const req = httpMock.expectOne(`${env.apiBaseUrl}/users/sessions`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(payload);
+    expect(req.request.withCredentials).toBe(true);
+    req.flush({ id: 'u1', loginName: 'daria_dev', accessToken: '' }, { status: 200, statusText: 'OK' });
+
+    expect(service.isAuthenticated()).toBe(false);
+    httpMock.verify();
+  });
+
   it('invalidate() clears the cached profile', () => {
     service.fetchCurrentUser().subscribe();
     httpMock.expectOne(`${env.apiBaseUrl}/users/me`).flush({ id: 'u1', loginName: 'x' });

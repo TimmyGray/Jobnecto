@@ -39,7 +39,18 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
 /** Converts an HttpErrorResponse (or any thrown value) into a typed ProblemDetails. */
 function toProblemDetails(error: unknown): ProblemDetails {
   if (error instanceof HttpErrorResponse) {
-    return normalizeProblemDetails(error.error, error.status);
+    const problem = normalizeProblemDetails(error.error, error.status);
+    const retryAfterSeconds = parseRetryAfter(error.headers.get('Retry-After'));
+    return retryAfterSeconds === undefined ? problem : { ...problem, retryAfterSeconds };
   }
   return normalizeProblemDetails(null, 0);
+}
+
+/** Parses a delta-seconds `Retry-After` header value; returns undefined when missing or non-numeric. */
+function parseRetryAfter(header: string | null): number | undefined {
+  if (header === null) {
+    return undefined;
+  }
+  const seconds = Number(header);
+  return Number.isFinite(seconds) ? seconds : undefined;
 }

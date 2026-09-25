@@ -5,6 +5,8 @@ import {
   CreateUserCommand,
   CreateUserResult,
   GetCurrentUserResult,
+  SignInCommand,
+  SignInResult,
   UserProfile,
 } from './model';
 
@@ -15,7 +17,8 @@ import {
  * Holds the hydrated authenticated profile in a signal and exposes the API
  * calls used by the sign-up flow:
  *  - {@link register} → `POST /api/v1/users`
- *  - {@link fetchCurrentUser} → `GET /api/v1/users/me` (hydration after 201)
+ *  - {@link signIn} → `POST /api/v1/users/sessions`
+ *  - {@link fetchCurrentUser} → `GET /api/v1/users/me` (hydration after 201/200)
  *
  * URLs are relative; the HTTP interceptor prefixes the API base and sets
  * `withCredentials` so the auth cookie is carried. [AC3, AC7]
@@ -40,6 +43,17 @@ export class UserService {
    */
   register(input: CreateUserCommand): Observable<CreateUserResult> {
     return this.http.post<CreateUserResult>('/users', input);
+  }
+
+  /**
+   * Signs in a returning user with their credentials. On `200` the server sets
+   * the HTTP-only auth cookie. Does not write the profile signal — callers
+   * hydrate it separately via {@link fetchCurrentUser}.
+   * @param input The sign-in payload `{ identifier, password }`.
+   * @returns The sign-in result.
+   */
+  signIn(input: SignInCommand): Observable<SignInResult> {
+    return this.http.post<SignInResult>('/users/sessions', input);
   }
 
   /**
