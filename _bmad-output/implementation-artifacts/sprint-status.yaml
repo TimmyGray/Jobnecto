@@ -55,7 +55,7 @@
 #   [SEED] Data/seed track - mocked vacancies behind the JobSource seam
 
 generated: 2026-08-20T00:00:00Z
-last_updated: 2026-08-20T00:00:00Z
+last_updated: 2026-09-25T00:00:00Z
 project: Jobnecto
 project_key: NOKEY
 tracking_system: file-system
@@ -70,6 +70,7 @@ development_status:
   1-4-session-continuity-route-guards-expiry-recovery: backlog # [FE]
   1-5-application-shell-navigation: backlog # [FE]
   1-6-orientation-dashboard: backlog # [FE]
+  1-7-case-insensitive-login-names: ready-for-dev # [BE] blocked on product sign-off + Task 0 data audit; from 1.2 adversarial review 2026-08-26
   epic-1-retrospective: optional
 
   # --- Epic 2: Résumé Management (FR11-FR15) ---
