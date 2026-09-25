@@ -1,6 +1,6 @@
 # Story 1.4: Session continuity, route guards & expiry recovery
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -42,13 +42,13 @@ so that **I am never stranded or silently logged out mid-task**.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — `SKIP_AUTH_REDIRECT` context token + interceptor 401 handling (AC: 3)**
-  - [ ] `frontend/src/shared/api/auth-redirect.ts` (CREATE) — export `export const SKIP_AUTH_REDIRECT = new HttpContextToken<boolean>(() => false);`
-  - [ ] `frontend/src/shared/api/http.interceptor.ts` (UPDATE) — inject `Router`; in the `catchError`, after building the `ProblemDetails`, if `error instanceof HttpErrorResponse && error.status === 401 && !req.context.get(SKIP_AUTH_REDIRECT)`: call `userService.invalidate()` and `router.navigate(['/sign-in'], { queryParams: { returnUrl: router.url } })`, then still rethrow the normalized `problem` (callers with their own 401 UI, e.g. the sign-in page itself on a bad-credentials attempt — see Trap 1 — still receive it). Inject `UserService` too.
-  - [ ] Update `frontend/src/shared/api/index.ts` (UPDATE) to export `auth-redirect.ts`.
-  - [ ] Extend `http.interceptor.spec.ts`: a 401 without the skip context navigates to `/sign-in` with `returnUrl` equal to the current router URL and invalidates the profile; a 401 **with** the skip context does neither; a non-401 error never navigates.
-- [ ] **Task 2 — `authGuard` (AC: 1, 2)**
-  - [ ] `frontend/src/app/auth.guard.ts` (CREATE) — a `CanActivateFn`:
+- [x] **Task 1 — `SKIP_AUTH_REDIRECT` context token + 401 handling (AC: 3)** ⚠️ *Deviates from the plan below — see Completion Notes.*
+  - [x] `frontend/src/shared/api/auth-redirect.ts` (CREATE) — `SKIP_AUTH_REDIRECT` context token.
+  - [x] Implemented as a **new, separately-registered interceptor** (`frontend/src/app/auth-redirect.interceptor.ts`) instead of editing `http.interceptor.ts` in place — see Completion Notes for why.
+  - [x] Update `frontend/src/shared/api/index.ts` (UPDATE) to export `auth-redirect.ts`.
+  - [x] `auth-redirect.interceptor.spec.ts`: a 401 without the skip context navigates to `/sign-in` with `returnUrl` equal to the current router URL and invalidates the profile; a 401 with the skip context does neither; a non-401 error never navigates; a raw `HttpErrorResponse` (no `httpInterceptor` ahead of it) still triggers the redirect; a 401 while already on `/sign-in` does not re-navigate (review fix).
+- [x] **Task 2 — `authGuard` (AC: 1, 2)**
+  - [x] `frontend/src/app/auth.guard.ts` (CREATE) — a `CanActivateFn`:
     ```ts
     export const authGuard: CanActivateFn = (_route, state) => {
       const userService = inject(UserService);
@@ -64,22 +64,23 @@ so that **I am never stranded or silently logged out mid-task**.
       );
     };
     ```
-  - [ ] `frontend/src/entities/user/user.service.ts` (UPDATE) — add `restoreSession(): Observable<GetCurrentUserResult>`: calls `refreshToken()` (new method, `POST /users/token/refresh` with `context: new HttpContext().set(SKIP_AUTH_REDIRECT, true)`) then `switchMap` into `fetchCurrentUser()` (also set the same context on its request so a 401 here — an edge case — doesn't double-redirect). Add `RefreshAccessTokenResult` to `entities/user/model.ts` (hand-written per Trap 2 — mirrors the backend `RefreshAccessTokenResult` shape: `{ accessToken: string; tokenType: string; renewalPolicy: string }`; only `tokenType`/`renewalPolicy` are unused by the client but kept for shape fidelity).
-  - [ ] Extend `user.service.spec.ts`: `restoreSession()` POSTs to `/users/token/refresh` with the skip-redirect context set, then GETs `/users/me`, and the profile signal ends up hydrated; a `401` on the refresh call propagates as an error and never calls `/users/me`.
-- [ ] **Task 3 — Wire the guard into routes (AC: 2)**
-  - [ ] `frontend/src/app/app.routes.ts` (UPDATE) — add `canActivate: [authGuard]` to the `dashboard` route (today's only protected route) and to every future protected route added by this story. Leave `sign-up`, `sign-in`, and the `''`/`**` redirects unguarded — unchanged from Story 1.3 (retargeting the default redirect off `sign-up` is out of scope; no AC asks for it).
-- [ ] **Task 4 — `returnUrl` round-trip in the sign-in page (AC: 3)**
-  - [ ] `frontend/src/pages/auth-sign-in/sign-in.page.ts` (UPDATE) — inject `ActivatedRoute`; on successful sign-in + hydration, navigate to `this.route.snapshot.queryParamMap.get('returnUrl') ?? '/dashboard'` instead of the hardcoded `/dashboard`. Guard against an absolute/protocol-relative `returnUrl` (open-redirect hardening): only honor a value starting with a single `/` (not `//`); otherwise fall back to `/dashboard`.
-  - [ ] Extend `sign-in.page.spec.ts`: a sign-in with `?returnUrl=/resumes` in the activated route navigates to `/resumes` on success; an absent `returnUrl` still navigates to `/dashboard`; a `returnUrl` of `//evil.example.com` falls back to `/dashboard` (open-redirect regression test).
-- [ ] **Task 5 — 403/404 mapping primitives (AC: 4)**
-  - [ ] `frontend/src/shared/ui/state/forbidden-state.ts` (CREATE) — `ForbiddenStateComponent`, mirroring `NotFoundStateComponent`'s structure/a11y (`role="status"`, headline + guidance + a single recovery CTA button emitting `recover`), default headline `"You can't access this"` / guidance `"This may belong to someone else, or you may not have permission."` / CTA label `"Back to safety"`.
-  - [ ] `frontend/src/shared/ui/index.ts` (UPDATE) — export `./state/forbidden-state`.
-  - [ ] `frontend/src/shared/api/problem-details.ts` (UPDATE) — add a pure function `export function mapProblemToUxState(problem: ProblemDetails): 'forbidden' | 'not-found' | 'error'` — `403 → 'forbidden'`, `404 → 'not-found'`, anything else → `'error'`. No page wiring beyond this — future stories `switch` on its result to pick which state component to render.
-  - [ ] `forbidden-state.spec.ts` (CREATE) — renders headline/guidance/CTA label overrides, emits `recover` on click, asserts `role="status"` and no `aria-live` misuse (mirror `not-found-state.spec.ts` if it exists, else `error-state.spec.ts`'s pattern).
-  - [ ] Extend `problem-details.spec.ts`: `mapProblemToUxState` returns `'forbidden'` for 403, `'not-found'` for 404, `'error'` for 400/401/409/429/500/502/504.
-- [ ] **Task 6 — Tests and verification (AC: all)**
-  - [ ] `cd frontend && npx ng test --no-watch` (CI command; builder enforces the 80%-per-file coverage gate).
-  - [ ] Coverage gate ≥80% per file on every new/touched file (none are in `coverageExclude`).
+  - [x] `frontend/src/entities/user/user.service.ts` (UPDATE) — added `restoreSession()` and `refreshToken()`. `fetchCurrentUser()` gained an optional `skipAuthRedirect` parameter (review fix — see Completion Notes) rather than always setting the skip context. `RefreshAccessTokenResult` sourced from the **already-generated** OpenAPI schema (Trap 2 didn't apply — see Completion Notes) instead of hand-written.
+  - [x] `user.service.spec.ts`: `restoreSession()` POSTs to `/users/token/refresh` with the skip-redirect context set, then GETs `/users/me`, and the profile signal ends up hydrated; a `401` on the refresh call propagates as an error and never calls `/users/me`; `signIn()` sets the skip context; `fetchCurrentUser()` defaults to NOT skipping the redirect and `fetchCurrentUser(true)` does (review regression tests).
+- [x] **Task 3 — Wire the guard into routes (AC: 2)**
+  - [x] `frontend/src/app/app.routes.ts` (UPDATE) — `canActivate: [authGuard]` on the `dashboard` route. `sign-up`/`sign-in`/`''`/`**` unchanged.
+  - [x] `app.routes.spec.ts` (CREATE, review fix — verification-gap lens found the wiring itself untested) — asserts `dashboard` carries `authGuard` and `sign-up`/`sign-in` don't.
+- [x] **Task 4 — `returnUrl` round-trip in the sign-in page (AC: 3)**
+  - [x] `frontend/src/pages/auth-sign-in/sign-in.page.ts` (UPDATE) — `intendedDestination()` reads `returnUrl`, falls back to `/dashboard`. Guard tightened during review to also reject backslash variants (`/\host`), not just `//`.
+  - [x] `sign-in.page.spec.ts`: `?returnUrl=/resumes` navigates there on success; absent `returnUrl` falls back to `/dashboard`; `//evil.example.com`, `/\evil.example.com`, and `http://evil.example.com` all fall back to `/dashboard` (open-redirect regression tests, the backslash case added during review).
+- [x] **Task 5 — 403/404 mapping primitives (AC: 4)**
+  - [x] `frontend/src/shared/ui/state/forbidden-state.ts` (CREATE) — `ForbiddenStateComponent`, mirrors `NotFoundStateComponent`.
+  - [x] `frontend/src/shared/ui/index.ts` (UPDATE) — exports `./state/forbidden-state`.
+  - [x] `frontend/src/shared/api/problem-details.ts` (UPDATE) — `mapProblemToUxState`.
+  - [x] `forbidden-state.spec.ts` (CREATE).
+  - [x] `problem-details.spec.ts` — `mapProblemToUxState` cases.
+- [x] **Task 6 — Tests and verification (AC: all)**
+  - [x] `cd frontend && npx ng test --no-watch` — 149/149 passing, coverage gate clean (see Debug Log).
+  - [x] Coverage gate ≥80% per file on every new/touched file — confirmed (see Debug Log).
 
 ## Dev Notes
 
@@ -165,12 +166,67 @@ Calling it unconditionally on every navigation would fire a `token/refresh` + `/
 
 ### Agent Model Used
 
+Sonnet 5 (`claude-sonnet-5`), Jobnecto Dev persona. Baseline: `2e79adf6b3c3762e7697cd40cfce0ef6aeed83d9`.
+
 ### Debug Log References
+
+`cd frontend && npx ng test --no-watch` (final run, after review-driven fixes):
+```
+ Test Files  16 passed (16)
+      Tests  149 passed (149)
+```
+Coverage summary: Statements 96.03%, Branches 92.82%, Functions 95.78%, Lines 97.13%. No per-file coverage-gate errors emitted (all touched/new files clear the 80% per-file threshold).
+
+Backend Verify commands (`dotnet build`/`dotnet test`) could not be run — `dotnet` is not installed in this environment (same limitation noted in Story 1.3). No backend files were touched by this story, which limits the risk; this is noted rather than claimed as passing.
 
 ### Completion Notes List
 
+- **Deviation from Task 1's plan (deliberate, not a defect):** the story's task text said to add the 401-redirect logic directly inside `frontend/src/shared/api/http.interceptor.ts`. Implementing it there would have made `shared/api` (the lowest feature-sliced layer per AR11: `app > processes > pages > widgets > features > entities > shared`) depend on `UserService`, an entity — an upward dependency the codebase's own layering forbids. Instead, added a second, separately-registered interceptor at the `app` layer (`frontend/src/app/auth-redirect.interceptor.ts`), registered ahead of `httpInterceptor` in `app.config.ts` so it observes the already-normalized `ProblemDetails`. `http.interceptor.ts` itself is untouched. Functionally equivalent to the plan; architecturally cleaner. The Acceptance-lens reviewer flagged this as "architecturally divergent from the story's stated file plan" and recommended dev/architect sign-off rather than treating it as a defect — recording that here per its recommendation.
+- **Trap 2 didn't apply:** the story predicted `RefreshAccessTokenResult` would need hand-writing (mirroring Story 1.3's Trap 5 for `SignInCommand`/`SignInResult`). Checked `frontend/src/shared/api/generated/schema.ts` directly before writing any code — `RefreshAccessTokenResult` was already present (Story 1.2 apparently went through an OpenAPI-regeneration cycle after merge). Used the generated `components['schemas']['RefreshAccessTokenResult']` alias instead of hand-writing it. `SignInCommand`/`SignInResult` remain hand-written — confirmed `/users/sessions` is still absent from the generated schema.
+- Ran the four self-review lenses (adversarial, edge-case, verification-gap, acceptance) in parallel per `jobnecto-dev`'s `references/review.md`. See Review Findings below for the full triage.
+- Fixed 5 real defects surfaced by review before moving to `review`: `fetchCurrentUser()` unconditionally suppressing the 401 redirect for every future caller (not just the two flows that need it), a returnUrl-clobbering race when the interceptor fires while already on `/sign-in` (found independently by both the adversarial and edge-case lenses), a missing test for the actual route-guard wiring, an untested raw-`HttpErrorResponse` code path in the new interceptor, and an incomplete open-redirect guard (backslash variant).
+- Three lower-severity/architectural findings were deferred (not caused by a defect this story could cheaply fix) — see `deferred-work.md`.
+
 ### File List
+
+- `frontend/src/shared/api/auth-redirect.ts` (CREATED — `SKIP_AUTH_REDIRECT` context token)
+- `frontend/src/app/auth-redirect.interceptor.ts` (CREATED — 401 session-lapse redirect; see Completion Notes for the layering deviation from the story's plan)
+- `frontend/src/app/auth-redirect.interceptor.spec.ts` (CREATED)
+- `frontend/src/app/auth.guard.ts` (CREATED)
+- `frontend/src/app/auth.guard.spec.ts` (CREATED)
+- `frontend/src/app/app.routes.spec.ts` (CREATED — review fix, route-wiring regression test)
+- `frontend/src/app/app.routes.ts` (UPDATED — `canActivate: [authGuard]` on `dashboard`)
+- `frontend/src/app/app.config.ts` (UPDATED — registers `authRedirectInterceptor` ahead of `httpInterceptor`)
+- `frontend/src/entities/user/model.ts` (UPDATED — added `RefreshAccessTokenResult` generated-schema alias)
+- `frontend/src/entities/user/user.service.ts` (UPDATED — `refreshToken()`, `restoreSession()`; `fetchCurrentUser(skipAuthRedirect = false)`; `signIn()` sets the skip context)
+- `frontend/src/entities/user/user.service.spec.ts` (UPDATED)
+- `frontend/src/pages/auth-sign-in/sign-in.page.ts` (UPDATED — `returnUrl` navigation via `intendedDestination()`)
+- `frontend/src/pages/auth-sign-in/sign-in.page.spec.ts` (UPDATED)
+- `frontend/src/pages/auth-sign-up/sign-up.page.ts` (UPDATED — `fetchCurrentUser(true)` to preserve its existing no-redirect-on-hydration-failure behavior now that `authRedirectInterceptor` exists)
+- `frontend/src/shared/ui/state/forbidden-state.ts` (CREATED)
+- `frontend/src/shared/ui/state/forbidden-state.spec.ts` (CREATED)
+- `frontend/src/shared/ui/index.ts` (UPDATED — exports `forbidden-state`)
+- `frontend/src/shared/api/problem-details.ts` (UPDATED — `mapProblemToUxState`)
+- `frontend/src/shared/api/problem-details.spec.ts` (UPDATED)
+- `frontend/src/shared/api/index.ts` (UPDATED — exports `auth-redirect`)
+- `_bmad-output/implementation-artifacts/deferred-work.md` (UPDATED — 3 deferred findings)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (UPDATED — 1.4 status)
+
+### Review Findings
+
+Four lenses (adversarial, edge-case hunter, verification gap, acceptance) run in parallel per `references/review.md`.
+
+- [x] [Review][Patch] `fetchCurrentUser()` unconditionally set `SKIP_AUTH_REDIRECT`, silently suppressing the 401 redirect for *any* future caller (not just sign-in/sign-up hydration and `restoreSession()`) — e.g. a future "refresh my profile" action mid-session would swallow a genuine session lapse with no redirect and no visible recovery. `frontend/src/entities/user/user.service.ts` — fixed by making it an explicit `skipAuthRedirect = false` parameter; `restoreSession()`, the sign-in page's hydration call, and the sign-up page's hydration call now pass `true` explicitly, everything else defaults to participating in the redirect. Regression tests added in `user.service.spec.ts`.
+- [x] [Review][Patch] Concurrent/repeat-401 race could clobber the real `returnUrl` — found independently by both the adversarial and edge-case lenses: a 401 while already on `/sign-in` (or a second 401 arriving just after the first redirect lands) recomputes `returnUrl` from `router.url`, which by then is `/sign-in` itself, producing `returnUrl=/sign-in` and stranding a freshly-authenticated user back on the sign-in page. `frontend/src/app/auth-redirect.interceptor.ts` — fixed by skipping the redirect entirely when `router.url` already starts with `/sign-in`. Regression test added.
+- [x] [Review][Patch] Verification gap: the route-guard *wiring* itself (`canActivate: [authGuard]` on the `dashboard` route in `app.routes.ts`) had no test — a regression dropping it would pass every other test in the suite. `frontend/src/app/app.routes.spec.ts` (CREATED).
+- [x] [Review][Patch] Verification gap: `auth-redirect.interceptor.ts`'s `error instanceof HttpErrorResponse` branch was dead in every existing test (all specs register it ahead of `httpInterceptor`, so it only ever receives an already-normalized `ProblemDetails`). Added a test registering the interceptor alone against a raw `HttpErrorResponse`.
+- [x] [Review][Patch] Edge-case lens: the open-redirect guard (`/^\/(?!\/)/`) only rejected a literal `//`; a backslash variant (`/\evil.example.com`), which some browsers normalize to a protocol-relative URL, passed the regex. `frontend/src/pages/auth-sign-in/sign-in.page.ts` `intendedDestination()` — tightened to `/^\/[^/\\]/`. Regression tests added for the backslash variant and a bare absolute URL.
+- [Review][Defer] `authGuard`'s fast path trusts the in-memory `isAuthenticated()` signal without revalidating against the server — a UX flash (briefly rendering a guarded route before a subsequent 401 bounces the user back), never a security hole since the backend enforces auth independently. Logged in `deferred-work.md`.
+- [Review][Defer] Duplicate concurrent `restoreSession()` calls are not deduplicated if two guarded resources activated at once on a cold load. Latent, not reachable today — the app has a single router-outlet and no route activates two guarded resources simultaneously. Logged in `deferred-work.md`.
+- [Review][Defer] `authGuard`/`authRedirectInterceptor`'s in-flight observables aren't explicitly torn down on a superseded navigation beyond what Angular's router does automatically; no `takeUntil(destroyed)` convention exists anywhere in this codebase yet. Pre-existing gap, not introduced by this story. Logged in `deferred-work.md`.
+- [Review][Dismiss] Acceptance lens noted the story's Tasks/Subtasks checkboxes were still unchecked in the `.md` at the time it read the diff — not a code finding; checkboxes are ticked as the final step of this dev session, after all lenses had already read the file.
 
 ## Change Log
 
 - 2026-09-25: Story created (ready-for-dev).
+- 2026-09-25: Implemented (Tasks 1-6), self-reviewed (4 parallel lenses), fixed 5 real defects (one deliberate architectural deviation from the task plan, documented and left as-is; three lower-severity findings deferred). 149/149 frontend tests passing, coverage gate clean. Status → review.

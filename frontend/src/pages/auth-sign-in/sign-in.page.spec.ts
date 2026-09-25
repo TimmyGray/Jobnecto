@@ -8,7 +8,7 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { httpInterceptor } from '@shared/api/http.interceptor';
 import { env } from '@shared/config';
 import { UserService } from '@entities/user';
@@ -359,5 +359,118 @@ describe('SignInPage', () => {
   it('offers a route to sign-up for users without an account (AC11)', () => {
     const link: HTMLAnchorElement = fixture.nativeElement.querySelector('a[routerLink="/sign-up"]');
     expect(link).toBeTruthy();
+  });
+
+  describe('returnUrl (Story 1.4 AC3)', () => {
+    /** Rebuilds the fixture with a given `returnUrl` query param (or none) on the activated route. */
+    async function createWithReturnUrl(returnUrl: string | null) {
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [SignInPage],
+        providers: [
+          provideHttpClient(withInterceptors([httpInterceptor])),
+          provideHttpClientTesting(),
+          provideRouter([]),
+          {
+            provide: ActivatedRoute,
+            useValue: {
+              snapshot: { queryParamMap: convertToParamMap(returnUrl ? { returnUrl } : {}) },
+            },
+          },
+        ],
+      }).compileComponents();
+
+      const f = TestBed.createComponent(SignInPage);
+      const p = f.componentInstance;
+      const mock = TestBed.inject(HttpTestingController);
+      const r = TestBed.inject(Router);
+      f.detectChanges();
+      return { fixture: f, page: p, httpMock: mock, router: r };
+    }
+
+    it('navigates to the returnUrl on successful sign-in when present', async () => {
+      const ctx = await createWithReturnUrl('/resumes');
+      const navSpy = vi.spyOn(ctx.router, 'navigate').mockResolvedValue(true);
+
+      ctx.page.form.setValue({ identifier: 'daria_dev', password: 'sup3rsecret' });
+      ctx.page.form.markAsDirty();
+      ctx.page.onSubmit();
+
+      ctx.httpMock
+        .expectOne(`${env.apiBaseUrl}/users/sessions`)
+        .flush({ id: 'u1', loginName: 'daria_dev', accessToken: '' }, { status: 200, statusText: 'OK' });
+      ctx.httpMock.expectOne(`${env.apiBaseUrl}/users/me`).flush({ id: 'u1', loginName: 'daria_dev' });
+
+      expect(navSpy).toHaveBeenCalledWith(['/resumes']);
+      ctx.httpMock.verify();
+    });
+
+    it('falls back to /dashboard when no returnUrl is present', async () => {
+      const ctx = await createWithReturnUrl(null);
+      const navSpy = vi.spyOn(ctx.router, 'navigate').mockResolvedValue(true);
+
+      ctx.page.form.setValue({ identifier: 'daria_dev', password: 'sup3rsecret' });
+      ctx.page.form.markAsDirty();
+      ctx.page.onSubmit();
+
+      ctx.httpMock
+        .expectOne(`${env.apiBaseUrl}/users/sessions`)
+        .flush({ id: 'u1', loginName: 'daria_dev', accessToken: '' }, { status: 200, statusText: 'OK' });
+      ctx.httpMock.expectOne(`${env.apiBaseUrl}/users/me`).flush({ id: 'u1', loginName: 'daria_dev' });
+
+      expect(navSpy).toHaveBeenCalledWith(['/dashboard']);
+      ctx.httpMock.verify();
+    });
+
+    it('falls back to /dashboard for a protocol-relative returnUrl (open-redirect regression guard)', async () => {
+      const ctx = await createWithReturnUrl('//evil.example.com');
+      const navSpy = vi.spyOn(ctx.router, 'navigate').mockResolvedValue(true);
+
+      ctx.page.form.setValue({ identifier: 'daria_dev', password: 'sup3rsecret' });
+      ctx.page.form.markAsDirty();
+      ctx.page.onSubmit();
+
+      ctx.httpMock
+        .expectOne(`${env.apiBaseUrl}/users/sessions`)
+        .flush({ id: 'u1', loginName: 'daria_dev', accessToken: '' }, { status: 200, statusText: 'OK' });
+      ctx.httpMock.expectOne(`${env.apiBaseUrl}/users/me`).flush({ id: 'u1', loginName: 'daria_dev' });
+
+      expect(navSpy).toHaveBeenCalledWith(['/dashboard']);
+      ctx.httpMock.verify();
+    });
+
+    it('falls back to /dashboard for a backslash-variant returnUrl (some browsers normalize \\ to / — open-redirect regression guard)', async () => {
+      const ctx = await createWithReturnUrl('/\\evil.example.com');
+      const navSpy = vi.spyOn(ctx.router, 'navigate').mockResolvedValue(true);
+
+      ctx.page.form.setValue({ identifier: 'daria_dev', password: 'sup3rsecret' });
+      ctx.page.form.markAsDirty();
+      ctx.page.onSubmit();
+
+      ctx.httpMock
+        .expectOne(`${env.apiBaseUrl}/users/sessions`)
+        .flush({ id: 'u1', loginName: 'daria_dev', accessToken: '' }, { status: 200, statusText: 'OK' });
+      ctx.httpMock.expectOne(`${env.apiBaseUrl}/users/me`).flush({ id: 'u1', loginName: 'daria_dev' });
+
+      expect(navSpy).toHaveBeenCalledWith(['/dashboard']);
+      ctx.httpMock.verify();
+    });
+
+    it('falls back to /dashboard for an absolute URL returnUrl', async () => {
+      const ctx = await createWithReturnUrl('http://evil.example.com');
+      const navSpy = vi.spyOn(ctx.router, 'navigate').mockResolvedValue(true);
+
+      ctx.page.form.setValue({ identifier: 'daria_dev', password: 'sup3rsecret' });
+      ctx.page.form.markAsDirty();
+      ctx.page.onSubmit();
+
+      ctx.httpMock
+        .expectOne(`${env.apiBaseUrl}/users/sessions`)
+        .flush({ id: 'u1', loginName: 'daria_dev', accessToken: '' }, { status: 200, statusText: 'OK' });
+      ctx.httpMock.expectOne(`${env.apiBaseUrl}/users/me`).flush({ id: 'u1', loginName: 'daria_dev' });
+
+      expect(navSpy).toHaveBeenCalledWith(['/dashboard']);
+      ctx.httpMock.verify();
+    });
   });
 });

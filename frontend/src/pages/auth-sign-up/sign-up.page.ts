@@ -94,8 +94,10 @@ export class SignUpPage {
     this.userService
       .register({ loginName, email, password })
       .pipe(
-        // On 201 the cookie is set; hydrate the profile before landing.
-        switchMap(() => this.userService.fetchCurrentUser()),
+        // On 201 the cookie is set; hydrate the profile before landing. A 401
+        // here would be a hydration hiccup right after registration, never a
+        // session lapse — must not trigger Story 1.4's app-layer redirect.
+        switchMap(() => this.userService.fetchCurrentUser(true)),
         finalize(() => this.submitting.set(false)),
       )
       .subscribe({
