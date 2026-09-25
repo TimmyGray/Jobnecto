@@ -61,6 +61,17 @@ When a user request requires specific workflows, code generation, or role-playin
 - **Sprint Management & Scrum**: If the user needs sprint planning or sprint status checking (acting as a Scrum Master), you must call `@[/bmad-sprint-planning]` or `@[/bmad-sprint-status]`.
 - **UX Design**: For UX patterns and design specifications, call the `@[/bmad-agent-ux-designer]` skill.
 - **Testing & QA**: For test architecture, design, and QA guidance, call the `@[/bmad-tea]` skill.
+- **Fallback when BMad is not installed** (e.g. cloud sessions — `_bmad/` and `.agents/` are gitignored): use the committed Jobnecto equivalents in `.claude/skills/`:
+
+  | Need | BMad skill | Jobnecto skill |
+  |------|-----------|----------------|
+  | Brainstorming / ideation | `bmad-brainstorming` | `jobnecto-brainstorm` |
+  | PRD, requirements, epics, correct course | `bmad-agent-pm` | `jobnecto-pm` |
+  | Sprint planning/status, create story, readiness, retro | `bmad-sprint-planning` / `bmad-sprint-status` | `jobnecto-planner` |
+  | Architecture decisions, contracts, validation | `bmad-agent-architect` | `jobnecto-architect` |
+  | Story execution, quick dev | `bmad-agent-dev` / `bmad-quick-dev` | `jobnecto-dev` |
+  | Test design/generation, coverage, code review | `bmad-tea` / `bmad-code-review` | `jobnecto-qa` |
+
 - **Archon**: Before starting a task, assess its complexity and whether Archon's capabilities are relevant. Consider: Does the task span multiple files or require CI validation? Would worktree isolation protect master from in-progress work? Would live DB/schema context improve accuracy? Would parallel sub-agents speed up analysis? If the answer to any of these is yes, prefer `@[/jobnecto-archon]` over direct implementation.
 
 ### Namespace conventions

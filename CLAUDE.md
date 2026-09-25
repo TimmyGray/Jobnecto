@@ -30,6 +30,8 @@ All custom skills and agents for this project are located in the **[`.agents/ski
 
 Before using any custom skill, refer to its `SKILL.md` file in the `.agents/skills/` directory.
 
+**Committed BMad-style role skills** live in **[`.claude/skills/`](.claude/skills/)** (unlike `.agents/`, this folder is tracked in git, so they are available in every environment): `jobnecto-brainstorm`, `jobnecto-pm`, `jobnecto-planner`, `jobnecto-architect`, `jobnecto-dev`, `jobnecto-qa`. See the routing table in `AGENTS.md` → *Agent Routing Instructions*.
+
 ## Quick Start
 
 1. Read `AGENTS.md` completely before starting any work.
