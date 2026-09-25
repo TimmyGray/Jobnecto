@@ -84,6 +84,21 @@ describe('authRedirectInterceptor', () => {
     httpMock.verify();
   });
 
+  it('uses the URL captured when the request was issued, not whatever router.url is when the error arrives (navigation-race regression guard)', () => {
+    const urlSpy = vi.spyOn(router, 'url', 'get');
+    urlSpy.mockReturnValueOnce('/resumes'); // read once, synchronously, when the request is issued
+    urlSpy.mockReturnValue('/vacancies'); // an unrelated navigation completes before the error arrives
+    const navSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    http.get('/resumes').subscribe({ error: () => undefined });
+    httpMock
+      .expectOne(`${env.apiBaseUrl}/resumes`)
+      .flush({ title: 'Unauthorized', status: 401 }, { status: 401, statusText: 'Unauthorized' });
+
+    expect(navSpy).toHaveBeenCalledWith(['/sign-in'], { queryParams: { returnUrl: '/resumes' } });
+    httpMock.verify();
+  });
+
   it('does not re-navigate (or clobber returnUrl) on a 401 while already on /sign-in — guards the concurrent-401 race', () => {
     vi.spyOn(router, 'url', 'get').mockReturnValue('/sign-in');
     const navSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);

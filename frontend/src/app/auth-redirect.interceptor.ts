@@ -20,18 +20,23 @@ import { UserService } from '@entities/user';
 export const authRedirectInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const userService = inject(UserService);
+  // Captured before the request goes out, not inside `catchError`: by the
+  // time an async response/error arrives, an unrelated navigation already in
+  // flight (e.g. the user clicked a link right as a stale request from the
+  // previous page finally 401s) could have already moved `router.url` on —
+  // recomputing it at catch-time would attribute `returnUrl` to the wrong
+  // route. This is the route that actually issued the failing request.
+  const attemptedUrl = router.url;
 
   return next(req).pipe(
     catchError((error: unknown) => {
       const status = error instanceof HttpErrorResponse ? error.status : (error as ProblemDetails)?.status;
       // Also skip when already on/heading to `/sign-in`: without this, a
       // second concurrent 401 (or any 401 while genuinely on that page)
-      // would recompute `returnUrl` from `router.url` *after* the first
-      // redirect already landed there, clobbering the real destination with
-      // `returnUrl=/sign-in`.
-      if (status === 401 && !req.context.get(SKIP_AUTH_REDIRECT) && !router.url.startsWith('/sign-in')) {
+      // would clobber the real destination with `returnUrl=/sign-in`.
+      if (status === 401 && !req.context.get(SKIP_AUTH_REDIRECT) && !attemptedUrl.startsWith('/sign-in')) {
         userService.invalidate();
-        void router.navigate(['/sign-in'], { queryParams: { returnUrl: router.url } });
+        void router.navigate(['/sign-in'], { queryParams: { returnUrl: attemptedUrl } });
       }
       return throwError(() => error);
     }),

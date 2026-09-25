@@ -226,7 +226,15 @@ Four lenses (adversarial, edge-case hunter, verification gap, acceptance) run in
 - [Review][Defer] `authGuard`/`authRedirectInterceptor`'s in-flight observables aren't explicitly torn down on a superseded navigation beyond what Angular's router does automatically; no `takeUntil(destroyed)` convention exists anywhere in this codebase yet. Pre-existing gap, not introduced by this story. Logged in `deferred-work.md`.
 - [Review][Dismiss] Acceptance lens noted the story's Tasks/Subtasks checkboxes were still unchecked in the `.md` at the time it read the diff — not a code finding; checkboxes are ticked as the final step of this dev session, after all lenses had already read the file.
 
+**PR #90 CI `LLM PR review` bot (2026-09-25):**
+
+- [x] [Review][Patch] `authRedirectInterceptor` read `router.url` inside `catchError` (at error-arrival time), not at request-issue time — if an unrelated navigation completed while the failing request was still in flight, `returnUrl` would be attributed to the new route instead of the one that actually issued the request. `frontend/src/app/auth-redirect.interceptor.ts` — fixed by capturing `router.url` synchronously before `next(req)` is called. Regression test added (mocks `router.url` to change between request-issue and error-arrival).
+- [Review][Dismiss] Duplicate of the already-deferred "duplicate concurrent `restoreSession()` calls" finding above — the bot independently confirmed the same latent-not-reachable-today assessment already recorded in `deferred-work.md`. No new action.
+- [Review][Dismiss] Duplicate of the already-deferred "`authGuard` fast path trusts stale signal" finding above — same conclusion (UX flash, not a security hole), already recorded.
+- [Review][Dismiss] `ForbiddenStateComponent` pushes recovery-navigation to its consumer (subscribe to `recover`, decide where to go) — this is the same pattern `NotFoundStateComponent`/`ErrorStateComponent` already use; not a defect, and documenting a "shared usage guide" for a component family with no consumer yet is premature per this story's own scope note (no page wires any of these in yet).
+
 ## Change Log
 
 - 2026-09-25: Story created (ready-for-dev).
 - 2026-09-25: Implemented (Tasks 1-6), self-reviewed (4 parallel lenses), fixed 5 real defects (one deliberate architectural deviation from the task plan, documented and left as-is; three lower-severity findings deferred). 149/149 frontend tests passing, coverage gate clean. Status → review.
+- 2026-09-25: PR #90 opened. CI's `LLM PR review` bot raised 4 findings; 1 was new and real (returnUrl race captured at error-time instead of request-time) and fixed with a regression test; 2 were duplicates of already-deferred self-review findings (dismissed, no new action); 1 was a non-issue matching an existing component-family pattern (dismissed).
