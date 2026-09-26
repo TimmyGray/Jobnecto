@@ -23,4 +23,17 @@ describe('ComingSoonStubPage', () => {
     expect(text).toContain('Coming soon');
     expect(text).toContain('Resumes is on its way');
   });
+
+  it('falls back to a generic title when route data omits it', () => {
+    TestBed.configureTestingModule({
+      providers: [{ provide: ActivatedRoute, useValue: { snapshot: { data: {} } } }],
+    });
+
+    const fixture = TestBed.createComponent(ComingSoonStubPage);
+    fixture.detectChanges();
+    const text: string = fixture.nativeElement.textContent;
+
+    expect(text).not.toContain('undefined');
+    expect(fixture.nativeElement.querySelectorAll('h1')[0].textContent).toContain('Coming soon');
+  });
 });

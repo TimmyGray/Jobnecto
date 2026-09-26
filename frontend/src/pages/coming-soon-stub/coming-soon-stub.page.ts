@@ -25,5 +25,6 @@ import { EmptyStateComponent, PageHeaderComponent } from '@shared/ui';
   `,
 })
 export class ComingSoonStubPage {
-  protected readonly title = inject(ActivatedRoute).snapshot.data['title'] as string;
+  protected readonly title =
+    (inject(ActivatedRoute).snapshot.data['title'] as string | undefined) ?? 'Coming soon';
 }

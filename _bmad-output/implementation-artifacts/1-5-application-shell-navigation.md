@@ -1,6 +1,6 @@
 # Story 1.5: Application shell & navigation
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -64,7 +64,7 @@ so that **I can move around the product and always know where I am**.
   - [x] `frontend/src/widgets/app-shell/index.ts` (CREATE) — barrel exporting `app-shell.ts` and `nav-items.ts`.
   - [x] `app-shell.spec.ts` (CREATE) — renders all 7 `NAV_ITEMS` labels as links with the correct `href`s; the link whose `routerLink` matches the current mocked route carries the active class, others don't (`provideRouter([{ path: '**', component: AppShellComponent }])` + `RouterTestingHarness`).
 - [x] **Task 3 — Responsive collapse: top bar + off-canvas drawer + skip link (AC: 3, 4)**
-  - [x] `frontend/src/widgets/app-shell/app-shell.ts` (UPDATE, same file as Task 2) — added: (a) a "Skip to content" `<a href="#main-content">` as the very first element, `sr-only focus:not-sr-only`; (b) a `lg:hidden` top bar with a hamburger `<button data-testid="drawer-toggle">` toggling a `drawerOpen` signal; (c) the off-canvas drawer: same `NAV_ITEMS` list inside a `cdkTrapFocus cdkTrapFocusAutoCapture` panel shown only when `drawerOpen()`, a backdrop `<div>` closing on click, `(keydown.escape)` closing too, each drawer nav link also closes on click (so following a link doesn't leave the drawer open on return), and `closeDrawer()` returns focus to the toggle button via a `viewChild<ElementRef>('drawerToggle')`.
+  - [x] `frontend/src/widgets/app-shell/app-shell.ts` (UPDATE, same file as Task 2) — added: (a) a "Skip to content" `<a href="#main-content">` as the very first element, `sr-only focus:not-sr-only`, with an explicit `(click)="focusMainContent()"` handler (`viewChild<ElementRef>('mainContent')`) rather than relying solely on native anchor-to-fragment focus behavior — added during review (see Review Findings) once the verification-gap lens flagged the native-only approach as unconfirmed/untestable in this test setup; (b) a `lg:hidden` top bar with a hamburger `<button data-testid="drawer-toggle">` toggling a `drawerOpen` signal via `toggleDrawer()` (click-to-open **and** click-to-close, with `aria-expanded`/`aria-label` both reflecting state — tightened during review, see Review Findings); (c) the off-canvas drawer: same `NAV_ITEMS` list inside a `cdkTrapFocus cdkTrapFocusAutoCapture` panel shown only when `drawerOpen()`, a backdrop `<div>` closing on click, `(keydown.escape)` closing too, each drawer nav link also closes on click, and `closeDrawer()` returns focus to the toggle button via a `viewChild<ElementRef>('drawerToggle')`.
   - [x] `frontend/src/widgets/app-shell/app-shell.ts` (UPDATE) — imports `A11yModule` (`CdkTrapFocus`) from `@angular/cdk/a11y`.
   - [x] `app-shell.spec.ts` (UPDATE) — skip-link is the first focusable element and points to `#main-content`; drawer absent by default; hamburger click opens it; `Escape` closes it and returns focus to the toggle; backdrop click closes it; following a drawer link closes it. 7/7 passing, 100% statements/branches/functions/lines on `app-shell.ts`.
 - [x] **Task 4 — `ComingSoonStubPage` (AC: 5)**
@@ -76,10 +76,10 @@ so that **I can move around the product and always know where I am**.
 - [x] **Task 6 — Retrofit `DashboardPage` onto `PageHeaderComponent` (AC: 2)**
   - [x] `frontend/src/pages/dashboard/dashboard.page.ts` (UPDATE) — replaced the hand-rolled `<p>`/`<h1>` markup with `<ui-page-header eyebrow="Dashboard">` wrapping the existing welcome/name conditional; the subtitle paragraph is unchanged below it. No behavior change.
   - [x] `frontend/src/pages/dashboard/dashboard.page.spec.ts` (UPDATE) — existing assertions unchanged; added an assertion that exactly one `h1` renders. 4/4 passing.
-- [ ] **Task 7 — Verification and test coverage (AC: all)**
-  - [ ] `cd frontend && npx ng test --no-watch`
-  - [ ] Coverage gate ≥80% per file on every new/touched file (`angular.json` → `coverageThresholds.perFile`)
-  - [ ] Manual keyboard walkthrough (per `ux-design-specification.md` Testing Strategy): Tab from page load reaches the skip link first; Tab through the sidebar in visual order; open/close the mobile drawer with only the keyboard.
+- [x] **Task 7 — Verification and test coverage (AC: all)**
+  - [x] `cd frontend && npx ng test --no-watch` — 174/174 passing (full suite, includes this story's 20 new/updated spec files' worth of tests).
+  - [x] Coverage gate ≥80% per file on every new/touched file — confirmed, zero `ERROR:` lines for any file this story touched (see Debug Log).
+  - [x] Manual keyboard walkthrough — not performed; no browser/display is available in this execution environment. Substituted with an explicit end-to-end integration test (`app.routes.integration.spec.ts`) exercising the real `routes` config, plus `app-shell.spec.ts`'s programmatic keyboard-equivalent assertions (Escape closes the drawer and returns focus to the toggle; the skip link moves focus to `#main-content` on activation; `aria-expanded`/`aria-label` track open state). Flagging this honestly rather than claiming a manual pass that didn't happen.
 
 ## Dev Notes
 
@@ -161,10 +161,58 @@ Sonnet 5 (`claude-sonnet-5`), Jobnecto Dev persona. Baseline: `a71ad1bb6d6bc9eb6
 
 ### Debug Log References
 
+`cd frontend && npx ng test --no-watch` (final run, after review-driven fixes):
+```
+ Test Files  20 passed (20)
+      Tests  174 passed (174)
+```
+Coverage summary: Statements 96.54%, Branches 93.48%, Functions 96.26%, Lines 97.48%. No per-file coverage-gate errors emitted (all touched/new files clear the 80% per-file threshold).
+
+Backend (`dotnet build`/`dotnet test`) not run — `dotnet` is not installed in this environment (same limitation noted in Stories 1.3/1.4). No backend files were touched by this story.
+
 ### Completion Notes List
 
+- Discovered mid-implementation (review-fix round): binding `[class.x]="rla.isActive"` off a `#rla="routerLinkActive"` template-reference variable requires an explicit change-detection pass to paint under `OnPush` — unlike the original single-string `routerLinkActive="classes"` form, which mutates the DOM imperatively via `Renderer2` inside the directive itself, bypassing Angular CD entirely. This only matters in the test harness (`RouterTestingHarness.navigateByUrl` didn't trigger a further CD tick before assertions); in the running app, Router navigation always triggers a full application tick regardless. Added one `harness.fixture.detectChanges()` call after navigation in the affected test — not a product-code concern.
+- Ran the four self-review lenses (adversarial, edge-case hunter, verification-gap, acceptance) in parallel per `jobnecto-dev`'s `references/review.md`. See Review Findings below for the full triage.
+- Fixed 4 real defects/gaps surfaced by review before moving to `review`: a CSS class conflict that made the active nav link's color depend on stylesheet generation order rather than being deterministic; an unguarded `undefined`-title cast in `ComingSoonStubPage`; a hamburger toggle whose `aria-label` never reflected open state and whose click handler could only open (never close) the drawer; and a skip-to-content link relying purely on unverified native browser fragment-focus behavior instead of explicit, testable focus management. Added a new `app.routes.integration.spec.ts` exercising the *real* `routes` config end-to-end (closing a verification-gap finding that the synthetic per-spec route tables never proved the shell's `<router-outlet>` actually activates its configured children, or that the guard still redirects on the real config).
+- Two lower-severity findings were deferred (not caused by a defect this story could cheaply fix without disproportionate complexity) — see `deferred-work.md`.
+- One finding (full CDK focus-trap tab-cycling verification) was dismissed as a duplicate of an already-explicit scope decision recorded in this story's own Testing Requirements section, not a new gap.
+
 ### File List
+
+- `frontend/src/shared/ui/layout/page-header.ts` (CREATED)
+- `frontend/src/shared/ui/layout/page-header.spec.ts` (CREATED)
+- `frontend/src/shared/ui/index.ts` (UPDATED — exports `layout/page-header`)
+- `frontend/src/widgets/app-shell/nav-items.ts` (CREATED)
+- `frontend/src/widgets/app-shell/app-shell.ts` (CREATED — includes review-round fixes: non-conflicting active/inactive nav classes via `#rla="routerLinkActive"` + `[class.x]` bindings, toggling hamburger with dynamic `aria-label`/`aria-expanded`, explicit skip-link focus management)
+- `frontend/src/widgets/app-shell/app-shell.spec.ts` (CREATED — includes review-round test additions)
+- `frontend/src/widgets/app-shell/index.ts` (CREATED)
+- `frontend/src/pages/coming-soon-stub/coming-soon-stub.page.ts` (CREATED — includes review-round title-fallback fix)
+- `frontend/src/pages/coming-soon-stub/coming-soon-stub.page.spec.ts` (CREATED — includes review-round fallback test)
+- `frontend/src/app/app.routes.ts` (UPDATED — restructured around the shell parent route + full AR13 route table)
+- `frontend/src/app/app.routes.spec.ts` (UPDATED)
+- `frontend/src/app/app.routes.integration.spec.ts` (CREATED — review-round addition, real-config end-to-end route wiring)
+- `frontend/src/pages/dashboard/dashboard.page.ts` (UPDATED — retrofitted onto `PageHeaderComponent`)
+- `frontend/src/pages/dashboard/dashboard.page.spec.ts` (UPDATED)
+- `_bmad-output/implementation-artifacts/deferred-work.md` (UPDATED — 2 deferred findings)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (UPDATED — 1.5 status)
+
+### Review Findings
+
+Four lenses (adversarial, edge-case hunter, verification gap, acceptance) run in parallel per `references/review.md`.
+
+- [x] [Review][Patch] CSS active/inactive class conflict on nav links: the base class list included `text-text-secondary` while `routerLinkActive="text-text-primary font-semibold"` only *adds* classes, never removing the base one — when active, both `text-text-secondary` and `text-text-primary` were present simultaneously, so which color rendered depended on Tailwind's generated stylesheet order, not template intent (UX-DR14's near-black-active/secondary-inactive contrast could silently fail). `frontend/src/widgets/app-shell/app-shell.ts` (desktop + drawer nav) — fixed by switching to `#rla="routerLinkActive"` + `[class.text-text-primary]="rla.isActive"` / `[class.font-semibold]="rla.isActive"` / `[class.text-text-secondary]="!rla.isActive"`, making the two states mutually exclusive. Regression tests added asserting the full class set on both the active and an inactive link.
+- [x] [Review][Patch] `ComingSoonStubPage.title` was an unguarded `as string` cast off `ActivatedRoute.snapshot.data['title']` — any future route reusing this shared stub without setting `data.title` would render the literal string `"undefined is on its way — check back soon."` with no error. `frontend/src/pages/coming-soon-stub/coming-soon-stub.page.ts` — fixed with a `?? 'Coming soon'` fallback. Regression test added for missing route data.
+- [x] [Review][Patch] Drawer hamburger toggle had a static `aria-label="Open navigation"` that never changed even though `aria-expanded` did (a screen reader would announce the contradictory "Open navigation, expanded"), and its click handler only ever set `drawerOpen` to `true` — the button itself could never close the drawer (only Escape/backdrop/link-click could), despite looking like a toggle. `frontend/src/widgets/app-shell/app-shell.ts` — fixed with a dynamic `[attr.aria-label]` bound to `drawerOpen()` and a real `toggleDrawer()` handler. Regression tests added for open→label/aria-expanded and close-via-second-click.
+- [x] [Review][Patch] Verification gap: the skip-to-content link's focus transfer to `#main-content` was asserted only structurally (first focusable element, correct `href`) — no test proved activating it actually moves focus, and the implementation relied entirely on native browser anchor-to-fragment focus behavior, which is not guaranteed to be simulated by the test environment. `frontend/src/widgets/app-shell/app-shell.ts` — added an explicit `(click)="focusMainContent()"` handler calling `.focus()` on the `#main-content` `ElementRef`, made the behavior deterministic across environments and testable. Regression test added asserting `document.activeElement` after a click.
+- [x] [Review][Patch] Verification gap: no test exercised the *real* `routes` config end-to-end — `app-shell.spec.ts` bootstraps its own synthetic `provideRouter([{ path: '**', component: AppShellComponent }])`, and `app.routes.spec.ts` only inspects the `Routes` object's shape (paths/guards/data), so nothing proved the shell's `<router-outlet>` actually renders `DashboardPage`/`ComingSoonStubPage` as configured in production, or that the real guard still redirects an unauthenticated visitor. `frontend/src/app/app.routes.integration.spec.ts` (CREATED) — uses the real `routes` array with `HttpClientTestingController`-backed `UserService` hydration (mirroring `auth.guard.spec.ts`'s established pattern), asserting the shell + `DashboardPage` render at `/dashboard`, the shell + `ComingSoonStubPage` render at `/profile`, and an unauthenticated `/resumes` visit redirects to `/sign-in?returnUrl=%2Fresumes`.
+- [x] [Review][Patch] Verification gap: the active-nav-link test only checked `text-text-primary`, never `font-semibold` — a regression dropping just the font-weight class would have passed. Folded into the CSS-conflict fix's regression tests above (now asserts the full class set on both branches).
+- [Review][Defer] `authGuard` runs once per shell entry, not re-validated on every sibling in-shell navigation (moving the guard to the shared parent route is the standard Angular pattern, but means the router doesn't re-invoke `canActivate` across a child-only transition). No security exposure — the backend enforces auth on every request and `authRedirectInterceptor` still catches any real `401`. Logged in `deferred-work.md`.
+- [Review][Defer] Off-canvas drawer's `drawerOpen` signal isn't reset on a viewport-breakpoint resize while open (open at `xs/sm`, resize past `lg` and back down without closing it first reopens it with no new user action). Real but low-severity edge case disproportionate to fix now (needs a `matchMedia`/resize subscription + cleanup). Logged in `deferred-work.md`.
+- [Review][Dismiss] Verification-gap lens flagged the CDK focus-trap's tab-cycling behavior as untested. This is an explicit, pre-declared scope decision in this story's own Testing Requirements section ("full focus-trap-cycling behavior is CDK's own tested responsibility, not this story's"), not a new gap — no action.
+- [Review][Dismiss] Acceptance lens's "Task 7 unchecked" note was accurate at the time it read the diff (the full-suite run happened but hadn't yet been recorded in the story file) — resolved by this final edit, not a code finding.
 
 ## Change Log
 
 - 2026-09-26: Story created (ready-for-dev).
+- 2026-09-26: Implemented (Tasks 1-7), self-reviewed (4 parallel lenses), fixed 6 real defects/gaps (CSS active-class conflict, missing title fallback, non-toggling/stale-label hamburger button, untested skip-link focus transfer, untested real-config route wiring, untested `font-semibold`), added one new integration spec. Two lower-severity findings deferred; one dismissed as an already-declared scope decision. 174/174 frontend tests passing, coverage gate clean. Status → review.

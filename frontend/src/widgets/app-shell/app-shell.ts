@@ -17,6 +17,7 @@ import { NAV_ITEMS } from './nav-items';
   template: `
     <a
       href="#main-content"
+      (click)="focusMainContent()"
       class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-inverse focus:px-4 focus:py-2 focus:text-text-inverse"
       >Skip to content</a
     >
@@ -29,8 +30,12 @@ import { NAV_ITEMS } from './nav-items';
         @for (item of navItems; track item.path) {
           <a
             [routerLink]="item.path"
-            routerLinkActive="text-text-primary font-semibold"
-            class="rounded-md px-3 py-2 text-md text-text-secondary transition-colors duration-fast hover:bg-canvas"
+            routerLinkActive
+            #rla="routerLinkActive"
+            [class.text-text-primary]="rla.isActive"
+            [class.font-semibold]="rla.isActive"
+            [class.text-text-secondary]="!rla.isActive"
+            class="rounded-md px-3 py-2 text-md transition-colors duration-fast hover:bg-canvas"
             >{{ item.label }}</a
           >
         }
@@ -42,10 +47,10 @@ import { NAV_ITEMS } from './nav-items';
           #drawerToggle
           type="button"
           data-testid="drawer-toggle"
-          aria-label="Open navigation"
+          [attr.aria-label]="drawerOpen() ? 'Close navigation' : 'Open navigation'"
           [attr.aria-expanded]="drawerOpen()"
           class="rounded-md p-2 text-text-primary hover:bg-canvas"
-          (click)="drawerOpen.set(true)"
+          (click)="toggleDrawer()"
         >
           ☰
         </button>
@@ -68,8 +73,12 @@ import { NAV_ITEMS } from './nav-items';
           @for (item of navItems; track item.path) {
             <a
               [routerLink]="item.path"
-              routerLinkActive="text-text-primary font-semibold"
-              class="rounded-md px-3 py-2 text-md text-text-secondary transition-colors duration-fast hover:bg-canvas"
+              routerLinkActive
+              #rla="routerLinkActive"
+              [class.text-text-primary]="rla.isActive"
+              [class.font-semibold]="rla.isActive"
+              [class.text-text-secondary]="!rla.isActive"
+              class="rounded-md px-3 py-2 text-md transition-colors duration-fast hover:bg-canvas"
               (click)="closeDrawer()"
               >{{ item.label }}</a
             >
@@ -77,7 +86,7 @@ import { NAV_ITEMS } from './nav-items';
         </nav>
       }
 
-      <main id="main-content" tabindex="-1" class="mx-auto max-w-[1040px] flex-1 px-4 py-8">
+      <main #mainContent id="main-content" tabindex="-1" class="mx-auto max-w-[1040px] flex-1 px-4 py-8">
         <router-outlet></router-outlet>
       </main>
     </div>
@@ -87,10 +96,21 @@ export class AppShellComponent {
   protected readonly navItems = NAV_ITEMS;
   protected readonly drawerOpen = signal(false);
   private readonly drawerToggle = viewChild<ElementRef<HTMLButtonElement>>('drawerToggle');
+  private readonly mainContent = viewChild<ElementRef<HTMLElement>>('mainContent');
+
+  /** Toggles the off-canvas drawer from the hamburger button. */
+  protected toggleDrawer(): void {
+    this.drawerOpen.update((open) => !open);
+  }
 
   /** Closes the drawer and returns focus to the hamburger toggle that opened it. */
   protected closeDrawer(): void {
     this.drawerOpen.set(false);
     this.drawerToggle()?.nativeElement.focus();
+  }
+
+  /** Moves focus to the main-content landmark (skip-to-content link). */
+  protected focusMainContent(): void {
+    this.mainContent()?.nativeElement.focus();
   }
 }
