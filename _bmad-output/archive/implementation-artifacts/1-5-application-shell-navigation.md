@@ -1,6 +1,6 @@
 # Story 1.5: Application shell & navigation
 
-Status: review
+Status: done
 
 ## Story
 
@@ -216,3 +216,4 @@ Four lenses (adversarial, edge-case hunter, verification gap, acceptance) run in
 
 - 2026-09-26: Story created (ready-for-dev).
 - 2026-09-26: Implemented (Tasks 1-7), self-reviewed (4 parallel lenses), fixed 6 real defects/gaps (CSS active-class conflict, missing title fallback, non-toggling/stale-label hamburger button, untested skip-link focus transfer, untested real-config route wiring, untested `font-semibold`), added one new integration spec. Two lower-severity findings deferred; one dismissed as an already-declared scope decision. 174/174 frontend tests passing, coverage gate clean. Status → review.
+- 2026-09-26: PR #92 opened. CI's `llm-review` bot raised 4 findings; 2 duplicated this story's own already-deferred items (same conclusions independently reached, no new action) and 2 were low-severity with no action needed. Merged (PR #92, commit `ca33bae`). Status → done.
