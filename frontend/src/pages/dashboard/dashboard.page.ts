@@ -1,32 +1,32 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { UserService } from '@entities/user';
+import { PageHeaderComponent } from '@shared/ui';
 
 /**
- * Minimal authenticated landing stub. The full app shell (Story 1.5) and the
- * full dashboard (Story 1.6) are out of scope here — this only confirms the
- * post-registration landing and shows the hydrated profile. [AC7]
+ * Minimal authenticated landing stub. The full dashboard (Story 1.6) is out
+ * of scope here — this only confirms the post-registration landing and
+ * shows the hydrated profile, now rendered inside the app shell (1.5) via
+ * the shared page-structure header. [AC7]
  */
 @Component({
   selector: 'page-dashboard',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [PageHeaderComponent],
   template: `
-    <main class="mx-auto max-w-3xl px-4 py-12">
-      <p class="mb-2 font-mono text-xs uppercase tracking-wide text-text-muted">Dashboard</p>
-      <h1 class="mb-4 text-xl font-semibold text-text-primary">
-        @if (profile(); as user) {
-          Welcome, <span class="font-serif italic text-brand-accent">{{ user.loginName }}</span>
-        } @else {
-          Welcome
-        }
-      </h1>
+    <ui-page-header eyebrow="Dashboard">
       @if (profile(); as user) {
-        <p class="text-md text-text-secondary">
-          You're signed in as {{ user.email }}.
-        </p>
+        Welcome, <span class="font-serif italic text-brand-accent">{{ user.loginName }}</span>
       } @else {
-        <p class="text-md text-text-secondary">Your dashboard is being prepared.</p>
+        Welcome
       }
-    </main>
+    </ui-page-header>
+    @if (profile(); as user) {
+      <p class="text-md text-text-secondary">
+        You're signed in as {{ user.email }}.
+      </p>
+    } @else {
+      <p class="text-md text-text-secondary">Your dashboard is being prepared.</p>
+    }
   `,
 })
 export class DashboardPage {
