@@ -39,4 +39,10 @@ describe('DashboardPage', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     expect(fixture.componentInstance.profile).toBe(profile);
   });
+
+  it('renders exactly one h1 via the shared PageHeaderComponent', () => {
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('h1')).toHaveLength(1);
+  });
 });
