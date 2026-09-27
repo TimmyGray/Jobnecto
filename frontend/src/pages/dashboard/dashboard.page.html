@@ -1,0 +1,53 @@
+<ui-page-header
+  eyebrow="Welcome back"
+  subtitle="Here's the state of your career toolkit today."
+>
+  @if (greetingName(); as name) {
+    Hello, <span class="font-serif italic text-brand-accent">{{ name }}</span
+    >.
+  } @else {
+    Hello.
+  }
+
+  <div primaryAction class="flex shrink-0 items-center gap-3">
+    <a
+      routerLink="/educations"
+      class="inline-flex items-center rounded-md border border-border-default bg-surface px-4 py-2 text-md font-medium text-text-primary transition-colors duration-standard hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-focus"
+      >Add education</a
+    >
+    <a
+      routerLink="/resumes"
+      class="inline-flex items-center rounded-md bg-action-primary px-4 py-2 text-md font-medium text-text-inverse transition-colors duration-standard hover:bg-action-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-focus"
+      >New resume</a
+    >
+  </div>
+</ui-page-header>
+
+<widget-resource-counts
+  [completenessPercent]="completenessPercent()"
+  [profileLoading]="profileLoading()"
+  [profileFailed]="profileFailed()"
+  [resumeCount]="resumeCount()"
+  [resumesLoading]="resumesLoading()"
+  [resumesFailed]="resumesFailed()"
+  [educationCount]="educationCount()"
+  [educationsLoading]="educationsLoading()"
+  [educationsFailed]="educationsFailed()"
+  (retryEducations)="retryEducations()"
+/>
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <div class="lg:col-span-2">
+    <widget-profile-completeness
+      [profile]="profile()"
+      [failed]="profileFailed()"
+      (retry)="retryProfile()"
+    />
+  </div>
+  <widget-recent-resumes
+    [resumes]="resumes()"
+    [loading]="resumesLoading()"
+    [failed]="resumesFailed()"
+    (retry)="retryResumes()"
+  />
+</div>

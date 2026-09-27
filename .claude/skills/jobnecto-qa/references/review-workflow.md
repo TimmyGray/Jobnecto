@@ -12,7 +12,12 @@ Write the diff to a temp file. Also note the story or plan that motivated it (th
 
 ## 2. Parallel lenses (subagents, all launched in one turn, then wait)
 
-Each lens gets **only** its instructions, the diff path, and the repo root.
+Each lens gets **only** its instructions, the diff path, and the repo root. Every brief **must** also carry these two rules verbatim:
+
+- **"Do not modify any file in the repository. You are read-only.** If you need to mutate code to test something (e.g. checking whether a test would catch a change), copy the file to your own scratch directory and work on the copy — never the working tree." Without this, a lens verifying a test's strength will reasonably edit the real source, and if it dies before restoring the file, it leaves a live mutation behind with a green suite — the exact defect class this review exists to catch.
+- **"Return your findings as your final message."** Anything left only in the transcript or a scratch file is lost once the agent goes idle.
+
+If a lens returns nothing, don't silently substitute your own pass for it. Check for artifacts it may have left (a staged diff, backup copies) to tell "never ran" from "ran and failed to report," state which happened, and record that the lens did not complete.
 
 1. **Correctness** — "Does the code do what it intends? Trace each changed function's inputs to its outputs. Report wrong results, unhandled errors, null/empty handling, and wrong status codes versus `_bmad-output/planning-artifacts/architecture/authorization-contract-matrix.md`."
 2. **Regression** — "What existing behavior can this break? Follow the callers of every changed public member, shared component, DTO, EF model, route, or config key. Report the concrete break, with the caller."

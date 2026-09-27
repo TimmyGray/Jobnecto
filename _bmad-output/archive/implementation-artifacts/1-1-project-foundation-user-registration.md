@@ -238,7 +238,7 @@ _Blueprint placeholders (no code yet — materialized in later stories):_
 **Repo docs:**
 - `docs/FRONTEND_IMPLEMENTATION_GUIDE.md` (UPDATED — rewritten Angular-authoritative, Task 10)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (UPDATED — story 1-1 → review)
-- `_bmad-output/implementation-artifacts/1-1-project-foundation-user-registration.md` (UPDATED — checkboxes, Dev Agent Record, File List, Change Log, Status)
+- `_bmad-output/archive/implementation-artifacts/1-1-project-foundation-user-registration.md` (UPDATED — checkboxes, Dev Agent Record, File List, Change Log, Status)
 
 ### Change Log
 

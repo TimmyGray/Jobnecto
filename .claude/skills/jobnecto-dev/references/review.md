@@ -16,6 +16,13 @@ Read it yourself. Judge the diff, not the implementer's summary.
 
 Spawn each lens as a subagent **in the same turn** and wait for all of them before reading any result. Give each one only: its lens instructions (below), the diff file path, and the repo root. Don't paste in the diff text or your own opinion.
 
+Every lens brief **must** carry these two rules verbatim — a lens that omits them can corrupt the tree or waste its whole pass:
+
+- **"Do not modify any file in the repository. You are read-only.** If you need to mutate code to test something (e.g. checking whether a test would catch a change), copy the file to your own scratch directory and work on the copy — never the working tree." A reviewer asked only to *report* will still reasonably edit source to verify a claim. If it dies mid-cycle it leaves a mutation behind with a green suite, which is the exact defect class the review exists to catch.
+- **"Return your findings as your final message."** Findings written only to the transcript, a scratch file, or an intermediate turn are lost when the agent goes idle.
+
+If a lens returns nothing, do **not** silently substitute your own pass for it. Check whether it left artifacts (a staged diff, backup copies) to distinguish "never ran" from "ran and failed to report", say which in the write-up, and record in the story that the lens did not complete.
+
 | Lens | Gets | Instructions |
 |---|---|---|
 | **Adversarial** | diff path | "Assume this diff has at least three real defects. Find them. Check correctness, error paths, concurrency, null handling, security (auth, ownership, injection, secret leakage), and Clean Architecture boundary violations. For each: file:line, what goes wrong, and a concrete input or state that triggers it." |
