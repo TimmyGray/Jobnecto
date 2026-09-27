@@ -1,5 +1,51 @@
 # Deferred Work
 
+## Deferred from: PR review (RV) of 1-6-orientation-dashboard (2026-09-27)
+
+> jobnecto-qa mandatory PR review. Correctness and test-coverage lenses ran as subagents;
+> architecture & quality was run directly after its subagent hit an account-wide session limit
+> before reporting. No blocking findings — all six were low severity. Two were patched
+> immediately after review (the NaN guard and the two mechanism-blind tests — see the story's
+> `## PR Review` section); the three below remain deferred.
+
+- **A résumé with no `id` links to `/resumes/undefined`.** `ResumeResult.id` is optional in the
+  generated schema; `recent-resumes.ts:58`'s `[routerLink]="['/resumes', resume.id]"` has no
+  guard. The existing regression test (`recent-resumes.spec.ts:126-134`) only proves the `@for`
+  track-key fix doesn't throw on duplicate `undefined` ids — it never asserts the resulting
+  `href`. Revisit once a resume-detail story makes this reachable with real data, or add a test
+  now to lock in the current (linking) behavior as intentional.
+- **`PageCursor` is typed non-nullable against a nullable generated contract.** Forward-looking —
+  nothing in Story 1.6 passes a cursor. `PagedResultOfResumeResult.lastSeenId`/`lastSeenUpdatedAt`
+  are `null | string` in the generated schema; `frontend/src/shared/api/pagination.ts:11-14`
+  types both fields as plain `string`. The first "load more" implementation (Epic 2's 2.2 Browse
+  my résumés, or Epic 3's vacancy board) that threads a previous page's cursor straight through
+  will need a cast, or the type should be loosened first.
+- **`retryProfile()`'s `force` argument is untested and currently unreachable as a live branch.**
+  Verified against the guard: `retryProfile()` only fires from the UI's error state, which
+  requires `profileFailed()` true, which requires `fetchCurrentUser()` to have errored — and
+  `UserService.profile` is only ever set on a successful call. So `profile()` is provably `null`
+  at every call site that exists today, making `loadProfile(true)` behave identically to
+  `loadProfile()`. Not a live bug; revisit if a future change makes `retryProfile()` reachable
+  while a stale profile is still cached.
+
+## Deferred from: code review of 1-6-orientation-dashboard (2026-09-26)
+
+> Single-reviewer pass: the four parallel lens subagents exited without returning findings, so
+> the adversarial load for this story falls to the `jobnecto-qa` PR review. Six findings were
+> patched in the story itself (NG0955 on id-less résumés, the unreachable education retry, the
+> never-resolving profile skeleton, a `totalCount` cast defeating Trap 2, an off-token bar
+> height, and workflow metadata in a test comment). This one is deliberately left.
+
+- **The dashboard's education fetch requests five items but reads only `totalCount`.**
+  `DashboardPage.loadEducations()` calls `educationService.list(FIRST_PAGE_SIZE)` with the same
+  page size as the résumé fetch, purely for symmetry — but unlike the résumé call, whose items
+  feed the "Recent resumes" panel, nothing renders the education items. Today that is a few
+  hundred wasted bytes on one request per dashboard load, which is why it was not worth a
+  special-cased `pageSize: 1`. It becomes the right shape the moment Epic 6 (6.3 "Create &
+  browse education records") adds a recent-education panel, and the wrong shape permanently if
+  that panel never arrives. Revisit when Epic 6 lands: either render the items or drop the page
+  size to 1.
+
 ## Deferred from: code review of 1-5-application-shell-navigation (2026-09-26)
 
 > Surfaced by four parallel self-review lenses (adversarial, edge-case, verification-gap, acceptance). The CSS active/inactive class conflict, the missing route-data title fallback, the stale drawer-toggle `aria-label`/non-toggling click handler, and four verification gaps (skip-link focus transfer, `aria-expanded` assertions, real end-to-end route wiring, `font-semibold` unchecked) were all patched in the story itself. These two are deliberately left for later.

@@ -82,6 +82,9 @@
               "src/shared/api/generated/**",
               "src/shared/config/**",
               "src/entities/user/model.ts",
+              "src/entities/resume/model.ts",
+              "src/entities/education/model.ts",
+              "src/shared/api/pagination.ts",
               "src/**/*.spec.ts"
             ],
             "coverageThresholds": {

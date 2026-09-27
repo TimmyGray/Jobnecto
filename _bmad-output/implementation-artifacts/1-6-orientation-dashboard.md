@@ -1,6 +1,6 @@
 # Story 1.6: Orientation dashboard
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -73,36 +73,36 @@ so that **I know what to do next without instructions**.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — `resume` entity slice (AC: 2, 4, 5)**
-  - [ ] `frontend/src/entities/resume/model.ts` (CREATE) — re-export from the generated schema, exactly as `entities/user/model.ts` does: `export type ResumeResult = components['schemas']['ResumeResult'];` and `export type PagedResumes = components['schemas']['PagedResultOfResumeResult'];`. Do **not** hand-write these shapes — they are already generated.
-  - [ ] `frontend/src/entities/resume/resume.service.ts` (CREATE) — `@Injectable({ providedIn: 'root' })`, `inject(HttpClient)`. One method: `list(pageSize = 20, cursor?: { lastSeenId: string; lastSeenUpdatedAt: string }): Observable<PagedResumes>` issuing `GET /resumes` with `HttpParams`. Keep it generic — cursor support is here for Story 2.2, the dashboard just passes `pageSize: 5`. Hold the last successful page in a private `signal<PagedResumes | null>(null)` exposed read-only, with an `invalidate()` matching `UserService`'s thin-cache convention (AR11 Decision 1.3).
-  - [ ] `frontend/src/entities/resume/index.ts` (CREATE) — barrel re-exporting `./model` and `./resume.service`, mirroring `entities/user/index.ts`.
-- [ ] **Task 2 — `education` entity slice (AC: 2, 4)**
-  - [ ] `frontend/src/entities/education/model.ts` (CREATE) — `EducationResult`, `PagedEducations` (`PagedResultOfEducationResult`) aliased from the generated schema.
-  - [ ] `frontend/src/entities/education/education.service.ts` (CREATE) — same shape as Task 1 against `GET /educations`.
-  - [ ] `frontend/src/entities/education/index.ts` (CREATE) — barrel.
-  - [ ] `frontend/angular.json` (UPDATE) — add `"src/entities/resume/model.ts"` and `"src/entities/education/model.ts"` to `coverageExclude`, directly beside the existing `"src/entities/user/model.ts"` entry. **This is required, not optional** — see Trap 7.
-- [ ] **Task 3 — `ResourceCountsComponent` widget (AC: 4, 6, 9)**
-  - [ ] `frontend/src/widgets/resource-counts/resource-counts.ts` (CREATE) — `OnPush` standalone. Inputs: `resumeCount: number | null`, `educationCount: number | null`, `resumesLoading`, `educationsLoading`, `resumesFailed`, `educationsFailed` (booleans). Four tiles: PROFILE COMPLETE (%), ACTIVE RESUMES, EDUCATION, COVER LETTERS. Mono uppercase eyebrow over a large numeral, per `frontend/design-examples/Populated.png`. A loading tile renders `ui-skeleton`; a failed tile renders a short "unavailable" text (the *panel* owns the retry, not the tile — keeps one retry per source); COVER LETTERS renders `—` with `<span class="sr-only">not available yet</span>`.
-  - [ ] `frontend/src/widgets/resource-counts/index.ts` (CREATE) — barrel.
-- [ ] **Task 4 — `ProfileCompletenessComponent` widget (AC: 7, 9)**
-  - [ ] `frontend/src/widgets/profile-completeness/profile-completeness.ts` (CREATE) — `OnPush` standalone. Input: `profile: UserProfile | null`. A `computed()` derives the six-item checklist `{ label, done, route }[]` and the percentage per the Decision Record. Template: mono eyebrow "ONBOARDING CHECKLIST", an `h2` "Finish your profile", a progress bar with the full `role="progressbar"` ARIA set, then the list. Done items carry a filled glyph **and** `line-through` **and** an `sr-only` "done"; not-done items carry a hollow glyph **and** an `sr-only` "not done" **and** a `routerLink` to `/profile`.
-  - [ ] `frontend/src/widgets/profile-completeness/index.ts` (CREATE) — barrel.
-- [ ] **Task 5 — `RecentResumesComponent` widget (AC: 3, 5, 6, 9)**
-  - [ ] `frontend/src/widgets/recent-resumes/recent-resumes.ts` (CREATE) — `OnPush` standalone. Inputs: `resumes: ResumeResult[] | null`, `loading: boolean`, `failed: boolean`. Output: `retry`. Renders, in priority order: `failed` → `ui-error-state` (`headline="Couldn't load your resumes"`, emitting `retry`); `loading` → `ui-skeleton`; empty → `ui-empty-state` (`headline="No resumes yet"`, guidance + a secondary CTA `routerLink="/resumes"`); otherwise up to five cards, each `routerLink="/resumes/{{ id }}"`, title with a fallback for `null | undefined`, and an `experience · workLocationType` meta line that omits absent parts cleanly (no stray `·`).
-  - [ ] `frontend/src/widgets/recent-resumes/index.ts` (CREATE) — barrel.
-- [ ] **Task 6 — Rewrite `DashboardPage` (AC: 1, 2, 3, 6, 8)**
-  - [ ] `frontend/src/pages/dashboard/dashboard.page.ts` (UPDATE — replaces the 1.1 stub body wholesale) — move the template out to a `.html` file (the sign-in page's convention for non-trivial pages). Own three independent state triples (`data`, `loading`, `error`) as signals, one per source: profile, résumés, educations. Kick the résumé and education loads in the constructor via two **separate** `subscribe()` calls so they are concurrent and independently failable. Expose `retryResumes()` / `retryEducations()` / `retryProfile()`.
-  - [ ] `frontend/src/pages/dashboard/dashboard.page.html` (CREATE) — `ui-page-header` with `eyebrow="Welcome back"`, the `h1` greeting (`Hello, <span class="font-serif italic text-brand-accent">{{ loginName }}</span>.`), subtitle, and a `primaryAction` slot holding the secondary "Add education" + the single near-black primary "New resume". Then the three widgets in the mock's layout: count row full width; checklist and Recent resumes side by side at `lg+`, stacked at `xs/sm`.
-- [ ] **Task 7 — Verification and test coverage (AC: all)**
-  - [ ] `frontend/src/entities/resume/resume.service.spec.ts` (CREATE) — `HttpTestingController` per `entities/user/user.service.spec.ts`: `list()` GETs `/resumes`, sends `pageSize`, sends both cursor params when given and neither when not, sets `withCredentials`, caches the page in the signal, and `invalidate()` clears it.
-  - [ ] `frontend/src/entities/education/education.service.spec.ts` (CREATE) — the same scenarios against `/educations`.
-  - [ ] `frontend/src/widgets/resource-counts/resource-counts.spec.ts` (CREATE) — renders `totalCount` values; `0` renders as `0` and not as an empty/error tile; loading renders a skeleton; failed renders the unavailable text; COVER LETTERS renders `—` plus its `sr-only` label.
-  - [ ] `frontend/src/widgets/profile-completeness/profile-completeness.spec.ts` (CREATE) — 6-of-6 → 100%; 5-of-6 (avatar missing) → **83%** (the reference-mock case); 0-of-6 → 0% with no shaming copy; `null` profile renders the loading branch; the progressbar carries `aria-valuenow` matching the percentage; every not-done item has a `/profile` link; done-ness is exposed as text, not colour only.
-  - [ ] `frontend/src/widgets/recent-resumes/recent-resumes.spec.ts` (CREATE) — error branch renders `ui-error-state` and clicking Retry emits `retry`; loading renders a skeleton; `[]` renders the empty state with a `/resumes` CTA; six résumés render **five** cards; a résumé with `title: null` renders the fallback; a résumé with no `experience`/`workLocationType` renders no stray separator.
-  - [ ] `frontend/src/pages/dashboard/dashboard.page.spec.ts` (UPDATE — the existing stub-page spec must be rewritten; its `{ provide: UserService, useValue: { profile } }` stub no longer satisfies the page) — assert: exactly one `h1`; both list requests are in flight **before either is flushed** (this is the AC 2 concurrency proof — `httpMock.match()` returns two open requests); flushing résumés with a `500` while educations succeed leaves the education content rendered and only the résumé region in error (AC 3); the reverse case; both failing still renders the checklist; Retry on the résumé region issues a second `GET /resumes`; a `null` cached profile triggers `fetchCurrentUser()` and a populated one does not.
-  - [ ] `cd frontend && npx ng test --no-watch` — all green, per-file coverage ≥80% on every new file.
-  - [ ] `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` — untouched by this story, but run once to confirm the tree is clean before handing off.
+- [x] **Task 1 — `resume` entity slice (AC: 2, 4, 5)**
+  - [x] `frontend/src/entities/resume/model.ts` (CREATE) — re-export from the generated schema, exactly as `entities/user/model.ts` does: `export type ResumeResult = components['schemas']['ResumeResult'];` and `export type PagedResumes = components['schemas']['PagedResultOfResumeResult'];`. Do **not** hand-write these shapes — they are already generated.
+  - [x] `frontend/src/entities/resume/resume.service.ts` (CREATE) — `@Injectable({ providedIn: 'root' })`, `inject(HttpClient)`. One method: `list(pageSize = 20, cursor?: { lastSeenId: string; lastSeenUpdatedAt: string }): Observable<PagedResumes>` issuing `GET /resumes` with `HttpParams`. Keep it generic — cursor support is here for Story 2.2, the dashboard just passes `pageSize: 5`. Hold the last successful page in a private `signal<PagedResumes | null>(null)` exposed read-only, with an `invalidate()` matching `UserService`'s thin-cache convention (AR11 Decision 1.3).
+  - [x] `frontend/src/entities/resume/index.ts` (CREATE) — barrel re-exporting `./model` and `./resume.service`, mirroring `entities/user/index.ts`.
+- [x] **Task 2 — `education` entity slice (AC: 2, 4)**
+  - [x] `frontend/src/entities/education/model.ts` (CREATE) — `EducationResult`, `PagedEducations` (`PagedResultOfEducationResult`) aliased from the generated schema.
+  - [x] `frontend/src/entities/education/education.service.ts` (CREATE) — same shape as Task 1 against `GET /educations`.
+  - [x] `frontend/src/entities/education/index.ts` (CREATE) — barrel.
+  - [x] `frontend/angular.json` (UPDATE) — add `"src/entities/resume/model.ts"` and `"src/entities/education/model.ts"` to `coverageExclude`, directly beside the existing `"src/entities/user/model.ts"` entry. **This is required, not optional** — see Trap 7.
+- [x] **Task 3 — `ResourceCountsComponent` widget (AC: 4, 6, 9)**
+  - [x] `frontend/src/widgets/resource-counts/resource-counts.ts` (CREATE) — `OnPush` standalone. Inputs: `resumeCount: number | null`, `educationCount: number | null`, `resumesLoading`, `educationsLoading`, `resumesFailed`, `educationsFailed` (booleans). Four tiles: PROFILE COMPLETE (%), ACTIVE RESUMES, EDUCATION, COVER LETTERS. Mono uppercase eyebrow over a large numeral, per `frontend/design-examples/Populated.png`. A loading tile renders `ui-skeleton`; a failed tile renders a short "unavailable" text (the *panel* owns the retry, not the tile — keeps one retry per source); COVER LETTERS renders `—` with `<span class="sr-only">not available yet</span>`.
+  - [x] `frontend/src/widgets/resource-counts/index.ts` (CREATE) — barrel.
+- [x] **Task 4 — `ProfileCompletenessComponent` widget (AC: 7, 9)**
+  - [x] `frontend/src/widgets/profile-completeness/profile-completeness.ts` (CREATE) — `OnPush` standalone. Input: `profile: UserProfile | null`. A `computed()` derives the six-item checklist `{ label, done, route }[]` and the percentage per the Decision Record. Template: mono eyebrow "ONBOARDING CHECKLIST", an `h2` "Finish your profile", a progress bar with the full `role="progressbar"` ARIA set, then the list. Done items carry a filled glyph **and** `line-through` **and** an `sr-only` "done"; not-done items carry a hollow glyph **and** an `sr-only` "not done" **and** a `routerLink` to `/profile`.
+  - [x] `frontend/src/widgets/profile-completeness/index.ts` (CREATE) — barrel.
+- [x] **Task 5 — `RecentResumesComponent` widget (AC: 3, 5, 6, 9)**
+  - [x] `frontend/src/widgets/recent-resumes/recent-resumes.ts` (CREATE) — `OnPush` standalone. Inputs: `resumes: ResumeResult[] | null`, `loading: boolean`, `failed: boolean`. Output: `retry`. Renders, in priority order: `failed` → `ui-error-state` (`headline="Couldn't load your resumes"`, emitting `retry`); `loading` → `ui-skeleton`; empty → `ui-empty-state` (`headline="No resumes yet"`, guidance + a secondary CTA `routerLink="/resumes"`); otherwise up to five cards, each `routerLink="/resumes/{{ id }}"`, title with a fallback for `null | undefined`, and an `experience · workLocationType` meta line that omits absent parts cleanly (no stray `·`).
+  - [x] `frontend/src/widgets/recent-resumes/index.ts` (CREATE) — barrel.
+- [x] **Task 6 — Rewrite `DashboardPage` (AC: 1, 2, 3, 6, 8)**
+  - [x] `frontend/src/pages/dashboard/dashboard.page.ts` (UPDATE — replaces the 1.1 stub body wholesale) — move the template out to a `.html` file (the sign-in page's convention for non-trivial pages). Own three independent state triples (`data`, `loading`, `error`) as signals, one per source: profile, résumés, educations. Kick the résumé and education loads in the constructor via two **separate** `subscribe()` calls so they are concurrent and independently failable. Expose `retryResumes()` / `retryEducations()` / `retryProfile()`.
+  - [x] `frontend/src/pages/dashboard/dashboard.page.html` (CREATE) — `ui-page-header` with `eyebrow="Welcome back"`, the `h1` greeting (`Hello, <span class="font-serif italic text-brand-accent">{{ loginName }}</span>.`), subtitle, and a `primaryAction` slot holding the secondary "Add education" + the single near-black primary "New resume". Then the three widgets in the mock's layout: count row full width; checklist and Recent resumes side by side at `lg+`, stacked at `xs/sm`.
+- [x] **Task 7 — Verification and test coverage (AC: all)**
+  - [x] `frontend/src/entities/resume/resume.service.spec.ts` (CREATE) — `HttpTestingController` per `entities/user/user.service.spec.ts`: `list()` GETs `/resumes`, sends `pageSize`, sends both cursor params when given and neither when not, sets `withCredentials`, caches the page in the signal, and `invalidate()` clears it.
+  - [x] `frontend/src/entities/education/education.service.spec.ts` (CREATE) — the same scenarios against `/educations`.
+  - [x] `frontend/src/widgets/resource-counts/resource-counts.spec.ts` (CREATE) — renders `totalCount` values; `0` renders as `0` and not as an empty/error tile; loading renders a skeleton; failed renders the unavailable text; COVER LETTERS renders `—` plus its `sr-only` label.
+  - [x] `frontend/src/widgets/profile-completeness/profile-completeness.spec.ts` (CREATE) — 6-of-6 → 100%; 5-of-6 (avatar missing) → **83%** (the reference-mock case); 0-of-6 → 0% with no shaming copy; `null` profile renders the loading branch; the progressbar carries `aria-valuenow` matching the percentage; every not-done item has a `/profile` link; done-ness is exposed as text, not colour only.
+  - [x] `frontend/src/widgets/recent-resumes/recent-resumes.spec.ts` (CREATE) — error branch renders `ui-error-state` and clicking Retry emits `retry`; loading renders a skeleton; `[]` renders the empty state with a `/resumes` CTA; six résumés render **five** cards; a résumé with `title: null` renders the fallback; a résumé with no `experience`/`workLocationType` renders no stray separator.
+  - [x] `frontend/src/pages/dashboard/dashboard.page.spec.ts` (UPDATE — the existing stub-page spec must be rewritten; its `{ provide: UserService, useValue: { profile } }` stub no longer satisfies the page) — assert: exactly one `h1`; both list requests are in flight **before either is flushed** (this is the AC 2 concurrency proof — `httpMock.match()` returns two open requests); flushing résumés with a `500` while educations succeed leaves the education content rendered and only the résumé region in error (AC 3); the reverse case; both failing still renders the checklist; Retry on the résumé region issues a second `GET /resumes`; a `null` cached profile triggers `fetchCurrentUser()` and a populated one does not.
+  - [x] `cd frontend && npx ng test --no-watch` — all green, per-file coverage ≥80% on every new file.
+  - [x] `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` — untouched by this story, but run once to confirm the tree is clean before handing off.
 
 ## Dev Notes
 
@@ -111,7 +111,7 @@ so that **I know what to do next without instructions**.
 - **Feature-sliced placement is not optional** (AR11 / FE Guide §2.2): generic primitives in `shared/ui`, API-bound domain state in `entities/<name>`, composed domain UI in `widgets/<name>`, route-level composition in `pages/<name>`. A widget must not call `HttpClient` directly — it takes inputs and emits outputs; the page owns the fetching.
 - **Signals + services only.** No NgRx, no TanStack Query, no `async` pipe over a shared subject. Follow `UserService`: a private `signal`, an `asReadonly()` view, `computed()` for derived state (AR11 Decision 1.2/1.3).
 - **`ChangeDetectionStrategy.OnPush` on every new component**, matching every existing component in the codebase.
-- **Tokens only** — Tailwind classes mapped to the Career-OS tokens (`bg-bg-surface`, `text-text-primary`, `text-text-secondary`, `text-brand-accent`, `border-border-default`, `bg-action-primary`, …). Never a raw hex or px colour (`shared/config/tokens.ts` header).
+- **Tokens only** — Tailwind classes mapped to the Career-OS tokens (`bg-surface`, `bg-canvas`, `text-text-primary`, `text-text-secondary`, `text-text-muted`, `text-brand-accent`, `border-border-default`, `bg-action-primary`, …). Note the shape: the Tailwind colour key is `surface`/`canvas` but `text-primary`/`border-default`, so the utilities are `bg-surface` yet `text-text-primary` and `border-border-default` (`frontend/tailwind.config.js`). Never a raw hex or px colour (`shared/config/tokens.ts` header).
 - **Reuse, do not rebuild:** `PageHeaderComponent`, `SkeletonComponent`, `EmptyStateComponent`, `ErrorStateComponent` all exist and are exported from `@shared/ui`. This story should add **no** new `shared/ui` primitives.
 
 ### API / Contract Guardrail
@@ -226,12 +226,182 @@ No backend file changes. No new npm dependency: everything needed (`@angular/com
 
 ### Agent Model Used
 
+claude-opus-5[1m] (Jobnecto Developer skill, story mode)
+
+**Baseline revision for the review diff:** `ecc84aa860b39c2647e2f6acff1804fb96d3cc84` (branch `story/1-6-orientation-dashboard`; the branch's first commit carries this story file and the planner's archive/doc fixes, so the review diff is implementation only).
+
 ### Debug Log References
+
+Frontend (`cd frontend && npx ng test --no-watch`), after the two post-review patches:
+
+```
+ Test Files  25 passed (25)
+      Tests  238 passed (238)
+Statements : 97.85%   Branches : 94.74%   Functions : 97.27%   Lines : 98.32%
+```
+
+Per-file coverage gate (`coverageThresholds.perFile`, 80%) passed. Every file this story adds
+reports 100% except `recent-resumes.ts` (100% stmts / 95.83% branches / 100% lines).
+
+Frontend production build (`npx ng build`): `Application bundle generation complete.` —
+`dashboard-page` lazy chunk 14.75 kB raw / 3.70 kB transfer.
+
+Backend (untouched by this story; run for tree health):
+
+```
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Passed!  - Failed: 0, Passed: 626, Skipped: 0, Total: 626
+```
 
 ### Completion Notes List
 
+- **`PageCursor` moved to `shared/api`, not the resume slice.** Task 1 placed it in
+  `entities/resume/model.ts`, but `EducationService` needs the same type, and importing it from
+  `@entities/resume` would make one entity slice depend on a sibling — a feature-sliced-design
+  violation. It now lives in `frontend/src/shared/api/pagination.ts`, the correct home for a
+  cross-cutting AR16 contract that Epics 2, 3, 5 and 6 will all reuse. That added a third
+  pure-type file to `coverageExclude` beyond the two Trap 7 predicted.
+- **Education retry was missing from the story's own design.** Task 3 said a failed tile shows
+  "unavailable" text and lets "the panel below own the retry" — but the education count has no
+  panel below it, so AC 3's "working Retry" had nowhere to live and `retryEducations()` was dead
+  code. The failed education tile now carries its own inline Retry; the profile and résumé tiles
+  deliberately do not, because their panels do.
+- **`profileCompleteness()` is exported as a plain function**, so the page's count tile and the
+  checklist widget derive the percentage from one definition rather than two that could diverge.
+- The `ProfileCompletenessComponent` gained a `failed` input and `retry` output during review
+  (see Review Findings) so a failed profile load shows an error state rather than a skeleton that
+  never resolves.
+
 ### File List
+
+- `frontend/src/entities/resume/model.ts` (CREATED)
+- `frontend/src/entities/resume/resume.service.ts` (CREATED)
+- `frontend/src/entities/resume/resume.service.spec.ts` (CREATED)
+- `frontend/src/entities/resume/index.ts` (CREATED)
+- `frontend/src/entities/education/model.ts` (CREATED)
+- `frontend/src/entities/education/education.service.ts` (CREATED)
+- `frontend/src/entities/education/education.service.spec.ts` (CREATED)
+- `frontend/src/entities/education/index.ts` (CREATED)
+- `frontend/src/shared/api/pagination.ts` (CREATED — shared `PageCursor`, see Completion Notes)
+- `frontend/src/shared/api/index.ts` (UPDATED — export `./pagination`)
+- `frontend/src/widgets/resource-counts/resource-counts.ts` (CREATED)
+- `frontend/src/widgets/resource-counts/resource-counts.spec.ts` (CREATED)
+- `frontend/src/widgets/resource-counts/index.ts` (CREATED)
+- `frontend/src/widgets/profile-completeness/profile-completeness.ts` (CREATED)
+- `frontend/src/widgets/profile-completeness/profile-completeness.spec.ts` (CREATED)
+- `frontend/src/widgets/profile-completeness/index.ts` (CREATED)
+- `frontend/src/widgets/recent-resumes/recent-resumes.ts` (CREATED)
+- `frontend/src/widgets/recent-resumes/recent-resumes.spec.ts` (CREATED)
+- `frontend/src/widgets/recent-resumes/index.ts` (CREATED)
+- `frontend/src/pages/dashboard/dashboard.page.ts` (UPDATED — Story 1.1 stub replaced; template extracted)
+- `frontend/src/pages/dashboard/dashboard.page.html` (CREATED)
+- `frontend/src/pages/dashboard/dashboard.page.spec.ts` (UPDATED — rewritten; the stub-page spec could not cover a fetching page)
+- `frontend/angular.json` (UPDATED — three pure-type files added to `coverageExclude`)
+
+### Review Findings
+
+The parallel four-lens self-review could not be completed: all four lens subagents exited without
+returning findings. Re-spawning was declined in favour of one self-pass plus the mandatory
+`jobnecto-qa` adversarial review at PR time. **This section is a single-reviewer pass over the
+diff, not the usual four independent lenses** — the PR review carries the adversarial load for
+this story.
+
+- [x] [Review][Patch] **`@for (...; track resume.id)` would throw on id-less résumés.**
+  `ResumeResult.id` is optional in the generated schema, so two items without ids produce
+  duplicate track keys and Angular raises NG0955, destroying the whole panel rather than one
+  card. `frontend/src/widgets/recent-resumes/recent-resumes.ts` — changed to
+  `track resume.id ?? $index`, with a regression test rendering two id-less résumés.
+- [x] [Review][Patch] **`retryEducations()` was unreachable, leaving AC 3 unmet for the education
+  source.** Surfaced by an 83.33% function-coverage reading on the page. Fixed by giving the
+  failed education tile its own Retry (see Completion Notes); covered at widget and page level.
+- [x] [Review][Patch] **A failed profile load left the checklist showing a skeleton forever.**
+  `ProfileCompletenessComponent` had no failure branch, so the cold-path error state rendered as
+  permanent loading. Added a `failed` input and `retry` output rendering `ui-error-state`, wired
+  to the page's `retryProfile()`, with tests for the branch and the recovery path.
+- [x] [Review][Patch] **`totalCount` coercion was replaced by a cast during the session**
+  (`page.totalCount as number` in place of `Number(page.totalCount)`) — precisely Trap 2. The
+  conversion is restored and a page test now flushes `totalCount: "12"`. That test is
+  mutation-verified: reintroducing the cast fails it with `expected '12' to be 12`, and fails
+  nothing else.
+- [x] [Review][Patch] **Off-token spacing.** The progress bar used `h-1.5`, which resolves to
+  Tailwind's default 0.375rem rather than a `--space-*` var. Changed to `h-1` (`var(--space-1)`).
+  A sweep of every colour and size utility in the new files against `tailwind.config.js` found no
+  other off-token class (`border-transparent` is a deliberate layout-stability border, not a
+  brand colour).
+- [x] [Review][Patch] **Workflow metadata in source.** A test comment cited a story number;
+  removed. No story, epic, or AC reference remains in any file this story adds.
+- [ ] [Review][Dismiss] **Double-click race on a Retry button.** `loadResumes()` clears
+  `resumesFailed` before issuing the request, swapping the error state for the loading state in
+  the same change-detection pass — the button is gone before a second click can land. The same
+  reasoning covers stale, out-of-order retry responses.
+- [ ] [Review][Dismiss] **`profileCompleteness()` runs twice per render** (once for `items`, once
+  for `percent`). Six field checks over a six-element array; collapsing it into a third computed
+  buys nothing and adds indirection.
+- [ ] [Review][Defer] **The education fetch requests five items but uses only `totalCount`.**
+  Harmless payload waste today, and Epic 6 may want those items for a recent-education panel.
+  Recorded in `deferred-work.md`.
+
+---
+
+## PR Review (jobnecto-qa, RV) — 2026-09-27
+
+Lenses: correctness (subagent), test coverage (subagent), architecture & quality (self-run — the
+architecture subagent hit an account-wide session limit before reporting; its checklist was run
+directly: FSD boundaries, signals-only state, off-token Tailwind, JSDoc, injection surface).
+
+Verification: `dotnet test backend/JobNecto.slnx` → 626 passed, 0 failed. Release build → 0
+warnings, 0 errors. `cd frontend && npx ng test --no-watch` → 237 passed, 0 failed, coverage gate
+green.
+
+- [x] [Review][Patch] **`resumeCount`/`educationCount` render literal "NaN" on a malformed
+  response.** `Number(undefined)` is `NaN`, and `ResourceCountsComponent`'s guard is
+  `resumeCount() === null` — `NaN !== null`, so the tile shows "NaN" instead of "Unavailable".
+  `dashboard.page.ts:123,138`; `resource-counts.ts:46,63`. Fixed by adding `toCount()`
+  (`Number.isFinite(n) ? n : null`) and routing both signal assignments through it. Test added
+  (`dashboard.page.spec.ts` "treats a missing totalCount as unavailable, not NaN") and
+  mutation-verified: reverting to bare `Number(...)` fails exactly that test with
+  `expected NaN to be null`, nothing else.
+- [ ] [Review][Defer] **A résumé with no `id` links to `/resumes/undefined`.** `ResumeResult.id`
+  is optional; the NG0955 regression test proves the `@for` track fix but never asserts the
+  card's `href`. `recent-resumes.ts:58`. Fix: assert intended behavior with a test, or omit the
+  link when `id` is falsy.
+- [ ] [Review][Defer] **`PageCursor` is non-nullable against a nullable generated contract.**
+  Forward-looking only — nothing in this story passes a cursor. The first pagination story to
+  thread `lastSeenId`/`lastSeenUpdatedAt` through will hit a type error. `pagination.ts:11-14`.
+- [x] [Review][Patch] **Two tests asserted a behavior by name, not by mechanism.** The
+  mono-uppercase eyebrow test only checked text content, not the classes; the progress-bar test
+  never read the fill `<div>`'s rendered width, so a hardcoded `100%` fill would have passed every
+  assertion in that test. `resource-counts.spec.ts:60-68` now asserts `font-mono`/`uppercase` on
+  every `<dt>`. `profile-completeness.spec.ts:81-90` now asserts the fill `<div>`'s `style.width`
+  at 83% — deliberately not 100%, after a first draft using a 100%-complete fixture turned out to
+  be tautological against the exact "hardcode the fill to 100%" mutation it was meant to catch and
+  was removed rather than kept as false coverage. Both mutation-verified: stripping the eyebrow
+  classes fails only the eyebrow test; hardcoding the fill width fails only the progress-bar test.
+- [ ] [Review][Defer] **`retryProfile()`'s `force` argument is untested and, given today's
+  wiring, unreachable as a live branch.** Verified: `retryProfile()` only fires from the UI's
+  error state, which requires `profileFailed()` true, which requires `fetchCurrentUser()` to have
+  errored — and `UserService.profile` is only ever set on success. So `profile()` is provably
+  `null` at every call site that exists. Not a live bug; a coverage gap on a currently-dead
+  branch. `dashboard.page.ts:81-83,101-104`.
+- [ ] [Review][Dismiss] **Two private methods lack the JSDoc their sibling has.** `loadResumes()`
+  and `loadEducations()` vs. `loadProfile()`. Cosmetic; not worth a review cycle on its own —
+  bundle with the next touch of this file.
+
+No findings in: FSD layer boundaries, signals-only state (no NgRx/Subject/Store), RxJS
+subscription correctness, Tailwind token discipline, injection surface.
+
+**Verdict: no blocking findings. Approved for merge.** Two of the six findings (the NaN guard and
+the two mechanism-blind tests) were patched post-review at the user's request; the remaining three
+`[Defer]` items are carried to `deferred-work.md` for whoever picks up Epic 2/3/6's pagination or
+a future dashboard touch, and the one `[Dismiss]` stands as-is.
 
 ## Change Log
 
+- 2026-09-26: Implemented Tasks 1-6. Six review findings patched, two dismissed, one deferred.
+  Two deviations from the story as written, both in Completion Notes: `PageCursor` lives in
+  `shared/api` rather than the resume slice (FSD), and the failed education tile owns its own
+  Retry (Task 3 assumed a panel that does not exist). Status -> review.
 - 2026-09-26: Story created (ready-for-dev). ACs carried from `epics.md` §Story 1.6 and sharpened in three places, each recorded above: the parallel-fetch AC now states that profile comes from the hydrated signal with a cold-path fetch (Decision Record); the count AC now specifies `totalCount` over `items.length` and pins the cover-letter tile to a placeholder; the empty-state AC now names the concrete widget and CTA target. AC 4, 5, 8 and 9 were added to make the mock's count row, five-item recency cut, single-primary rule, and a11y floor testable rather than implied.
