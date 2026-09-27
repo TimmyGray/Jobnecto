@@ -1,6 +1,6 @@
 # Story 1.6: Orientation dashboard
 
-Status: review
+Status: done
 
 ## Story
 
@@ -400,6 +400,9 @@ a future dashboard touch, and the one `[Dismiss]` stands as-is.
 
 ## Change Log
 
+- 2026-09-27: Merged to master via PR #94 (`81bd49c`). Post-merge doc updates applied to
+  `demo-mvp-architecture-decisions.md` and `README.md`; story archived per the AGENTS.md
+  archive lifecycle. Status -> done.
 - 2026-09-26: Implemented Tasks 1-6. Six review findings patched, two dismissed, one deferred.
   Two deviations from the story as written, both in Completion Notes: `PageCursor` lives in
   `shared/api` rather than the resume slice (FSD), and the failed education tile owns its own
