@@ -179,15 +179,24 @@ export class TagInputComponent implements ControlValueAccessor {
     this.onChange(next);
   }
 
+  /**
+   * Splits on comma so a paste like "a,b,c" adds three tags, not one literal
+   * "a,b,c" — Enter/comma-typed single-tag entry (the common path) still
+   * works since a lone segment is just an array of one.
+   */
   private tryAddTag(): void {
-    const candidate = this.draft().replace(/,$/, '').trim();
-    if (candidate.length === 0 || candidate.length > MAX_TAG_LENGTH) {
+    const segments = this.draft()
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    if (segments.length === 0 || segments.some((s) => s.length > MAX_TAG_LENGTH)) {
       this.rejectionMessage.set(`Each skill must be 1-${MAX_TAG_LENGTH} characters long.`);
       return;
     }
 
     this.rejectionMessage.set('');
-    const next = [...this.tags(), candidate];
+    const next = [...this.tags(), ...segments];
     this.tags.set(next);
     this.draft.set('');
     this.onChange(next);

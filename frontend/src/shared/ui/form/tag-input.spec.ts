@@ -64,6 +64,28 @@ describe('TagInputComponent', () => {
     expect(captured).toEqual(['Angular']);
   });
 
+  it('splits a pasted comma-separated value into multiple tags', () => {
+    let captured: string[] = [];
+    fixture.componentInstance.registerOnChange((v: string[]) => (captured = v));
+
+    typeAndPressEnter('React, Angular ,Vue');
+
+    expect(captured).toEqual(['React', 'Angular', 'Vue']);
+    expect(textbox.value).toBe('');
+  });
+
+  it('rejects the whole pasted batch and keeps the draft if any segment is too long', () => {
+    let captured: string[] | undefined;
+    fixture.componentInstance.registerOnChange((v: string[]) => (captured = v));
+
+    const pasted = `ok,${'x'.repeat(31)}`;
+    typeAndPressEnter(pasted);
+
+    expect(captured).toBeUndefined();
+    expect(textbox.value).toBe(pasted);
+    expect(fixture.nativeElement.textContent).toContain('30 characters');
+  });
+
   it('rejects an empty (whitespace-only) tag without clearing invalid input state', () => {
     let captured: string[] | undefined;
     fixture.componentInstance.registerOnChange((v: string[]) => (captured = v));
