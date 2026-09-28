@@ -50,6 +50,14 @@ export const routes: Routes = [
         data: { title: 'Resumes' },
       },
       {
+        // Must precede 'resumes/:id' — otherwise the :id param would swallow
+        // the literal segment 'new' (Story 2.1).
+        path: 'resumes/new',
+        loadComponent: () =>
+          import('@pages/resume-create/resume-create.page').then((m) => m.ResumeCreatePage),
+        data: { title: 'Create resume' },
+      },
+      {
         path: 'resumes/:id',
         loadComponent: () =>
           import('@pages/coming-soon-stub/coming-soon-stub.page').then(

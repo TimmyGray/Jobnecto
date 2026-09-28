@@ -1,5 +1,69 @@
 # Deferred Work
 
+## Deferred from: code review of 2-1-create-a-resume (2026-09-28)
+
+> Self-review: four parallel lens subagents (adversarial, edge-case, verification-gap,
+> acceptance) ran against the full diff. Seven real findings were patched immediately in the
+> story (salary submitted as a string instead of a number; `matchControl` unable to match
+> FluentValidation's indexed `Skills[0]` key format, plus the missing `[error]` binding on the
+> skills `TagInput`; a cache-invalidation race between `list()` and `create()`; `TagInputComponent
+.writeValue()` not resetting stale local UI state; a half-filled language row silently dropped
+> instead of blocking submit; and the create request not being cancelled if the user navigates
+> away before it resolves). The items below were judged low severity and left as-is.
+
+- **No dedupe on skills or language rows.** `TagInputComponent.tryAddTag()` has no duplicate
+  check (typing "TypeScript" twice yields `skills: ['TypeScript', 'TypeScript']`), and nothing
+  stops two language rows both set to the same language with different levels.
+  `CreateResumeCommandValidator` has no distinctness rule either, so this isn't rejected
+  server-side — it's just accepted verbatim. Revisit if duplicate skills/languages turn out to
+  cause a real product problem (e.g. confusing display in a future résumé-detail view).
+- **`SelectFieldComponent.writeValue` given a value absent from `options()` fails silently.**
+  In single mode, `writeValue(value)` sets `this.singleValue = value` without checking it's
+  actually one of the rendered `<option>`s. Not reachable via this story's create flow (initial
+  values are always `''`/`[]`), but it's an unguarded boundary in a shared primitive. Revisit
+  when an edit flow (e.g. Story 2.3) reuses this component with a value that might no longer be
+  a valid enum member (a removed/renamed backend enum value on stale data).
+- **Test-coverage gaps that don't correspond to live bugs**, flagged by the verification-gap
+  lens: no router-level test asserting `resumes/new` actually resolves ahead of `resumes/:id`
+  (the ordering is right, just unverified by a test); no test for `clearServerErrors()` clearing
+  a stale `{server: ...}` error on resubmit; `SelectFieldComponent`/`TagInputComponent`'s
+  `required`/`hint` inputs are untested; `resume-form.ts`'s `errors['enum']` message branch is
+  only exercised at the standalone-validator level, not through `errorFor()` on the component.
+  All coverage-only gaps, no behavior at risk — pick up opportunistically alongside a future
+  story that touches these files. (The toast success-tone class gap originally listed here was
+  closed by the PR review below — see that entry's Change Log note.)
+
+## Deferred from: PR review (RV) of 2-1-create-a-resume (2026-09-28)
+
+> Mandatory `bmad-code-review` workflow: Blind Hunter (diff-only), Edge Case Hunter (diff + full
+> repo access), Acceptance Auditor (diff + story) ran as parallel subagents. Nine real findings
+> were patched in the story (the Locations/Languages server-error mapping gap — the same class
+> already fixed once for Skills above, left incomplete; the deeper root cause behind it — a
+> dynamically-added `FormArray` row's manually-set error silently disappearing on the next
+> Angular change-detection pass, needing an explicit `ChangeDetectorRef.markForCheck()`; a toast
+> auto-dismiss timer leak on manual dismiss; an unlabeled empty `SelectField` placeholder; an IME
+> composition Enter being committed as a tag; a dead-code ternary in `buildCommand()`; and a
+> stray unchecked story checkbox). Three findings were dismissed as verified non-issues (the
+> backend `Http.Json.JsonOptions` config not touching runtime serialization; `skills` having no
+> `FormControl`-level validator by design; the test-only JWT secret string matching an existing
+> pattern). The items below are genuinely deferred.
+
+- **`entities/user/model.ts`'s hand-written `SignInCommand`/`SignInResult` types have a standing
+  TODO** (`model.ts:23-32`) to switch to the generated `components['schemas'][...]` aliases once
+  `gen:api` is re-run against a backend with Story 1.2 merged. This story's Task 1 regen (needed
+  for the OpenAPI enum-schema fix) did exactly that as an unavoidable side effect — `schema.ts`
+  now has `SignInCommand`/`SignInResponse`/`POST /api/v1/users/sessions` available, but switching
+  `entities/user` over to them is unrelated to résumé creation and out of this story's scope.
+  Pick up whenever a story next touches `entities/user`.
+- **`TagInputComponent` doesn't split a pasted string with embedded (non-trailing) commas into
+  multiple tags.** Typing/pasting `"a,b,c"` then pressing Enter (without a comma keystroke per
+  segment) adds one raw tag `"a,b,c"` rather than three. `tryAddTag()` only strips a single
+  *trailing* comma. Low value fix, real UX rough edge for paste-heavy skill entry.
+- **A whitespace-only rejected tag leaves invisible spaces in the text box.** The "keep the
+  draft on rejection" behavior (intentional, so the user can fix an overlong tag in place) means
+  a `"   "` entry leaves the box looking non-empty with only the shared error text as a cue —
+  the too-long case is visibly obvious, the whitespace-only case isn't. Minor a11y/clarity nit.
+
 ## Deferred from: PR review (RV) of 1-6-orientation-dashboard (2026-09-27)
 
 > jobnecto-qa mandatory PR review. Correctness and test-coverage lenses ran as subagents;

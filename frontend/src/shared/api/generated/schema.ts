@@ -1295,6 +1295,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SignInCommand"];
+                    "text/json": components["schemas"]["SignInCommand"];
+                    "application/*+json": components["schemas"]["SignInCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["SignInResponse"];
+                        "application/json": components["schemas"]["SignInResponse"];
+                        "text/json": components["schemas"]["SignInResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me": {
         parameters: {
             query?: never;
@@ -1896,7 +1972,8 @@ export interface components {
             about?: null | string;
             avatar?: null | string;
         };
-        Currency: number;
+        /** @enum {unknown} */
+        Currency: "USD" | "EUR" | "GBP" | "CAD" | "AUD" | "CHF" | "JPY" | "CNY" | "INR" | "RUB" | "UAH" | "PLN" | "SEK" | "NOK" | "DKK" | "NZD" | "MXN" | "BRL";
         EducationResult: {
             /** Format: uuid */
             id?: string;
@@ -1958,13 +2035,16 @@ export interface components {
         };
         /** Format: binary */
         IFormFile: string;
-        Language: number;
-        LanguageLevel: number;
+        /** @enum {unknown} */
+        Language: "English" | "Russian" | "Ukrainian" | "Polish" | "Spanish" | "French" | "German" | "Italian" | "Portuguese" | "Dutch" | "Turkish" | "Arabic" | "Chinese" | "Japanese" | "Korean" | "Hindi" | "Bengali" | "Punjabi" | "Marathi" | "Tamil" | "Telugu" | "Indonesian" | "Thai" | "Vietnamese" | "Swahili" | "Persian" | "Romanian" | "Bulgarian" | "Serbian" | "Czech" | "Hungarian" | "Finnish" | "Swedish" | "Norwegian" | "Danish" | "Malay" | "Tagalog" | "Urdu";
+        /** @enum {unknown} */
+        LanguageLevel: "Beginner" | "Intermediate" | "Advanced" | "Native";
         LanguageProficiency: {
             language: components["schemas"]["Language"];
             level: components["schemas"]["LanguageLevel"];
         };
-        Location: number;
+        /** @enum {unknown} */
+        Location: "Ukraine" | "Poland" | "Germany" | "France" | "Italy" | "Spain" | "Portugal" | "Greece" | "Netherlands" | "Belgium" | "Switzerland" | "Austria" | "Hungary" | "CzechRepublic" | "Slovakia" | "Croatia" | "Slovenia" | "BosniaAndHerzegovina" | "Macedonia" | "Montenegro" | "Serbia" | "Kosovo" | "Albania" | "Moldova" | "Georgia" | "Armenia" | "Azerbaijan" | "Turkmenistan" | "Uzbekistan" | "Tajikistan" | "Kyrgyzstan" | "Kazakhstan" | "Mongolia" | "China" | "Japan" | "Korea" | "Vietnam" | "Thailand" | "Malaysia" | "Indonesia" | "Philippines" | "Singapore" | "HongKong" | "Macau" | "Taiwan" | "India" | "Pakistan" | "Bangladesh" | "SriLanka" | "Nepal" | "Bhutan" | "Maldives" | "Iran" | "Iraq" | "Syria" | "Lebanon" | "Jordan" | "Israel" | "Palestine" | "Egypt" | "Sudan" | "Ethiopia" | "Somalia" | "Kenya" | "Uganda" | "Tanzania" | "Nigeria" | "Ghana" | "Benin" | "BurkinaFaso" | "CapeVerde" | "CentralAfricanRepublic" | "Chad" | "Comoros" | "Congo" | "DemocraticRepublicOfTheCongo" | "EquatorialGuinea" | "Gabon" | "Guinea" | "GuineaBissau" | "IvoryCoast" | "Liberia" | "Madagascar" | "Malawi" | "Mali" | "Mauritania" | "Mauritius" | "Morocco" | "Mozambique" | "Namibia" | "Niger" | "Oman" | "Qatar" | "SaudiArabia" | "Senegal" | "Seychelles" | "SierraLeone" | "Turkey" | "UnitedArabEmirates" | "Yemen" | "Zimbabwe" | "Canada" | "UnitedStates" | "Mexico" | "Brazil" | "Argentina" | "Colombia" | "Peru" | "Chile" | "Ecuador" | "Bolivia" | "Paraguay" | "Uruguay" | "Venezuela" | "Cuba" | "DominicanRepublic" | "Honduras" | "Guatemala" | "ElSalvador" | "Nicaragua" | "CostaRica" | "Panama";
         PagedResultOfCoverLetterListItem: {
             items: components["schemas"]["CoverLetterListItem"][];
             /** Format: int32 */
@@ -2070,6 +2150,21 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        SignInCommand: {
+            identifier?: string;
+            password?: string;
+        };
+        SignInResponse: {
+            /** Format: uuid */
+            id?: string;
+            loginName?: string;
+            email?: string;
+            phone?: null | string;
+            location?: null | string;
+            about?: null | string;
+            avatar?: null | string;
+            accessToken?: string;
+        };
         UpdateCoverLetterCommand: {
             content?: string;
         };
@@ -2153,8 +2248,10 @@ export interface components {
             /** Format: double */
             max?: null | number | string;
         };
-        WorkLocationType: number;
-        WorkTimeType: number;
+        /** @enum {unknown} */
+        WorkLocationType: "OnSite" | "Remote" | "Hybrid";
+        /** @enum {unknown} */
+        WorkTimeType: "FullTime" | "PartTime" | "Freelance" | "Contract" | "Internship" | "Volunteer" | "Other";
     };
     responses: never;
     parameters: never;

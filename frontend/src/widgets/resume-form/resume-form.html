@@ -1,0 +1,114 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+  <p aria-live="polite" class="min-h-[1rem] text-sm text-status-danger">
+    {{ generalError() }}
+  </p>
+
+  <ui-text-field
+    label="Title"
+    name="title"
+    [formControl]="form.controls.title"
+    [maxLength]="500"
+    [error]="errorFor('title')"
+  />
+
+  <ui-tag-input
+    label="Skills"
+    name="skills"
+    [formControl]="form.controls.skills"
+    [error]="errorFor('skills')"
+  />
+
+  <ui-select-field
+    label="Work-location preference"
+    name="workLocationType"
+    [options]="workLocationTypeOptions"
+    [formControl]="form.controls.workLocationType"
+    [error]="errorFor('worklocationtype')"
+  />
+
+  <ui-select-field
+    label="Experience"
+    name="experience"
+    [options]="experienceOptions"
+    [formControl]="form.controls.experience"
+    [error]="errorFor('experience')"
+  />
+
+  <div class="flex gap-4">
+    <ui-text-field
+      label="Salary"
+      name="salary"
+      type="number"
+      [formControl]="form.controls.salary"
+      [error]="errorFor('salary')"
+    />
+
+    <ui-select-field
+      label="Currency"
+      name="currency"
+      [options]="currencyOptions"
+      [formControl]="form.controls.currency"
+      [error]="errorFor('currency')"
+    />
+  </div>
+
+  <ui-select-field
+    label="Preferred locations"
+    name="locations"
+    [options]="locationOptions"
+    [multiple]="true"
+    [formControl]="form.controls.locations"
+    [error]="errorFor('locations')"
+  />
+
+  <fieldset class="flex flex-col gap-2">
+    <legend class="text-sm font-medium text-text-primary">Languages</legend>
+
+    @for (row of form.controls.languages.controls; track $index; let i = $index) {
+      <div class="flex flex-col gap-1">
+        <div class="flex items-end gap-2">
+          <ui-select-field
+            label="Language"
+            [options]="languageOptions"
+            [formControl]="row.controls.language"
+            [error]="languageRowErrorFor(row, 'language')"
+          />
+          <ui-select-field
+            label="Level"
+            [options]="languageLevelOptions"
+            [formControl]="row.controls.level"
+            [error]="languageRowErrorFor(row, 'level')"
+          />
+          <button
+            type="button"
+            (click)="removeLanguageRow(i)"
+            class="rounded-md border border-border-default px-3 py-2 text-sm text-text-secondary hover:bg-canvas"
+          >
+            Remove
+          </button>
+        </div>
+        @if (row.errors?.['incomplete'] && row.dirty) {
+          <p aria-live="polite" class="text-sm text-status-danger">
+            Pick both a language and a level, or remove this row.
+          </p>
+        }
+      </div>
+    }
+
+    <button
+      type="button"
+      (click)="addLanguageRow()"
+      class="self-start rounded-md border border-border-default px-3 py-2 text-sm text-text-secondary hover:bg-canvas"
+    >
+      Add language
+    </button>
+  </fieldset>
+
+  <button
+    type="submit"
+    [disabled]="!canSubmit"
+    class="self-start rounded-md bg-action-primary px-4 py-2 text-md font-medium text-text-inverse transition-colors duration-standard hover:bg-action-primaryHover disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    Create resume
+  </button>
+</form>

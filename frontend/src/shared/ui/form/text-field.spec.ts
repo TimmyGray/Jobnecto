@@ -41,8 +41,8 @@ describe('TextFieldComponent', () => {
   });
 
   it('emits changes through registerOnChange when the input fires', () => {
-    let captured = '';
-    fixture.componentInstance.registerOnChange((v: string) => (captured = v));
+    let captured: string | number | null = '';
+    fixture.componentInstance.registerOnChange((v) => (captured = v));
     input.value = 'typed';
     input.dispatchEvent(new Event('input'));
     expect(captured).toBe('typed');
@@ -59,6 +59,59 @@ describe('TextFieldComponent', () => {
     fixture.componentInstance.setDisabledState(true);
     fixture.detectChanges();
     expect(input.disabled).toBe(true);
+  });
+
+  describe('type="number"', () => {
+    let numberFixture: ComponentFixture<TextFieldComponent>;
+    let numberInput: HTMLInputElement;
+
+    beforeEach(() => {
+      numberFixture = TestBed.createComponent(TextFieldComponent);
+      numberFixture.componentRef.setInput('label', 'Salary');
+      numberFixture.componentRef.setInput('type', 'number');
+      numberFixture.detectChanges();
+      numberInput = numberFixture.nativeElement.querySelector('input');
+    });
+
+    it('emits a real number through registerOnChange, not the raw string', () => {
+      let captured: unknown;
+      numberFixture.componentInstance.registerOnChange((v) => (captured = v));
+      numberInput.value = '120000';
+      numberInput.dispatchEvent(new Event('input'));
+      expect(captured).toBe(120000);
+      expect(typeof captured).toBe('number');
+    });
+
+    it('emits null (not an empty string) when the field is cleared', () => {
+      let captured: unknown = 'unset';
+      numberFixture.componentInstance.registerOnChange((v) => (captured = v));
+      numberInput.value = '';
+      numberInput.dispatchEvent(new Event('input'));
+      expect(captured).toBeNull();
+    });
+
+    it('a syntactically out-of-range value ("1e400") is sanitized to empty by the native input itself, not this component', () => {
+      // Verified: HTML5 number-input value-sanitization (matched by jsdom)
+      // resets .value to '' for non-finite-parsing input before any (input)
+      // handler runs — Number(next) here can never see NaN/Infinity from a
+      // real <input type="number">. This locks that contract in.
+      numberInput.value = '1e400';
+      expect(numberInput.value).toBe('');
+    });
+
+    it('writeValue(0) displays 0, not an empty field', () => {
+      numberFixture.componentInstance.writeValue(0);
+      numberFixture.detectChanges();
+      expect(numberInput.value).toBe('0');
+    });
+
+    it('a text-type field still emits the raw string (unchanged behavior)', () => {
+      let captured: unknown;
+      fixture.componentInstance.registerOnChange((v) => (captured = v));
+      input.value = 'hello';
+      input.dispatchEvent(new Event('input'));
+      expect(captured).toBe('hello');
+    });
   });
 
   it('marks aria-invalid and points aria-describedby at the error region when in error', () => {

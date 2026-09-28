@@ -106,19 +106,19 @@ export class TextFieldComponent implements ControlValueAccessor {
     return null;
   });
 
-  protected value = '';
+  protected value: string | number = '';
   protected disabled = false;
   private readonly cdr = inject(ChangeDetectorRef);
 
-  private onChange: (value: string) => void = () => {};
+  private onChange: (value: string | number | null) => void = () => {};
   private onTouched: () => void = () => {};
 
-  writeValue(value: string | null): void {
+  writeValue(value: string | number | null): void {
     this.value = value ?? '';
     this.cdr.markForCheck();
   }
 
-  registerOnChange(fn: (value: string) => void): void {
+  registerOnChange(fn: (value: string | number | null) => void): void {
     this.onChange = fn;
   }
 
@@ -134,7 +134,14 @@ export class TextFieldComponent implements ControlValueAccessor {
   protected onInput(event: Event): void {
     const next = (event.target as HTMLInputElement).value;
     this.value = next;
-    this.onChange(next);
+    if (this.type() === 'number') {
+      // The native input's own `.value` is always a string, even for
+      // type="number" — coerce here so a numeric FormControl (e.g. salary)
+      // actually receives a number, not a string masquerading as one.
+      this.onChange(next === '' ? null : Number(next));
+    } else {
+      this.onChange(next);
+    }
   }
 
   protected onBlur(): void {
