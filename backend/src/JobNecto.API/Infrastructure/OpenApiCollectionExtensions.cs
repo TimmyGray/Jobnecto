@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.OpenApi;
+using System.Text.Json.Serialization;
 
 namespace JobNecto.API.Infrastructure;
 
@@ -13,6 +15,13 @@ public static class OpenApiCollectionExtensions
     /// </summary>
     public static IServiceCollection AddApiOpenApi(this IServiceCollection services)
     {
+        // AddOpenApi()'s schema generator reads Microsoft.AspNetCore.Http.Json.JsonOptions,
+        // not the Mvc.JsonOptions that AddControllers().AddJsonOptions(...) configures in
+        // Program.cs. Without this, enum schemas render as opaque integers even though
+        // controllers actually serialize them as strings via the MVC-side converter.
+        services.Configure<JsonOptions>(o =>
+            o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
         services.AddOpenApi("v1", options =>
         {
             options.AddDocumentTransformer((document, _, _) =>

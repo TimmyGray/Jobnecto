@@ -1,0 +1,7 @@
+<ui-page-header eyebrow="Résumés" subtitle="Add material for generation to ground a cover letter in.">
+  Create a <span class="font-serif italic text-brand-accent">résumé</span>
+</ui-page-header>
+
+<widget-resume-form [submitting]="submitting()" (create)="onCreate($event)" />
+
+<ui-toast-host />

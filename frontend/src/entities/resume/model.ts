@@ -14,3 +14,6 @@ export type ResumeResult = components['schemas']['ResumeResult'];
 
 /** `200 OK` body returned by `GET /api/v1/resumes` (cursor-paginated). */
 export type PagedResumes = components['schemas']['PagedResultOfResumeResult'];
+
+/** Request body for `POST /api/v1/resumes`. */
+export type CreateResumeCommand = components['schemas']['CreateResumeCommand'];
