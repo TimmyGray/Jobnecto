@@ -1,6 +1,8 @@
 # Story 2.4: Soft-delete a résumé
 
-Status: review
+Status: done
+
+<!-- Merged 2026-10-21 via PR #101 (0b50e46). Archived per AGENTS.md lifecycle. -->
 
 ## Story
 
