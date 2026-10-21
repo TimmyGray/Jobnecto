@@ -4,6 +4,7 @@ import { EducationService } from '@entities/education';
 import { ResumeService } from '@entities/resume';
 import type { ResumeResult } from '@entities/resume';
 import { UserService } from '@entities/user';
+import { toCount } from '@shared/api';
 import { PageHeaderComponent } from '@shared/ui';
 import { ProfileCompletenessComponent, profileCompleteness } from '@widgets/profile-completeness';
 import { RecentResumesComponent } from '@widgets/recent-resumes';
@@ -11,19 +12,6 @@ import { ResourceCountsComponent } from '@widgets/resource-counts';
 
 /** Enough résumés for the "recent" panel; the counts come from `totalCount`. */
 const FIRST_PAGE_SIZE = 5;
-
-/**
- * Coerces a paged response's `totalCount` (typed `number | string`) to a real
- * number, or `null` if the body is missing or malformed. A bare `Number(...)`
- * would let a missing field become `NaN`, which fails every `=== null` guard
- * and renders as the literal text "NaN".
- * @param totalCount The raw `totalCount` field from a paged response.
- * @returns A finite number, or null when the value can't be coerced to one.
- */
-function toCount(totalCount: unknown): number | null {
-  const value = Number(totalCount);
-  return Number.isFinite(value) ? value : null;
-}
 
 /**
  * `/dashboard` — the orientation view a user lands on after authenticating.

@@ -1,0 +1,72 @@
+<ui-page-header eyebrow="Résumés" [subtitle]="subtitle()">
+  Your <span class="font-serif italic text-brand-accent">résumés</span>
+
+  @if (status() === 'ready' && items().length > 0) {
+    <a
+      primaryAction
+      data-testid="header-create"
+      routerLink="/resumes/new"
+      class="inline-flex shrink-0 items-center rounded-md bg-action-primary px-4 py-2 text-md font-medium text-text-inverse transition-colors duration-standard hover:bg-action-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-focus"
+      >Create résumé</a
+    >
+  }
+</ui-page-header>
+
+<p class="sr-only" aria-live="polite" data-testid="list-announcement">{{ announcement() }}</p>
+
+@switch (status()) {
+  @case ('loading') {
+    <div
+      data-testid="resume-skeleton"
+      class="grid gap-3 md:grid-cols-2"
+      role="status"
+      aria-label="Loading résumés"
+    >
+      @for (card of skeletonCards; track card) {
+        <div class="rounded-md border border-border-default bg-surface p-4">
+          <ui-skeleton [lines]="4" height="16px" />
+        </div>
+      }
+    </div>
+  }
+  @case ('error') {
+    <ui-error-state
+      headline="Couldn't load your résumés"
+      detail="Check your connection and try again."
+      (retry)="retry()"
+    />
+  }
+  @case ('ready') {
+    @if (items().length === 0) {
+      <ui-empty-state
+        icon="📄"
+        headline="No resumes yet"
+        guidance="Your résumé is what generation grounds a cover letter in."
+      >
+        <a
+          routerLink="/resumes/new"
+          class="inline-flex items-center rounded-md bg-action-primary px-4 py-2 text-md font-medium text-text-inverse transition-colors duration-standard hover:bg-action-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-focus"
+          >Create first resume</a
+        >
+      </ui-empty-state>
+    } @else {
+      <widget-resume-list [items]="items()" />
+
+      @if (loadMoreFailed()) {
+        <p
+          data-testid="load-more-error"
+          role="alert"
+          class="mt-6 text-center text-md text-text-secondary"
+        >
+          Couldn't load more résumés.
+        </p>
+      }
+      <ui-cursor-pagination
+        [hasNext]="cursor() !== null"
+        [loading]="loadingMore()"
+        [label]="loadMoreFailed() ? 'Try again' : 'Load more'"
+        (loadMore)="loadMore()"
+      />
+    }
+  }
+}

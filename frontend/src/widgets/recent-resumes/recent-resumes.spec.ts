@@ -67,13 +67,13 @@ describe('RecentResumesComponent', () => {
     expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
   });
 
-  it('renders an empty state with a link to /resumes when there are none', () => {
+  it('renders an empty state with a link to /resumes/new when there are none', () => {
     const fixture = render({ resumes: [] });
     const text: string = fixture.nativeElement.textContent;
 
     expect(text).toContain('No resumes yet');
 
-    const cta = fixture.nativeElement.querySelector('a[href="/resumes"]');
+    const cta = fixture.nativeElement.querySelector('a[href="/resumes/new"]');
     expect(cta).not.toBeNull();
   });
 
