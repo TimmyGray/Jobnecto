@@ -37,9 +37,9 @@ describe('ResumeCreatePage', () => {
     fixture.detectChanges();
   });
 
-  it('renders the résumé form and a toast host', () => {
+  it('renders the résumé form (toasts are hosted once by the app shell)', () => {
     expect(fixture.nativeElement.querySelector('widget-resume-form')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('ui-toast-host')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('ui-toast-host')).toBeNull();
   });
 
   it('on 201: shows a success toast, resets the form, and leaves the list cache invalidated', () => {

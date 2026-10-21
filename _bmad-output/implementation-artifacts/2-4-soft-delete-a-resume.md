@@ -1,6 +1,6 @@
 # Story 2.4: Soft-delete a résumé
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -45,29 +45,29 @@ so that **I can remove outdated material**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 0: Test-first baseline
-  - [ ] Confirm green before changing anything: `cd frontend && npx ng test --no-watch` (expect 541 passing at the merge of PR #99).
+- [x] Task 0: Test-first baseline
+  - [x] Confirm green before changing anything: `cd frontend && npx ng test --no-watch` (expect 541 passing at the merge of PR #99).
 
-- [ ] Task 1: Entity service `delete` (AC: 2, 3)
-  - [ ] `frontend/src/entities/resume/resume.service.ts` (UPDATE) — `delete(id: string): Observable<void>`: `DELETE /resumes/{encodeURIComponent(id)}`; `tap(() => this.invalidate())` on success only. XML-doc it. (`delete` is a legal method name on a class.)
-  - [ ] `frontend/src/entities/resume/resume.service.spec.ts` (UPDATE) — sends `DELETE` with credentials to the encoded URL; emits on `204` and invalidates `page()`; a stale in-flight `list()` cannot resurrect the cache; `403`/`404`/`500` propagate the normalized `ProblemDetails` and leave the cache alone.
+- [x] Task 1: Entity service `delete` (AC: 2, 3)
+  - [x] `frontend/src/entities/resume/resume.service.ts` (UPDATE) — `delete(id: string): Observable<void>`: `DELETE /resumes/{encodeURIComponent(id)}`; `tap(() => this.invalidate())` on success only. XML-doc it. (`delete` is a legal method name on a class.)
+  - [x] `frontend/src/entities/resume/resume.service.spec.ts` (UPDATE) — sends `DELETE` with credentials to the encoded URL; emits on `204` and invalidates `page()`; a stale in-flight `list()` cannot resurrect the cache; `403`/`404`/`500` propagate the normalized `ProblemDetails` and leave the cache alone.
 
-- [ ] Task 2: `ConfirmDialogComponent` (AC: 1, 4)
-  - [ ] `frontend/src/shared/ui/dialog/confirm-dialog.ts` (CREATE) — `ui-confirm-dialog`, `OnPush`, template over a native `<dialog>`. Inputs: `open = input(false)`, `headline = input.required<string>()`, `message = input('')`, `confirmLabel = input('Confirm')`, `cancelLabel = input('Cancel')`, `destructive = input(false)`, `busy = input(false)`. Outputs: `confirm`, `cancel`. An `effect` calls `showModal()` / `close()` when `open` changes (guard `dialog.open` to avoid `InvalidStateError`; tolerate jsdom lacking `showModal` — see Testing Requirements). Native `cancel` event (`Esc`) and a backdrop click both emit `cancel` (not when `busy`). Default focus on the Cancel button (`autofocus`). Confirm uses `aria-disabled` while `busy` and shows "Deleting…"-style busy text via `confirmLabel` swap; it ignores clicks while busy. `aria-labelledby` → the headline, `aria-describedby` → the message. On close, return focus to the element that opened it (capture `document.activeElement` on open). Destructive variant uses `status.danger` token classes, tokens only.
-  - [ ] `frontend/src/shared/ui/dialog/confirm-dialog.spec.ts` (CREATE) — opens/closes with the input; Cancel has initial focus; confirm and cancel emit exactly once; `Esc` (native `cancel` event) and backdrop click emit `cancel`; neither emits while `busy`; confirm is `aria-disabled` (not `disabled`) and relabelled while busy and does not emit; destructive adds the danger token class; labelled/described by headline/message; focus returns to the opener on close.
-  - [ ] `frontend/src/shared/ui/index.ts` (UPDATE) — export it.
+- [x] Task 2: `ConfirmDialogComponent` (AC: 1, 4)
+  - [x] `frontend/src/shared/ui/dialog/confirm-dialog.ts` (CREATE) — `ui-confirm-dialog`, `OnPush`, template over a native `<dialog>`. Inputs: `open = input(false)`, `headline = input.required<string>()`, `message = input('')`, `confirmLabel = input('Confirm')`, `cancelLabel = input('Cancel')`, `destructive = input(false)`, `busy = input(false)`. Outputs: `confirm`, `cancel`. An `effect` calls `showModal()` / `close()` when `open` changes (guard `dialog.open` to avoid `InvalidStateError`; tolerate jsdom lacking `showModal` — see Testing Requirements). Native `cancel` event (`Esc`) and a backdrop click both emit `cancel` (not when `busy`). Default focus on the Cancel button (`autofocus`). Confirm uses `aria-disabled` while `busy` and shows "Deleting…"-style busy text via `confirmLabel` swap; it ignores clicks while busy. `aria-labelledby` → the headline, `aria-describedby` → the message. On close, return focus to the element that opened it (capture `document.activeElement` on open). Destructive variant uses `status.danger` token classes, tokens only.
+  - [x] `frontend/src/shared/ui/dialog/confirm-dialog.spec.ts` (CREATE) — opens/closes with the input; Cancel has initial focus; confirm and cancel emit exactly once; `Esc` (native `cancel` event) and backdrop click emit `cancel`; neither emits while `busy`; confirm is `aria-disabled` (not `disabled`) and relabelled while busy and does not emit; destructive adds the danger token class; labelled/described by headline/message; focus returns to the opener on close.
+  - [x] `frontend/src/shared/ui/index.ts` (UPDATE) — export it.
 
-- [ ] Task 3: Delete on `ResumeDetailPage` (AC: 1, 2, 3, 4)
-  - [ ] `frontend/src/pages/resume-detail/resume-detail.page.ts` + `.html` (UPDATE) — a secondary destructive-outline **Delete résumé** button (not the page's one primary action) shown only when `ready`; opens the dialog (`confirmingDelete` signal). `onConfirmDelete()`: if `deleting()` return; `deleting.set(true)`; `resumeService.delete(id)` with `takeUntilDestroyed`; success → close dialog, toast "Résumé deleted", `router.navigate(['/resumes'])`; error → close dialog, then `403` → forbidden state, `404` → not-found state (no error toast), other → error toast and stay. `load()` also cancels an in-flight delete and resets `deleting`/`confirmingDelete` (route id changed). Pass `[submitting]="saving() || deleting()"` to the form so Save is disabled meanwhile; `onUpdate` returns early while `deleting()`.
-  - [ ] `frontend/src/pages/resume-detail/resume-detail.page.spec.ts` (UPDATE) — Delete button hidden while loading and in every non-ready state; click opens the dialog and sends **no** request; Cancel/`Esc`/backdrop send nothing and return focus to the Delete button; confirm sends `DELETE /resumes/{id}`, shows busy state, ignores a second confirm; `204` → toast, list cache invalidated, navigates to `/resumes`; `403` → forbidden state with no data leaked; `404` → not-found state, no error toast; `500` → error toast, dialog closed, form and edits intact, can retry; Save is disabled while deleting and a submit during delete sends no PATCH; route-id change mid-delete cancels it and the response cannot affect the new résumé; destroying the page cancels an in-flight delete.
+- [x] Task 3: Delete on `ResumeDetailPage` (AC: 1, 2, 3, 4)
+  - [x] `frontend/src/pages/resume-detail/resume-detail.page.ts` + `.html` (UPDATE) — a secondary destructive-outline **Delete résumé** button (not the page's one primary action) shown only when `ready`; opens the dialog (`confirmingDelete` signal). `onConfirmDelete()`: if `deleting()` return; `deleting.set(true)`; `resumeService.delete(id)` with `takeUntilDestroyed`; success → close dialog, toast "Résumé deleted", `router.navigate(['/resumes'])`; error → close dialog, then `403` → forbidden state, `404` → not-found state (no error toast), other → error toast and stay. `load()` also cancels an in-flight delete and resets `deleting`/`confirmingDelete` (route id changed). Pass `[submitting]="saving() || deleting()"` to the form so Save is disabled meanwhile; `onUpdate` returns early while `deleting()`.
+  - [x] `frontend/src/pages/resume-detail/resume-detail.page.spec.ts` (UPDATE) — Delete button hidden while loading and in every non-ready state; click opens the dialog and sends **no** request; Cancel/`Esc`/backdrop send nothing and return focus to the Delete button; confirm sends `DELETE /resumes/{id}`, shows busy state, ignores a second confirm; `204` → toast, list cache invalidated, navigates to `/resumes`; `403` → forbidden state with no data leaked; `404` → not-found state, no error toast; `500` → error toast, dialog closed, form and edits intact, can retry; Save is disabled while deleting and a submit during delete sends no PATCH; route-id change mid-delete cancels it and the response cannot affect the new résumé; destroying the page cancels an in-flight delete.
 
-- [ ] Task 4: Tracker and docs hygiene
-  - [ ] `deferred-work.md` (UPDATE) — add `## Deferred from: Story 2.4` for anything surfaced and left (at minimum: delete from the list, undo, and the cover-letter coupling check for Epics 4/5).
+- [x] Task 4: Tracker and docs hygiene
+  - [x] `deferred-work.md` (UPDATE) — add `## Deferred from: Story 2.4` for anything surfaced and left (at minimum: delete from the list, undo, and the cover-letter coupling check for Epics 4/5).
 
-- [ ] Task 5: Verification and test coverage (AC: all)
-  - [ ] `cd frontend && npx ng test --no-watch` — all passing, per-file ≥80% coverage gate clean; `npx ng build --configuration production` clean.
-  - [ ] `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` and `dotnet test backend/JobNecto.slnx` (backend unaffected — confirm and record counts).
-  - [ ] Live check against the API + PostgreSQL if available: confirm the DELETE/GET/PATCH/list behavior in the Decision Record still holds. Record whether a browser smoke was possible.
+- [x] Task 5: Verification and test coverage (AC: all)
+  - [x] `cd frontend && npx ng test --no-watch` — all passing, per-file ≥80% coverage gate clean; `npx ng build --configuration production` clean.
+  - [x] `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` and `dotnet test backend/JobNecto.slnx` (backend unaffected — confirm and record counts).
+  - [x] Live check against the API + PostgreSQL: done (API half). Browser smoke NOT possible — the Claude-in-Chrome extension was not connected. See Completion Notes.
 
 ## Dev Notes
 
@@ -130,14 +130,58 @@ Should users be able to delete a résumé from the list (card menu) and/or undo 
 
 ### Agent Model Used
 
+Sonnet 5.5 (claude-sonnet-5-5)
+
 ### Debug Log References
+
+- Baseline revision for the review diff: `a22352fc71e998514bd3b158a496ac4d2426d968` (branch `story/2-4-soft-delete-a-resume`, master after PR #100).
+- Backend (unchanged): `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` → `Build succeeded. 0 Warning(s) 0 Error(s)`; `dotnet test backend/JobNecto.slnx --configuration Release --no-build` → `Passed! - Failed: 0, Passed: 632, Skipped: 0, Total: 632`.
+- Frontend baseline before changes: 541 passing. Final: `cd frontend && npx ng test --no-watch` → `Test Files 40 passed (40)`, `Tests 607 passed (607)`, coverage `97.38% stmts / 95.37% branches / 98.26% lines`, no per-file threshold failures.
+- `cd frontend && npx ng build --configuration production` → `Application bundle generation complete.` (no errors/warnings).
+- **Live API checks** (API on `localhost:5000`, throwaway Postgres 16 with all migrations, 25 seeded résumés): own `DELETE` → 204; the same id again → 404; `GET` and `PATCH` of the deleted id → 404; the id is gone from the list and `totalCount` drops 25 → 24; another user's id → **403** and that résumé stays intact (200); non-GUID → 404. Confirms every contract claim in the Decision Record.
 
 ### Completion Notes List
 
+- Built to the plan: `ResumeService.delete()` (id percent-encoded, invalidates the list cache on success only), a reusable `ui-confirm-dialog` over the native `<dialog>`, and a Delete action + confirmation on `ResumeDetailPage`.
+- Behaviour changes found in review and kept: `deleting` stays true after the 204 until navigation lands (so Save/Delete can't hit a deleted résumé while the lazy list route loads); the toast is raised only once navigation has landed; navigation uses `replaceUrl` so Back can't return to the dead URL; if navigation doesn't happen the page shows not-found (the résumé is gone).
+- **Toast host moved to the app shell.** The local `<ui-toast-host />` on the create and detail pages is removed (and none was added to the list page): one persistent host in `AppShellComponent` means the `aria-live` region already exists when a toast is raised on one page and the user lands on another — a region inserted together with its content is typically not announced. This is the promotion Story 2.1's Decision Record said to do once a second page needed a toast.
+- Dialog hardening from review: handles the native `close` event (Chrome closes a dialog on a second Escape even if the first was prevented, which would desync `open`); a press that starts inside and is released on the backdrop no longer cancels; `returnFocusTo` input (Safari/Firefox-on-macOS don't focus a button on click); a removed opener doesn't break focus restoration; a polite busy announcement.
+- Focus is moved to the recovery state when a save or delete answers 403/404 (the control that had focus is removed). Delete button reads `aria-disabled` while a save is in flight.
+- **Not verified in a real browser:** native `<dialog>` behaviour (focus trap, Escape, backdrop, top-layer) and the visual result. The Claude-in-Chrome extension was not connected; jsdom specs use a stub that mimics `showModal`/`close` (including focus moving in and out). The API half of the live check was done.
+- Backend coverage gate (`scripts/check_coverage.py`) not re-run: no backend file changed and `python` is not on this shell's PATH.
+
 ### File List
+
+- `_bmad-output/implementation-artifacts/2-4-soft-delete-a-resume.md` (UPDATED — status, ticks, Dev Agent Record)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (UPDATED — 2-4 status)
+- `_bmad-output/implementation-artifacts/deferred-work.md` (UPDATED — Story 2.4 deferrals)
+- `frontend/src/entities/resume/resume.service.ts` (UPDATED — `delete`)
+- `frontend/src/entities/resume/resume.service.spec.ts` (UPDATED — delete specs)
+- `frontend/src/shared/ui/dialog/confirm-dialog.ts` (CREATED)
+- `frontend/src/shared/ui/dialog/confirm-dialog.spec.ts` (CREATED)
+- `frontend/src/shared/ui/index.ts` (UPDATED — export)
+- `frontend/src/pages/resume-detail/resume-detail.page.ts` (UPDATED — delete flow, recovery focus)
+- `frontend/src/pages/resume-detail/resume-detail.page.html` (UPDATED — Delete section, dialog)
+- `frontend/src/pages/resume-detail/resume-detail.page.spec.ts` (UPDATED — delete specs)
+- `frontend/src/pages/resume-create/resume-create.page.{ts,html,spec.ts}` (UPDATED — local toast host removed)
+- `frontend/src/pages/resume-list/resume-list.page.spec.ts` (UPDATED — none; host was added then moved to the shell)
+- `frontend/src/widgets/app-shell/app-shell.ts` (UPDATED — hosts the toasts)
+- `frontend/src/widgets/app-shell/app-shell.spec.ts` (UPDATED — single persistent toast host)
 
 ### Review Findings
 
+Three parallel lenses (adversarial + edge-case, verification-gap with mutation testing on a scratch copy, acceptance); each finding was checked against the code before triage.
+
+- [x] [Patch] **high/medium** — `deleting` was reset on the 204 while navigation was pending, re-enabling Save/Delete for a deleted résumé (a PATCH/DELETE would 404 and flip the page to not-found after "deleted" had toasted).
+- [x] [Patch] **medium** — The success toast mounted into an `aria-live` region created at the same moment (likely silent) and its 4s timer started before the lazy list route loaded: persistent host in the shell; toast raised after navigation lands.
+- [x] [Patch] **medium** — Focus fell to `<body>` after a 403/404 on delete (and save) because the focused control was removed; and focus-return failed where a click doesn't focus a button (Safari): recovery-region focus + `returnFocusTo`.
+- [x] [Patch] **medium** — Chrome's second Escape could close the native dialog behind the host's back (desync, un-reopenable): `(close)` handled.
+- [x] [Patch] **low-medium** — Back returned to the deleted résumé's URL (`replaceUrl`); a drag from inside the dialog released on the backdrop cancelled it; Delete looked enabled while a save blocked it; busy state wasn't announced.
+- [x] [Patch] **medium (tests)** — Mutation survivors killed: "Save disabled while deleting" was vacuous (form was pristine), the page-level re-entry guard was masked by the dialog's, toast tone, the id deleted after a route change, focus restoration ordering (stub now moves focus like a browser), Esc/backdrop focus return, edits intact after a 500; a vacuous "does not reopen" test removed.
+- [x] [Dismiss] `navigate` with `void` — now handled via `.then`. Redundant defensive resets in `handleDeleteError`/`load()` — harmless.
+- [ ] [Defer] Scroll lock behind the modal; list-page focus after a successful delete (the shell has no post-navigation focus management); the `backdrop:` colour uses an arbitrary Tailwind value over the `--color-text-primary` token (no overlay token exists); two copies of the `<dialog>` jsdom stub in specs. Logged to `deferred-work.md`.
+
 ## Change Log
 
-- 2026-10-21: Story created (ready-for-dev). Baseline: merge of PR #99 (`d6d13ea`). Delete contract verified against a live API + PostgreSQL.
+- 2026-10-21: Story created (ready-for-dev). Baseline: merge of PR #100.
+- 2026-10-21: Implemented all tasks test-first; delete contract verified against a live API + PostgreSQL; self-reviewed with three lenses (6 patch groups, 2 dismissed, 4 deferred); toast host promoted to the app shell. Frontend 607/607, backend 632/632, AOT build clean. Browser smoke not run. Status set to `review`.

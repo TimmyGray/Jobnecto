@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -18,6 +18,29 @@ import { env } from '@shared/config';
 import { ToastService } from '@shared/ui';
 import { ResumeFormComponent } from '@widgets/resume-form';
 import { ResumeDetailPage } from './resume-detail.page';
+
+/** jsdom lacks the modal parts of <dialog>; stand in for just enough of them. */
+function stubDialog(): () => void {
+  const proto = HTMLDialogElement.prototype;
+  const original = { showModal: proto.showModal, close: proto.close };
+  proto.showModal = function (this: HTMLDialogElement) {
+    this.setAttribute('open', '');
+    // A browser moves focus into the dialog as it opens.
+    this.querySelector('button')?.focus();
+  };
+  proto.close = function (this: HTMLDialogElement) {
+    this.removeAttribute('open');
+    // A browser takes focus out of a dialog that closes.
+    if (this.contains(document.activeElement)) {
+      (document.activeElement as HTMLElement).blur();
+    }
+    this.dispatchEvent(new Event('close'));
+  };
+  return () => {
+    proto.showModal = original.showModal;
+    proto.close = original.close;
+  };
+}
 
 /** Stands in for the résumé list, the destination of the recovery CTAs. */
 @Component({ template: 'list' })
@@ -67,7 +90,10 @@ describe('ResumeDetailPage', () => {
     detect();
   }
 
+  let restoreDialog: () => void;
+
   beforeEach(async () => {
+    restoreDialog = stubDialog();
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([httpInterceptor])),
@@ -88,6 +114,7 @@ describe('ResumeDetailPage', () => {
     try {
       httpMock.verify();
     } finally {
+      restoreDialog();
       (document.activeElement as HTMLElement | null)?.blur?.();
     }
   });
@@ -275,6 +302,15 @@ describe('ResumeDetailPage', () => {
       expect(el().querySelector('widget-resume-form')).toBeNull();
       expect(text()).not.toContain('Staff Engineer');
       expect(text()).not.toContain('Changed');
+    });
+
+    it('403/404 on save moves focus to the recovery state', () => {
+      form().form.controls.title.setValue('Changed again');
+      problem(expectPatch('r-1'), 404);
+      detect();
+      detect();
+
+      expect(document.activeElement).toBe(el().querySelector('ui-not-found-state'));
     });
 
     it('404: replaces the form with the not-found state', () => {
@@ -466,6 +502,425 @@ describe('ResumeDetailPage', () => {
     });
   });
 
+  describe('deleting (Story 2.4)', () => {
+    const deleteButton = (): HTMLButtonElement | null =>
+      el().querySelector('[data-testid="delete-resume"]');
+    const dialog = (): HTMLDialogElement => el().querySelector('ui-confirm-dialog dialog')!;
+    const dialogOpen = (): boolean => dialog().hasAttribute('open');
+    const dialogButtons = (): HTMLButtonElement[] =>
+      Array.from(dialog().querySelectorAll('button'));
+    const cancelBtn = (): HTMLButtonElement => dialogButtons()[0];
+    const confirmBtn = (): HTMLButtonElement => dialogButtons()[1];
+    const expectDelete = (id = 'r-1'): TestRequest =>
+      httpMock.expectOne((req) => req.method === 'DELETE' && req.url === `${base}/${id}`);
+    const noContent = { status: 204, statusText: 'No Content' };
+    const page = (): ResumeDetailPage => harness.routeDebugElement!.componentInstance;
+
+    async function ready(): Promise<void> {
+      (await open('r-1')).flush(LOADED);
+      detect();
+    }
+
+    describe('the Delete button', () => {
+      it('is absent while loading', async () => {
+        const pending = await open('r-1');
+        expect(deleteButton()).toBeNull();
+        pending.flush(LOADED);
+      });
+
+      it('is present once the résumé is loaded, as a secondary (non-primary) action', async () => {
+        await ready();
+
+        expect(deleteButton()).not.toBeNull();
+        expect(deleteButton()!.textContent).toContain('Delete');
+        expect(deleteButton()!.className).not.toContain('bg-action-primary');
+      });
+
+      it.each([
+        ['not-found', 404, 'ui-not-found-state'],
+        ['forbidden', 403, 'ui-forbidden-state'],
+        ['error', 500, 'ui-error-state'],
+      ])('is absent in the %s state', async (_name, status, selector) => {
+        problem(await open('r-9'), status);
+        detect();
+
+        expect(el().querySelector(selector)).not.toBeNull();
+        expect(deleteButton()).toBeNull();
+      });
+    });
+
+    describe('confirmation (AC1, AC4)', () => {
+      beforeEach(ready);
+
+      it('opens a destructive dialog and sends nothing', () => {
+        deleteButton()!.click();
+        detect();
+
+        expect(dialogOpen()).toBe(true);
+        expect(dialog().querySelector('h2')?.textContent).toContain('Delete');
+        expect(confirmBtn().className).toContain('bg-status-danger');
+        httpMock.expectNone((req) => req.method === 'DELETE');
+      });
+
+      it('puts initial focus on Cancel, not on the destructive button', () => {
+        deleteButton()!.focus();
+        deleteButton()!.click();
+        detect();
+
+        expect(document.activeElement).toBe(cancelBtn());
+      });
+
+      it('Cancel closes it, sends nothing and returns focus to the Delete button', () => {
+        deleteButton()!.focus();
+        deleteButton()!.click();
+        detect();
+
+        cancelBtn().click();
+        detect();
+
+        expect(dialogOpen()).toBe(false);
+        expect(document.activeElement).toBe(deleteButton());
+        httpMock.expectNone((req) => req.method === 'DELETE');
+      });
+
+      it('Escape closes it and sends nothing', () => {
+        deleteButton()!.focus();
+        deleteButton()!.click();
+        detect();
+
+        dialog().dispatchEvent(new Event('cancel', { cancelable: true }));
+        detect();
+
+        expect(dialogOpen()).toBe(false);
+        expect(document.activeElement).toBe(deleteButton());
+        httpMock.expectNone((req) => req.method === 'DELETE');
+      });
+
+      it('a backdrop click closes it and sends nothing', () => {
+        deleteButton()!.focus();
+        deleteButton()!.click();
+        detect();
+
+        dialog().dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        dialog().click();
+        detect();
+
+        expect(dialogOpen()).toBe(false);
+        expect(document.activeElement).toBe(deleteButton());
+        httpMock.expectNone((req) => req.method === 'DELETE');
+      });
+
+      it('returns focus to the Delete button even when a click never focused it (Safari, macOS Firefox)', () => {
+        (document.activeElement as HTMLElement | null)?.blur?.();
+        deleteButton()!.click();
+        detect();
+
+        cancelBtn().click();
+        detect();
+
+        expect(document.activeElement).toBe(deleteButton());
+      });
+
+      it('can be reopened after cancelling', () => {
+        deleteButton()!.click();
+        detect();
+        cancelBtn().click();
+        detect();
+
+        deleteButton()!.click();
+        detect();
+
+        expect(dialogOpen()).toBe(true);
+      });
+    });
+
+    describe('confirmed delete (AC2)', () => {
+      beforeEach(async () => {
+        await ready();
+        deleteButton()!.click();
+        detect();
+      });
+
+      it('sends DELETE for this résumé with credentials and shows a busy state', () => {
+        confirmBtn().click();
+        detect();
+
+        const req = expectDelete();
+        expect(req.request.withCredentials).toBe(true);
+        expect(confirmBtn().getAttribute('aria-disabled')).toBe('true');
+        expect(confirmBtn().textContent).toContain('Deleting');
+        req.flush(null, noContent);
+      });
+
+      it('ignores a second confirm while the first is in flight', () => {
+        confirmBtn().click();
+        detect();
+        confirmBtn().click();
+        confirmBtn().click();
+
+        const reqs = httpMock.match((r) => r.method === 'DELETE');
+        expect(reqs).toHaveLength(1);
+        reqs[0].flush(null, noContent);
+      });
+
+      it('cannot be dismissed while in flight', () => {
+        confirmBtn().click();
+        detect();
+
+        cancelBtn().click();
+        dialog().dispatchEvent(new Event('cancel', { cancelable: true }));
+        dialog().dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        dialog().click();
+        detect();
+
+        expect(dialogOpen()).toBe(true);
+        expectDelete().flush(null, noContent);
+      });
+
+      it('the page itself ignores a second confirm, independently of the dialog', () => {
+        // Two clicks before any change detection: the dialog has not yet seen `busy`.
+        confirmBtn().click();
+        confirmBtn().click();
+        page().onConfirmDelete();
+
+        const reqs = httpMock.match((r) => r.method === 'DELETE');
+        expect(reqs).toHaveLength(1);
+        reqs[0].flush(null, noContent);
+      });
+
+      it('replaces the URL when going back to the list, so Back cannot return to the deleted résumé', () => {
+        const navigate = vi.spyOn(router, 'navigate');
+        confirmBtn().click();
+        detect();
+
+        expectDelete().flush(null, noContent);
+
+        expect(navigate).toHaveBeenCalledWith(['/resumes'], { replaceUrl: true });
+      });
+
+      it('stays locked after the 204 until navigation lands, so Save and Delete cannot hit a deleted résumé', async () => {
+        let finish!: (ok: boolean) => void;
+        vi.spyOn(router, 'navigate').mockReturnValue(new Promise<boolean>((r) => (finish = r)));
+        confirmBtn().click();
+        detect();
+
+        expectDelete().flush(null, noContent);
+        detect();
+
+        expect(page().deleting()).toBe(true);
+        page().onUpdate({ title: 'Sneaky' });
+        page().onConfirmDelete();
+        httpMock.expectNone((req) => req.method === 'PATCH' || req.method === 'DELETE');
+        expect(el().querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
+
+        finish(true);
+        await Promise.resolve();
+      });
+
+      it('raises the toast only once navigation has landed', async () => {
+        let finish!: (ok: boolean) => void;
+        vi.spyOn(router, 'navigate').mockReturnValue(new Promise<boolean>((r) => (finish = r)));
+        confirmBtn().click();
+        detect();
+
+        expectDelete().flush(null, noContent);
+        expect(toasts.toasts()).toHaveLength(0);
+
+        finish(true);
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(toasts.toasts().map((t) => t.message)).toEqual(['Résumé deleted']);
+        expect(toasts.toasts().map((t) => t.tone)).toEqual(['success']);
+      });
+
+      it('if navigation does not happen, shows not-found (the résumé is gone) and moves focus there', async () => {
+        vi.spyOn(router, 'navigate').mockResolvedValue(false);
+        confirmBtn().click();
+        detect();
+
+        expectDelete().flush(null, noContent);
+        await harness.fixture.whenStable();
+        detect();
+        detect();
+
+        expect(el().querySelector('ui-not-found-state')).not.toBeNull();
+        expect(page().deleting()).toBe(false);
+        expect(document.activeElement).toBe(el().querySelector('ui-not-found-state'));
+      });
+
+      it('disables an otherwise-enabled Save and blocks a concurrent PATCH while deleting', () => {
+        edit(form().form.controls.title, 'Changed');
+        expect(el().querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(false);
+
+        confirmBtn().click();
+        detect();
+
+        expect(el().querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
+        page().onUpdate({ title: 'Sneaky' });
+        httpMock.expectNone((req) => req.method === 'PATCH');
+        expectDelete().flush(null, noContent);
+      });
+
+      it('on 204: toasts, invalidates the list cache and goes to the list', async () => {
+        const service = TestBed.inject(ResumeService);
+        service.list(5).subscribe();
+        httpMock
+          .expectOne((r) => r.method === 'GET' && r.url === base)
+          .flush({
+            items: [],
+            totalCount: 1,
+            lastSeenId: null,
+            lastSeenUpdatedAt: null,
+            pageSize: 5,
+            hasNext: false,
+          });
+        expect(service.page()).not.toBeNull();
+
+        confirmBtn().click();
+        detect();
+        expectDelete().flush(null, noContent);
+        await harness.fixture.whenStable();
+
+        expect(toasts.toasts().map((t) => t.message)).toContain('Résumé deleted');
+        expect(service.page()).toBeNull();
+        expect(router.url).toBe('/resumes');
+      });
+
+      it('on 403: closes the dialog and shows the forbidden state without leaking the résumé', () => {
+        confirmBtn().click();
+        detect();
+        problem(expectDelete(), 403);
+        detect();
+
+        expect(dialogOpen()).toBe(false);
+        expect(el().querySelector('ui-forbidden-state')).not.toBeNull();
+        expect(el().querySelector('widget-resume-form')).toBeNull();
+        expect(el().textContent).not.toContain('Staff Engineer');
+        expect(toasts.toasts()).toHaveLength(0);
+      });
+
+      it('on 403/404 moves focus to the recovery state instead of dropping it to <body>', () => {
+        deleteButton()!.focus();
+        confirmBtn().click();
+        detect();
+        problem(expectDelete(), 403);
+        detect();
+        detect();
+
+        expect(document.activeElement).toBe(el().querySelector('ui-forbidden-state'));
+      });
+
+      it('on 404 (already gone): shows not-found, not an error toast', () => {
+        confirmBtn().click();
+        detect();
+        problem(expectDelete(), 404);
+        detect();
+
+        expect(dialogOpen()).toBe(false);
+        expect(el().querySelector('ui-not-found-state')).not.toBeNull();
+        expect(toasts.toasts()).toHaveLength(0);
+      });
+
+      it('on 500: toasts an error, closes the dialog and keeps the résumé and its edits', () => {
+        dialog().dispatchEvent(new Event('cancel', { cancelable: true }));
+        detect();
+        edit(form().form.controls.title, 'Unsaved edit');
+        deleteButton()!.click();
+        detect();
+        confirmBtn().click();
+        detect();
+        problem(expectDelete(), 500, { detail: 'Boom' });
+        detect();
+
+        expect(dialogOpen()).toBe(false);
+        expect(toasts.toasts().map((t) => t.tone)).toEqual(['error']);
+        expect(toasts.toasts()[0].message).toBe('Boom');
+        expect(el().querySelector('widget-resume-form')).not.toBeNull();
+        expect(form().form.controls.title.value).toBe('Unsaved edit');
+        expect(deleteButton()).not.toBeNull();
+        expect(document.activeElement).toBe(deleteButton());
+      });
+
+      it('lets the user try again after a failure', () => {
+        confirmBtn().click();
+        detect();
+        problem(expectDelete(), 500);
+        detect();
+
+        deleteButton()!.click();
+        detect();
+        confirmBtn().click();
+        detect();
+
+        expectDelete().flush(null, noContent);
+      });
+    });
+
+    describe('interactions with saving and navigation', () => {
+      it('does not open the dialog while a save is in flight, and the button says so', async () => {
+        await ready();
+        edit(form().form.controls.title, 'Changed');
+        form().onSubmit();
+        const save = expectPatch('r-1');
+        detect();
+        expect(deleteButton()!.getAttribute('aria-disabled')).toBe('true');
+
+        deleteButton()!.click();
+        detect();
+
+        expect(dialogOpen()).toBe(false);
+        save.flush({ ...LOADED, title: 'Changed' });
+      });
+
+      it('a route-id change mid-delete cancels it and the new résumé is unaffected', async () => {
+        await ready();
+        deleteButton()!.click();
+        detect();
+        confirmBtn().click();
+        detect();
+        const del = expectDelete();
+
+        await harness.navigateByUrl('/resumes/r-2', ResumeDetailPage);
+        expect(del.cancelled).toBe(true);
+        expectGet('r-2').flush({ ...LOADED, id: 'r-2', title: 'Second' });
+        detect();
+
+        expect(dialogOpen()).toBe(false);
+        expect(form().form.controls.title.value).toBe('Second');
+        expect(deleteButton()).not.toBeNull();
+        expect(toasts.toasts()).toHaveLength(0);
+      });
+
+      it('deletes the résumé that is showing after the id changed', async () => {
+        await ready();
+        await harness.navigateByUrl('/resumes/r-2', ResumeDetailPage);
+        expectGet('r-2').flush({ ...LOADED, id: 'r-2', title: 'Second' });
+        detect();
+
+        deleteButton()!.click();
+        detect();
+        confirmBtn().click();
+        detect();
+
+        expectDelete('r-2').flush(null, noContent);
+        await harness.fixture.whenStable();
+      });
+
+      it('destroying the page cancels an in-flight delete', async () => {
+        await ready();
+        deleteButton()!.click();
+        detect();
+        confirmBtn().click();
+        detect();
+        const del = expectDelete();
+
+        harness.fixture.destroy();
+
+        expect(del.cancelled).toBe(true);
+      });
+    });
+  });
+
   describe('teardown', () => {
     it('cancels an in-flight load when the page is destroyed', async () => {
       const req = await open('r-1');
@@ -488,10 +943,4 @@ describe('ResumeDetailPage', () => {
     });
   });
 
-  it('mounts a toast host for save feedback', async () => {
-    (await open('r-1')).flush(LOADED);
-    detect();
-
-    expect(el().querySelector('ui-toast-host')).not.toBeNull();
-  });
 });

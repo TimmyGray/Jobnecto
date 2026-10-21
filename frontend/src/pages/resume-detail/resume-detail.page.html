@@ -23,10 +23,35 @@
     </div>
   }
   @case ('ready') {
-    <widget-resume-form [resume]="resume()" [submitting]="saving()" (update)="onUpdate($event)" />
+    <widget-resume-form
+      [resume]="resume()"
+      [submitting]="saving() || deleting()"
+      (update)="onUpdate($event)"
+    />
+
+    <section class="mt-10 border-t border-border-default pt-6" aria-labelledby="danger-zone-heading">
+      <h2 id="danger-zone-heading" class="text-md font-semibold text-text-primary">
+        Delete this résumé
+      </h2>
+      <p class="mt-1 text-md text-text-secondary">
+        Removes it from your résumés. This can't be undone from the app.
+      </p>
+      <button
+        type="button"
+        #deleteButton
+        data-testid="delete-resume"
+        [attr.aria-disabled]="saving()"
+        class="mt-4 inline-flex items-center rounded-md border border-status-danger bg-surface px-4 py-2 text-md font-medium text-status-danger transition-colors duration-standard hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-focus aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+        (click)="openDelete()"
+      >
+        Delete résumé
+      </button>
+    </section>
   }
   @case ('not-found') {
     <ui-not-found-state
+      #recoveryRegion
+      tabindex="-1"
       headline="Résumé not found"
       guidance="It may have been deleted, or the link may be wrong."
       backLabel="Back to résumés"
@@ -35,6 +60,8 @@
   }
   @case ('forbidden') {
     <ui-forbidden-state
+      #recoveryRegion
+      tabindex="-1"
       guidance="This résumé isn't available to you."
       recoverLabel="Back to résumés"
       (recover)="goBack()"
@@ -49,4 +76,16 @@
   }
 }
 
-<ui-toast-host />
+<ui-confirm-dialog
+  [open]="confirmingDelete()"
+  headline="Delete this résumé?"
+  message="It will be removed from your résumés. This can't be undone from the app."
+  [confirmLabel]="deleting() ? 'Deleting…' : 'Delete résumé'"
+  [destructive]="true"
+  [busy]="deleting()"
+  busyMessage="Deleting résumé…"
+  [returnFocusTo]="deleteButton()?.nativeElement ?? null"
+  (confirm)="onConfirmDelete()"
+  (cancel)="cancelDelete()"
+/>
+

@@ -5,7 +5,7 @@ import { ResumeService } from '@entities/resume';
 import type { CreateResumeCommand } from '@entities/resume';
 import type { ProblemDetails } from '@shared/api';
 import { PageHeaderComponent } from '@shared/ui';
-import { ToastHostComponent, ToastService } from '@shared/ui';
+import { ToastService } from '@shared/ui';
 import { ResumeFormComponent } from '@widgets/resume-form';
 
 /**
@@ -21,7 +21,7 @@ import { ResumeFormComponent } from '@widgets/resume-form';
 @Component({
   selector: 'page-resume-create',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageHeaderComponent, ResumeFormComponent, ToastHostComponent],
+  imports: [PageHeaderComponent, ResumeFormComponent],
   templateUrl: './resume-create.page.html',
 })
 export class ResumeCreatePage {

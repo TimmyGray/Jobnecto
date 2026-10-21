@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, signal, viewChild } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { A11yModule } from '@angular/cdk/a11y';
+import { ToastHostComponent } from '@shared/ui';
 import { NAV_ITEMS } from './nav-items';
 
 /**
@@ -13,7 +14,7 @@ import { NAV_ITEMS } from './nav-items';
 @Component({
   selector: 'widget-app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, A11yModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, A11yModule, ToastHostComponent],
   template: `
     <a
       href="#main-content"
@@ -89,6 +90,8 @@ import { NAV_ITEMS } from './nav-items';
       <main #mainContent id="main-content" tabindex="-1" class="mx-auto max-w-[1040px] flex-1 px-4 py-8">
         <router-outlet></router-outlet>
       </main>
+
+      <ui-toast-host />
     </div>
   `,
 })

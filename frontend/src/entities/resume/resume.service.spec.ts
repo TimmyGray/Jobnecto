@@ -227,6 +227,76 @@ describe('ResumeService', () => {
     });
   });
 
+  describe('delete()', () => {
+    it('DELETEs /resumes/{id} with credentials and emits on 204', () => {
+      let done = false;
+      service.delete('r-7').subscribe({ complete: () => (done = true) });
+
+      const req = httpMock.expectOne(`${env.apiBaseUrl}/resumes/r-7`);
+      expect(req.request.method).toBe('DELETE');
+      expect(req.request.withCredentials).toBe(true);
+      req.flush(null, { status: 204, statusText: 'No Content' });
+
+      expect(done).toBe(true);
+      httpMock.verify();
+    });
+
+    it('percent-encodes the id', () => {
+      service.delete('../users/me').subscribe();
+
+      const req = httpMock.expectOne((r) => r.method === 'DELETE');
+      expect(req.request.url).toBe(`${env.apiBaseUrl}/resumes/..%2Fusers%2Fme`);
+      req.flush(null, { status: 204, statusText: 'No Content' });
+    });
+
+    it('invalidates the cached page on success', () => {
+      service.list(5).subscribe();
+      listRequest().flush(pagedResumes({ totalCount: 2 }));
+      expect(service.page()).not.toBeNull();
+
+      service.delete('r-7').subscribe();
+      httpMock
+        .expectOne(`${env.apiBaseUrl}/resumes/r-7`)
+        .flush(null, { status: 204, statusText: 'No Content' });
+
+      expect(service.page()).toBeNull();
+      httpMock.verify();
+    });
+
+    it('a stale in-flight list() cannot resurrect the cache after delete() invalidates it', () => {
+      service.list(5).subscribe();
+      const staleListReq = listRequest();
+
+      service.delete('r-7').subscribe();
+      httpMock
+        .expectOne(`${env.apiBaseUrl}/resumes/r-7`)
+        .flush(null, { status: 204, statusText: 'No Content' });
+      staleListReq.flush(pagedResumes({ totalCount: 3 }));
+
+      expect(service.page()).toBeNull();
+      httpMock.verify();
+    });
+
+    it.each([
+      [403, 'Forbidden'],
+      [404, 'Not found'],
+      [500, 'Server error'],
+    ])('propagates a %i ProblemDetails and leaves the cache alone', (status, title) => {
+      service.list(5).subscribe();
+      listRequest().flush(pagedResumes({ totalCount: 2 }));
+
+      let error: ProblemDetails | undefined;
+      service.delete('r-7').subscribe({ error: (e: ProblemDetails) => (error = e) });
+      httpMock
+        .expectOne(`${env.apiBaseUrl}/resumes/r-7`)
+        .flush({ title, status }, { status, statusText: title });
+
+      expect(error?.status).toBe(status);
+      expect(service.page()?.totalCount).toBe(2);
+      httpMock.verify();
+    });
+  });
+
   describe('id encoding', () => {
     it('percent-encodes the id in get() so a crafted route param cannot change the path', () => {
       service.get('../users/me').subscribe();
