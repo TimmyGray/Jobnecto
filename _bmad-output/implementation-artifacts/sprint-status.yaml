@@ -9,7 +9,7 @@
 # ============================================================================
 
 # generated: 2026-08-20T00:00:00Z
-# last_updated: 2026-10-21T23:30:00Z
+# last_updated: 2026-10-21T23:59:00Z
 # project: Jobnecto
 # project_key: NOKEY
 # tracking_system: file-system
@@ -74,11 +74,11 @@ development_status:
   epic-1-retrospective: optional
 
   # --- Epic 2: Résumé Management (FR11-FR15) ---
-  epic-2: in-progress
+  epic-2: done # all four stories merged 2026-10-21; retrospective optional
   2-1-create-a-resume: done # [FE] + small BE OpenAPI enum-schema fix; merged 2026-09-28 (PR #95, f05a5f6)
   2-2-browse-my-resumes: done # [FE] merged 2026-10-21 (PR #96, bb8e78f)
   2-3-view-edit-a-resume: done # [FE] merged 2026-10-21 (PR #99, d6d13ea)
-  2-4-soft-delete-a-resume: review # [FE] story: 2-4-soft-delete-a-resume.md
+  2-4-soft-delete-a-resume: done # [FE] merged 2026-10-21 (PR #101, 0b50e46)
   epic-2-retrospective: optional
 
   # --- Epic 3: Vacancy Discovery (FR23-FR26) ---
