@@ -1,6 +1,8 @@
 # Story 2.3: View & edit a résumé
 
-Status: review
+Status: done
+
+<!-- Merged 2026-10-21 via PR #99 (d6d13ea). Archived per AGENTS.md lifecycle. -->
 
 ## Story
 
