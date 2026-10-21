@@ -4,6 +4,7 @@ export * from './state/error-state';
 export * from './state/not-found-state';
 export * from './state/forbidden-state';
 export * from './state/skeleton';
+export * from './pagination/cursor-pagination';
 export * from './form/text-field';
 export * from './form/select-field';
 export * from './form/tag-input';

@@ -1,6 +1,8 @@
 # Story 2.1: Create a résumé
 
-Status: review
+Status: done
+
+<!-- Merged 2026-09-28 via PR #95 (f05a5f6). Archived per AGENTS.md lifecycle. -->
 
 ## Story
 

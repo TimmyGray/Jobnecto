@@ -363,7 +363,7 @@ describe('DashboardPage', () => {
       'a.bg-action-primary, button.bg-action-primary',
     );
     expect(primaries).toHaveLength(1);
-    expect(primaries[0].getAttribute('href')).toBe('/resumes');
+    expect(primaries[0].getAttribute('href')).toBe('/resumes/new');
 
     const secondary = fixture.nativeElement.querySelector('a[href="/educations"]');
     expect(secondary).not.toBeNull();

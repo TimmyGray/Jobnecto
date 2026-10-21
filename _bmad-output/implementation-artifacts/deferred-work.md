@@ -1,5 +1,44 @@
 # Deferred Work
 
+## Deferred from: Story 2.2 browse-my-resumes (2026-10-21)
+
+- **Card markup is duplicated between `widgets/recent-resumes` and `widgets/resume-list`.** Same
+  title/meta/link structure, different extras (skills chips, updated date, non-link fallback). Left
+  alone on purpose so Story 2.2 did not refactor the Story 1.6 widget; extract a shared résumé card
+  when a third consumer appears or the card is next restyled.
+- **The dashboard "Recent resumes" meta line shows raw enum values** (`ThreeToFiveYears`) while the
+  new résumé list humanizes them (`Three To Five Years`). Apply `humanizeEnumMember` in
+  `widgets/recent-resumes/recent-resumes.ts` `metaOf()` for consistency.
+- **`recent-resumes.ts` still links an id-less résumé to `/resumes/undefined`.** Unchanged (the
+  Story 1.6 deferral stands); the new list widget does not have this bug.
+- **`ResumeCreatePage` still stays on `/resumes/new` after a successful create.** Its Story 2.1
+  reason (`/resumes` was a stub) no longer holds now that `/resumes` is the list. Navigating to
+  `/resumes` on success is a product call, not in either story's epics ACs.
+- **A `200` response with a malformed body leaves `/resumes` stuck.** `null`, `{}` or `items: null`
+  (e.g. a proxy returning an HTML or empty 200) throws inside the `next:` callback, which RxJS
+  reports as an unhandled error rather than routing to `error:` — the first load shows the
+  skeleton forever, load-more leaves the button on "Loading…". The dashboard has the same exposure.
+  Fix once, in `ResumeService.list()`, by validating `Array.isArray(page?.items)` and erroring.
+- **Load-more retries a permanent failure identically forever.** A `429` (ignores
+  `retryAfterSeconds`) or a `400` from a stale cursor gets the same "Try again" with the same cursor
+  and no way back to page 1 short of leaving the page.
+- **`totalCount` is overwritten per page**, so rows added or removed mid-paging can announce
+  "Showing 25 of 24 résumés".
+- **`updatedAt | date` throws NG02100 on an unparsable string**, which would blank the whole list.
+- **Load-more can add nothing and say nothing.** `BaseRepository` only applies the cursor filter if
+  a row with that exact `Id`/`UpdatedAt` still exists; if the cursor row was edited or soft-deleted
+  since the page loaded the server returns page 1 again, `uniqueById` drops all of it, and the
+  button just re-enables. Consider an "Already up to date / list changed — refresh" message.
+- **`ResumeListPage` and `ResumeListComponent` use DOM queries** (`querySelector('ui-cursor-pagination')`
+  was removed, but `focusCard` still uses `:scope > ul > li > *`, and the page reads
+  `document.activeElement`). Prefer `viewChildren` and an injected `DOCUMENT` (SSR-safe).
+- **The whole-card link's accessible name is verbose** (title + meta + skills + date). Consider
+  `aria-labelledby` on the title; same pattern exists on the dashboard's recent-résumés cards.
+- **`aria-busy` on the Load more button** is ignored by most assistive tech; the label and live
+  region already convey the state. Move it to the list container or drop it.
+- **`hasNext: true` with a half-populated cursor ends the list silently** (no error, no retry).
+  A backend contract violation today; revisit if it is ever observed.
+
 ## Deferred from: code review of 2-1-create-a-resume (2026-09-28)
 
 > Self-review: four parallel lens subagents (adversarial, edge-case, verification-gap,
@@ -55,7 +94,8 @@
   now has `SignInCommand`/`SignInResponse`/`POST /api/v1/users/sessions` available, but switching
   `entities/user` over to them is unrelated to résumé creation and out of this story's scope.
   Pick up whenever a story next touches `entities/user`.
-- **`TagInputComponent` doesn't split a pasted string with embedded (non-trailing) commas into
+- **[RESOLVED in `ee2a08d` "split pasted comma-separated values in tag input", merged via PR #95 — kept for history]**
+  **`TagInputComponent` doesn't split a pasted string with embedded (non-trailing) commas into
   multiple tags.** Typing/pasting `"a,b,c"` then pressing Enter (without a comma keystroke per
   segment) adds one raw tag `"a,b,c"` rather than three. `tryAddTag()` only strips a single
   *trailing* comma. Low value fix, real UX rough edge for paste-heavy skill entry.

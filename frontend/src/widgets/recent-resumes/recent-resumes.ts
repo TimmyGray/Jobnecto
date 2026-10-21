@@ -44,7 +44,7 @@ const MAX_VISIBLE = 5;
           guidance="Your resume is what generation grounds a cover letter in."
         >
           <a
-            routerLink="/resumes"
+            routerLink="/resumes/new"
             class="inline-flex items-center rounded-md border border-border-default px-4 py-2 text-md font-medium text-text-primary transition-colors duration-standard hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-focus"
             >Create your first resume</a
           >
