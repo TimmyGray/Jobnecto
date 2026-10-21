@@ -1,6 +1,6 @@
 # Story 2.3: View & edit a résumé
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -52,36 +52,36 @@ so that **I can keep it current**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 0: Test-first baseline
-  - [ ] Confirm green before changing anything: `cd frontend && npx ng test --no-watch` (expect 429 passing at the merge of PR #96).
+- [x] Task 0: Test-first baseline
+  - [x] Confirm green before changing anything: `cd frontend && npx ng test --no-watch` (expect 429 passing at the merge of PR #96).
 
-- [ ] Task 1: Entity service `get` / `update` (AC: 1, 2, 5)
-  - [ ] `frontend/src/entities/resume/model.ts` (UPDATE) — `export type UpdateResumeCommand = components['schemas']['UpdateResumeCommand'];`
-  - [ ] `frontend/src/entities/resume/resume.service.ts` (UPDATE) — `get(id: string): Observable<ResumeResult>` (`GET /resumes/{id}`, no caching) and `update(id: string, command: UpdateResumeCommand): Observable<ResumeResult>` (`PATCH /resumes/{id}`; `tap(() => this.invalidate())` on success only). XML-doc both.
-  - [ ] `frontend/src/entities/resume/resume.service.spec.ts` (UPDATE) — `get` hits the right URL with credentials; `update` sends a PATCH with exactly the given body and invalidates `page()` (a following `list()` hits the network); a `400`/`403`/`404` propagates the normalized `ProblemDetails` and does **not** invalidate.
+- [x] Task 1: Entity service `get` / `update` (AC: 1, 2, 5)
+  - [x] `frontend/src/entities/resume/model.ts` (UPDATE) — `export type UpdateResumeCommand = components['schemas']['UpdateResumeCommand'];`
+  - [x] `frontend/src/entities/resume/resume.service.ts` (UPDATE) — `get(id: string): Observable<ResumeResult>` (`GET /resumes/{id}`, no caching) and `update(id: string, command: UpdateResumeCommand): Observable<ResumeResult>` (`PATCH /resumes/{id}`; `tap(() => this.invalidate())` on success only). XML-doc both.
+  - [x] `frontend/src/entities/resume/resume.service.spec.ts` (UPDATE) — `get` hits the right URL with credentials; `update` sends a PATCH with exactly the given body and invalidates `page()` (a following `list()` hits the network); a `400`/`403`/`404` propagates the normalized `ProblemDetails` and does **not** invalidate.
 
-- [ ] Task 2: Diff + clearing rules (pure functions) (AC: 2)
-  - [ ] `frontend/src/widgets/resume-form/resume-form.diff.ts` (CREATE) — `buildUpdateCommand(original: ResumeResult, current: FormValue): { command: UpdateResumeCommand; blockedClears: string[] }`: includes a field only if it deep-differs from `original`; arrays by value; `title` cleared → `''`; `languages`/`locations` cleared → `[]`; skills/salary/currency/workLocationType/experience cleared-from-set → listed in `blockedClears` and **not** in `command`. Never emits `projects`/`certifications`/`excludedWords`. XML-doc it.
-  - [ ] `frontend/src/widgets/resume-form/resume-form.diff.spec.ts` (CREATE) — unchanged form → empty command; one field changed → exactly that field; edit-then-revert → empty; array reordered vs. same members (order matters for skills? treat order as significant) ; each clearable/non-clearable case above; `salary` `0` is a value, not "cleared"; enum compared case-sensitively against the loaded value after the form's own normalization.
+- [x] Task 2: Diff + clearing rules (pure functions) (AC: 2)
+  - [x] `frontend/src/widgets/resume-form/resume-form.diff.ts` (CREATE) — `buildUpdateCommand(original: ResumeResult, current: FormValue): { command: UpdateResumeCommand; blockedClears: string[] }`: includes a field only if it deep-differs from `original`; arrays by value; `title` cleared → `''`; `languages`/`locations` cleared → `[]`; skills/salary/currency/workLocationType/experience cleared-from-set → listed in `blockedClears` and **not** in `command`. Never emits `projects`/`certifications`/`excludedWords`. XML-doc it.
+  - [x] `frontend/src/widgets/resume-form/resume-form.diff.spec.ts` (CREATE) — unchanged form → empty command; one field changed → exactly that field; edit-then-revert → empty; array reordered vs. same members (order matters for skills? treat order as significant) ; each clearable/non-clearable case above; `salary` `0` is a value, not "cleared"; enum compared case-sensitively against the loaded value after the form's own normalization.
 
-- [ ] Task 3: Edit mode on `ResumeFormComponent` (AC: 1, 2, 4)
-  - [ ] `frontend/src/widgets/resume-form/resume-form.ts` / `.html` (UPDATE) — `resume = input<ResumeResult | null>(null)`; when set (and when it changes, e.g. after a save) patch the form from it (`reset` with values, rebuild the `languages` rows), and store it as the diff baseline. New `update = output<UpdateResumeCommand>()`. `canSubmit` in edit mode = valid ∧ not submitting ∧ non-empty diff ∧ no `blockedClears`. `onSubmit()` emits `update` with only the diff; in create mode it emits `create` exactly as today. Show the blocked-clear inline message per field. Submit button label "Save changes" in edit mode, "Create résumé" otherwise. Keep `applyServerErrors`, `clearServerErrors` and the language-row workaround untouched.
-  - [ ] `frontend/src/widgets/resume-form/resume-form.spec.ts` (UPDATE) — add an "edit mode" describe: populates every control (including language rows and locations) from a résumé; Save disabled when untouched, enabled after a real change, disabled again after reverting; emits only the changed fields; blocked clear shows the message and keeps Save disabled; swapping the `resume` input to the saved response resets the baseline so a second save diffs against it; a `400` still maps inline in edit mode. **All existing create-mode specs must pass unmodified.**
+- [x] Task 3: Edit mode on `ResumeFormComponent` (AC: 1, 2, 4)
+  - [x] `frontend/src/widgets/resume-form/resume-form.ts` / `.html` (UPDATE) — `resume = input<ResumeResult | null>(null)`; when set (and when it changes, e.g. after a save) patch the form from it (`reset` with values, rebuild the `languages` rows), and store it as the diff baseline. New `update = output<UpdateResumeCommand>()`. `canSubmit` in edit mode = dirty ∧ valid ∧ not submitting ∧ non-empty diff ∧ no `blockedClears`. `onSubmit()` emits `update` with only the diff; in create mode it emits `create` exactly as today. Show the blocked-clear inline message per field. Submit button label "Save changes" in edit mode, "Create résumé" otherwise. Keep `applyServerErrors`, `clearServerErrors` and the language-row workaround untouched.
+  - [x] `frontend/src/widgets/resume-form/resume-form.spec.ts` (UPDATE) — add an "edit mode" describe: populates every control (including language rows and locations) from a résumé; Save disabled when untouched, enabled after a real change, disabled again after reverting; emits only the changed fields; blocked clear shows the message and keeps Save disabled; swapping the `resume` input to the saved response resets the baseline so a second save diffs against it; a `400` still maps inline in edit mode. **All existing create-mode specs must pass unmodified.**
 
-- [ ] Task 4: `ResumeDetailPage` (AC: 1, 2, 3, 4, 5)
-  - [ ] `frontend/src/pages/resume-detail/resume-detail.page.ts` + `.html` (CREATE) — `page-resume-detail`, `OnPush`. Reads `id` from `ActivatedRoute.paramMap` (re-loads on change); state `status: 'loading' | 'ready' | 'not-found' | 'forbidden' | 'error'`, `resume`, `saving`. `get(id)`: success → `ready`; `404` → `not-found`; `403` → `forbidden`; other → `error` with Retry. Layout: `ui-page-header` (eyebrow "Résumés", h1 = résumé title or "Untitled résumé", back link to `/resumes`), skeleton while loading, the form in edit mode when `ready`. `(update)`: `update(id, command)`; success → toast "Résumé saved", set `resume` to the response; `400` → `form.applyServerErrors`; `403` → `forbidden`, `404` → `not-found`; other → error toast, edits kept. `ui-not-found-state` / `ui-forbidden-state` back/recover CTA → `/resumes`. Both subscriptions use `takeUntilDestroyed`. Mount `ui-toast-host`. One `h1`.
-  - [ ] `frontend/src/pages/resume-detail/resume-detail.page.spec.ts` (CREATE) — see Task 6.
-  - [ ] `frontend/src/app/app.routes.ts` (UPDATE) — `resumes/:id` → `loadComponent` → `ResumeDetailPage`, `data: { title: 'Résumé' }` (keep it a non-empty string; `app.routes.spec.ts` requires one). `resumes/new` must still precede it.
-  - [ ] `frontend/src/app/app.routes.spec.ts` (UPDATE) — assert `resumes/:id` loads `ResumeDetailPage`.
+- [x] Task 4: `ResumeDetailPage` (AC: 1, 2, 3, 4, 5)
+  - [x] `frontend/src/pages/resume-detail/resume-detail.page.ts` + `.html` (CREATE) — `page-resume-detail`, `OnPush`. Reads `id` from `ActivatedRoute.paramMap` (re-loads on change); state `status: 'loading' | 'ready' | 'not-found' | 'forbidden' | 'error'`, `resume`, `saving`. `get(id)`: success → `ready`; `404` → `not-found`; `403` → `forbidden`; other → `error` with Retry. Layout: `ui-page-header` (eyebrow "Résumés", h1 = résumé title or "Untitled résumé", back link to `/resumes`), skeleton while loading, the form in edit mode when `ready`. `(update)`: `update(id, command)`; success → toast "Résumé saved", set `resume` to the response; `400` → `form.applyServerErrors`; `403` → `forbidden`, `404` → `not-found`; other → error toast, edits kept. `ui-not-found-state` / `ui-forbidden-state` back/recover CTA → `/resumes`. Both subscriptions use `takeUntilDestroyed`. Mount `ui-toast-host`. One `h1`.
+  - [x] `frontend/src/pages/resume-detail/resume-detail.page.spec.ts` (CREATE) — see Task 6.
+  - [x] `frontend/src/app/app.routes.ts` (UPDATE) — `resumes/:id` → `loadComponent` → `ResumeDetailPage`, `data: { title: 'Résumé' }` (keep it a non-empty string; `app.routes.spec.ts` requires one). `resumes/new` must still precede it.
+  - [x] `frontend/src/app/app.routes.spec.ts` (UPDATE) — assert `resumes/:id` loads `ResumeDetailPage`.
 
-- [ ] Task 5: Tracker and docs hygiene
-  - [ ] `deferred-work.md` (UPDATE) — add `## Deferred from: Story 2.3` for the unsaved-changes guard, the BE "cannot clear" gap, and anything else surfaced.
+- [x] Task 5: Tracker and docs hygiene
+  - [x] `deferred-work.md` (UPDATE) — add `## Deferred from: Story 2.3` for the unsaved-changes guard, the BE "cannot clear" gap, and anything else surfaced.
 
-- [ ] Task 6: Verification and test coverage (AC: all)
-  - [ ] Page spec (`HttpTestingController`, `provideRouter` with the `:id` route, match URLs by predicate): loading skeleton → form populated (AC1); `GET` once per id and again when the param changes; `404` on load (also for a non-GUID id) → not-found state with a CTA to `/resumes` (AC3); `403`/other on load → forbidden/error with Retry; save sends a PATCH containing only changed fields and, on `200`, toasts, adopts the response and a second save diffs against it (AC2); list cache invalidated (a later `list()` hits the network); `400` maps inline and keeps edits (AC4); `403`/`404` on save swap to forbidden/not-found without leaking data (AC5); other failure toasts and keeps edits; destroying the page cancels in-flight requests.
-  - [ ] `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` and `dotnet test backend/JobNecto.slnx` (backend unaffected — confirm and record counts).
-  - [ ] `cd frontend && npx ng test --no-watch` — all passing, per-file ≥80% coverage gate clean; `npx ng build --configuration production` clean.
-  - [ ] Manual smoke against a live API + PostgreSQL if available (open a résumé, edit one field, confirm the network tab shows a one-field PATCH; open another user's id → not-found). Record if not run.
+- [x] Task 6: Verification and test coverage (AC: all)
+  - [x] Page spec (`HttpTestingController`, `provideRouter` with the `:id` route, match URLs by predicate): loading skeleton → form populated (AC1); `GET` once per id and again when the param changes; `404` on load (also for a non-GUID id) → not-found state with a CTA to `/resumes` (AC3); `403`/other on load → forbidden/error with Retry; save sends a PATCH containing only changed fields and, on `200`, toasts, adopts the response and a second save diffs against it (AC2); list cache invalidated (a later `list()` hits the network); `400` maps inline and keeps edits (AC4); `403`/`404` on save swap to forbidden/not-found without leaking data (AC5); other failure toasts and keeps edits; destroying the page cancels in-flight requests.
+  - [x] `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` and `dotnet test backend/JobNecto.slnx` (backend unaffected — confirm and record counts).
+  - [x] `cd frontend && npx ng test --no-watch` — all passing, per-file ≥80% coverage gate clean; `npx ng build --configuration production` clean.
+  - [x] Manual smoke against a live API + PostgreSQL: **API-level half done, browser half NOT run** (the Claude-in-Chrome extension was not connected). See Completion Notes.
 
 ## Dev Notes
 
@@ -151,14 +151,65 @@ The API cannot unset salary, currency, work-location, experience or skills once 
 
 ### Agent Model Used
 
+Sonnet 5.5 (claude-sonnet-5-5)
+
 ### Debug Log References
+
+- Baseline revision for the review diff: `a7c9dd1c0a807bb5119480beea49bc51eb3e7a06` (branch `story/2-3-view-edit-a-resume`, master after PR #98).
+- Backend (unchanged by this story): `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` → `Build succeeded. 0 Warning(s) 0 Error(s)`; `dotnet test backend/JobNecto.slnx --configuration Release --no-build` → `Passed! - Failed: 0, Passed: 632, Skipped: 0, Total: 632`.
+- Frontend baseline before changes: 429 passing. After review patches: `cd frontend && npx ng test --no-watch` → `Test Files 39 passed (39)`, `Tests 541 passed (541)`, coverage `97.23% stmts / 95.32% branches / 98.11% lines`, no per-file threshold failures.
+- `cd frontend && npx ng build --configuration production` → `Application bundle generation complete.` (no errors/warnings).
+- **Live API checks** (API on `localhost:5000` against a throwaway Postgres 16 container with all migrations applied, three seeded users, 25 résumés): `GET /resumes/{id}` own → 200, other user's → **404**, non-GUID → **404**; `PATCH` other user's → **403**; `PATCH {}` → 400; `PATCH {"skills":[]}` → 400; `PATCH {"currency":""}` → 400; `PATCH {"title":""}` → 200; `PATCH {"locations":[]}` → 200; `PATCH {"title":"T2","salary":null}` → 200 with salary unchanged. This confirms every claim in the Decision Record.
 
 ### Completion Notes List
 
+- Built exactly the plan: `ResumeService.get/update` (id percent-encoded), pure `resume-form.diff.ts` (`resumeToFormValue`, `buildUpdateCommand` + `blockedClears`), edit mode on the shared `ResumeFormComponent` (optional `resume` input, `update` output; create mode untouched and its specs unmodified), `ResumeDetailPage` at `/resumes/:id`.
+- Deviation from Task 3's text: `populate()` resets the form **first** and rebuilds the language rows afterwards. `form.reset()` also resets rows already in the `FormArray`, so the story's "rebuild before reset" order blanked them (caught by the first spec run).
+- Design additions from review: the form snapshots its value when an update is emitted; if the user keeps editing while the request is in flight, the response becomes the new baseline **without** repopulating (the diff reads the baseline from the `resume` input), so those edits survive and the next Save sends only them. A different résumé id always repopulates.
+- A save issued for the previous id is cancelled when the route id changes (and `saving` is reset), so a late response can never be applied to the résumé now showing.
+- Server-stored values the form rejects (e.g. an unknown enum string) now show their validation error on load instead of silently disabling Save.
+- Adding or removing a language row now marks the form dirty.
+- **Live smoke: API half done, browser half NOT run.** The Claude-in-Chrome extension was not connected in this session, so I could not drive the UI (visual layout, real DOM input events, the narrow-viewport view). The Angular dev server and API were running against the throwaway database for it; everything the UI does is covered by DOM-level specs and the AOT build.
+- Backend coverage gate (`scripts/check_coverage.py`) not re-run: no backend file changed and `python` is not on this shell's PATH.
+
 ### File List
 
+- `_bmad-output/implementation-artifacts/2-3-view-edit-a-resume.md` (UPDATED — status, ticks, Dev Agent Record)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (UPDATED — 2-3 status)
+- `_bmad-output/implementation-artifacts/deferred-work.md` (UPDATED — Story 2.3 deferrals; disproved 2.2 item struck)
+- `_bmad-output/archive/implementation-artifacts/2-2-browse-my-resumes.md` (UPDATED — corrected a review claim disproved against the live API)
+- `frontend/src/entities/resume/model.ts` (UPDATED — `UpdateResumeCommand`)
+- `frontend/src/entities/resume/resume.service.ts` (UPDATED — `get`, `update`)
+- `frontend/src/entities/resume/resume.service.spec.ts` (UPDATED — get/update/id-encoding specs)
+- `frontend/src/widgets/resume-form/resume-form.diff.ts` (CREATED)
+- `frontend/src/widgets/resume-form/resume-form.diff.spec.ts` (CREATED)
+- `frontend/src/widgets/resume-form/resume-form.ts` (UPDATED — edit mode, adopt/populate, canSubmit, blocked-clear messaging)
+- `frontend/src/widgets/resume-form/resume-form.html` (UPDATED — submit label)
+- `frontend/src/widgets/resume-form/resume-form.spec.ts` (UPDATED — edit-mode describe)
+- `frontend/src/pages/resume-detail/resume-detail.page.ts` (CREATED)
+- `frontend/src/pages/resume-detail/resume-detail.page.html` (CREATED)
+- `frontend/src/pages/resume-detail/resume-detail.page.spec.ts` (CREATED)
+- `frontend/src/app/app.routes.ts` (UPDATED — `resumes/:id` → `ResumeDetailPage`)
+- `frontend/src/app/app.routes.spec.ts` (UPDATED — route wiring + title)
+
 ### Review Findings
+
+Four parallel lenses (adversarial, edge-case hunter, verification gap, acceptance) ran against the diff; each finding was checked against the code before triage.
+
+- [x] [Patch] **high/medium** — A save in flight when the route id changed was not cancelled or id-guarded (its 200/400/403/404 landed on the new résumé; `saving` stayed true): `load()` now unsubscribes the save and resets `saving`.
+- [x] [Patch] **medium** — A save response repopulated the form and wiped edits typed while it was in flight: snapshot-at-send + adopt-without-repopulate for the same id.
+- [x] [Patch] **medium** — Route id interpolated unencoded into the request URL (`..%2Fusers%2Fme` reached `/api/v1/users/me`): `encodeURIComponent` in `get`/`update`.
+- [x] [Patch] **medium** — A stored value the form rejects disabled Save with no visible reason: errors surface on load.
+- [x] [Patch] **low-medium** — Edit-mode Save did not require `dirty` (AC2 wording); adding/removing a language row never dirtied the form (would have made removal un-saveable): both fixed.
+- [x] [Patch] **low** — `salary: ''` from the server became 0; first-load Retry dropped focus to `<body>` (now focuses the loading region); page spec `afterEach` not failure-safe.
+- [x] [Patch] **medium (tests)** — untested: the blocked-clear guard in `onSubmit`, the message's scoping/rendering, banner clearing on repopulate, invalid-edit Save state, the toast fallback, `dirty` requirement, body-less 404, route title, save-vs-id-change, edit-during-save.
+- [x] [Dismiss] Case-variant enum strings validate but do not display — the API serializes enums by canonical name.
+- [x] [Dismiss] Null/partial PATCH response body, and `resume` going back to null — the API returns a full `ResumeResult`, and the page destroys the widget before that can happen.
+- [x] [Dismiss] Trap 2 wording (rebuild rows before reset) — the implemented order is the correct one; see Completion Notes.
+- [x] [Dismiss] Redundant defensive resets (`saving.set(false)` in `load()`, `resume.set(null)` in `handleSaveError`) — harmless.
+- [ ] [Defer] Duplicate skills render with a duplicate track key; legacy server language rows with only one half are dropped from a languages PATCH; a save cancelled by navigating away skips the list-cache invalidation; 403/404 on save does not move focus to the new state; the diff is recomputed several times per change-detection pass. All logged to `deferred-work.md`.
 
 ## Change Log
 
 - 2026-10-21: Story created (ready-for-dev). Baseline: merge of PR #96 (`bb8e78f`).
+- 2026-10-21: Implemented all tasks test-first; verified the PATCH/GET contract against a live API and database; self-reviewed with four parallel lenses (8 patch groups, 4 dismissed, 5 deferred). Frontend 541/541, backend 632/632, AOT build clean. Browser smoke not run. Status set to `review`.

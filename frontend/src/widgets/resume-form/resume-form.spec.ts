@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import type { ProblemDetails } from '@shared/api';
 import { ResumeFormComponent } from './resume-form';
-import type { CreateResumeCommand } from '@entities/resume';
+import type { CreateResumeCommand, ResumeResult, UpdateResumeCommand } from '@entities/resume';
 
 describe('ResumeFormComponent', () => {
   let fixture: ComponentFixture<ResumeFormComponent>;
@@ -363,5 +363,408 @@ describe('ResumeFormComponent', () => {
       expect(component.form.controls.languages.length).toBe(0);
       expect(component.form.dirty).toBe(false);
     });
+  });
+});
+
+describe('ResumeFormComponent — edit mode', () => {
+  let fixture: ComponentFixture<ResumeFormComponent>;
+  let component: ResumeFormComponent;
+  let updates: UpdateResumeCommand[];
+  let creates: CreateResumeCommand[];
+
+  const LOADED: ResumeResult = {
+    id: 'r-1',
+    title: 'Staff Engineer',
+    skills: ['TypeScript', 'Angular'],
+    workLocationType: 'Remote',
+    experience: 'ThreeToFiveYears',
+    currency: 'USD',
+    salary: 5000,
+    locations: ['Germany'],
+    languages: [{ language: 'English', level: 'Advanced' }],
+  };
+
+  beforeEach(() => {
+    fixture = TestBed.createComponent(ResumeFormComponent);
+    component = fixture.componentInstance;
+    updates = [];
+    creates = [];
+    component.update.subscribe((u) => updates.push(u));
+    component.create.subscribe((c) => creates.push(c));
+    fixture.componentRef.setInput('resume', LOADED);
+    fixture.detectChanges();
+  });
+
+  const submitButton = (): HTMLButtonElement =>
+    fixture.nativeElement.querySelector('button[type="submit"]');
+
+  /** Simulates the user changing a control. */
+  function edit<T>(control: { setValue(v: T): void; markAsDirty(): void }, value: T): void {
+    control.setValue(value);
+    control.markAsDirty();
+    fixture.detectChanges();
+  }
+
+  it('populates every control from the résumé, including language rows and locations', () => {
+    const value = component.form.getRawValue();
+
+    expect(value).toMatchObject({
+      title: 'Staff Engineer',
+      skills: ['TypeScript', 'Angular'],
+      workLocationType: 'Remote',
+      experience: 'ThreeToFiveYears',
+      currency: 'USD',
+      salary: 5000,
+      locations: ['Germany'],
+      languages: [{ language: 'English', level: 'Advanced' }],
+    });
+    expect(fixture.nativeElement.querySelectorAll('fieldset ui-select-field').length).toBe(2);
+  });
+
+  it('is pristine after loading, with Save disabled and labelled "Save changes"', () => {
+    expect(component.form.pristine).toBe(true);
+    expect(component.canSubmit).toBe(false);
+    expect(submitButton().disabled).toBe(true);
+    expect(submitButton().textContent?.trim()).toBe('Save changes');
+  });
+
+  it('enables Save after a real change and disables it again after reverting', () => {
+    edit(component.form.controls.title, 'Principal Engineer');
+    expect(component.canSubmit).toBe(true);
+    expect(submitButton().disabled).toBe(false);
+
+    edit(component.form.controls.title, 'Staff Engineer');
+    expect(component.form.dirty).toBe(true);
+    expect(component.canSubmit).toBe(false);
+    expect(submitButton().disabled).toBe(true);
+  });
+
+  it('emits update with only the changed fields, and never create', () => {
+    edit(component.form.controls.currency, 'EUR');
+    edit(component.form.controls.salary, 6000);
+
+    component.onSubmit();
+
+    expect(updates).toEqual([{ currency: 'EUR', salary: 6000 }]);
+    expect(creates).toEqual([]);
+  });
+
+  it('sends a changed language row whole', () => {
+    edit(component.form.controls.languages.at(0).controls.level, 'Native');
+
+    component.onSubmit();
+
+    expect(updates).toEqual([{ languages: [{ language: 'English', level: 'Native' }] }]);
+  });
+
+  it('does not emit anything when nothing changed', () => {
+    component.onSubmit();
+
+    expect(updates).toEqual([]);
+    expect(creates).toEqual([]);
+  });
+
+  it('does not emit while another save is in flight', () => {
+    fixture.componentRef.setInput('submitting', true);
+    edit(component.form.controls.title, 'Changed');
+
+    component.onSubmit();
+
+    expect(updates).toEqual([]);
+    expect(submitButton().disabled).toBe(true);
+  });
+
+  it('does not emit an invalid edit and surfaces the validation error', () => {
+    edit(component.form.controls.title, 'x'.repeat(501));
+
+    component.onSubmit();
+
+    expect(updates).toEqual([]);
+    expect(component.errorFor('title')).toContain('500');
+  });
+
+  it('blocks clearing a field the API cannot clear: message shown, Save disabled, nothing emitted', () => {
+    edit(component.form.controls.skills, []);
+
+    expect(component.errorFor('skills')).toContain("can't be cleared");
+    expect(component.canSubmit).toBe(false);
+    component.onSubmit();
+    expect(updates).toEqual([]);
+  });
+
+  it.each([
+    ['salary', 'salary', null],
+    ['currency', 'currency', ''],
+    ['workLocationType', 'worklocationtype', ''],
+    ['experience', 'experience', ''],
+  ] as const)('shows the cannot-clear message for %s', (control, key, empty) => {
+    edit(component.form.controls[control] as never, empty as never);
+
+    expect(component.errorFor(key)).toContain("can't be cleared");
+    expect(component.canSubmit).toBe(false);
+  });
+
+  it('keeps Save disabled when a blocked clear is combined with a legitimate change', () => {
+    edit(component.form.controls.title, 'New title');
+    edit(component.form.controls.salary, null);
+
+    expect(component.canSubmit).toBe(false);
+  });
+
+  it('allows clearing the title, locations and languages', () => {
+    edit(component.form.controls.title, '');
+    edit(component.form.controls.locations, []);
+    component.removeLanguageRow(0);
+    component.form.controls.languages.markAsDirty();
+    fixture.detectChanges();
+
+    component.onSubmit();
+
+    expect(updates).toEqual([{ title: '', locations: [], languages: [] }]);
+  });
+
+  it('adopts a new résumé as the baseline: pristine again, and the next diff is against it', () => {
+    edit(component.form.controls.title, 'Principal Engineer');
+    const saved: ResumeResult = { ...LOADED, title: 'Principal Engineer' };
+
+    fixture.componentRef.setInput('resume', saved);
+    fixture.detectChanges();
+
+    expect(component.form.pristine).toBe(true);
+    expect(component.canSubmit).toBe(false);
+
+    edit(component.form.controls.currency, 'EUR');
+    component.onSubmit();
+    expect(updates).toEqual([{ currency: 'EUR' }]);
+  });
+
+  it('discards unsaved edits when handed a different résumé', () => {
+    edit(component.form.controls.title, 'Unsaved');
+
+    fixture.componentRef.setInput('resume', { ...LOADED, id: 'r-2', title: 'Other' });
+    fixture.detectChanges();
+
+    expect(component.form.controls.title.value).toBe('Other');
+    expect(component.form.pristine).toBe(true);
+  });
+
+  it('maps a server 400 inline in edit mode and keeps the edits', () => {
+    edit(component.form.controls.title, 'Changed');
+
+    component.applyServerErrors({
+      status: 400,
+      title: 'Validation failed',
+      errors: { Title: ['title is not allowed.'] },
+    } as ProblemDetails);
+
+    expect(component.errorFor('title')).toBe('title is not allowed.');
+    expect(component.form.controls.title.value).toBe('Changed');
+  });
+
+  it('loads a résumé with unrecognised enum strings without throwing', () => {
+    expect(() => {
+      fixture.componentRef.setInput('resume', {
+        ...LOADED,
+        experience: 'SomethingNew',
+        currency: 'XXX',
+        workLocationType: 'Moon',
+      });
+      fixture.detectChanges();
+    }).not.toThrow();
+    expect(component.form.controls.experience.value).toBe('SomethingNew');
+  });
+
+  it('loads a résumé with null optional fields as empty controls', () => {
+    fixture.componentRef.setInput('resume', { id: 'r-9', title: null, skills: null, salary: null });
+    fixture.detectChanges();
+
+    const value = component.form.getRawValue();
+    expect(value.title).toBe('');
+    expect(value.skills).toEqual([]);
+    expect(value.salary).toBeNull();
+    expect(value.languages).toEqual([]);
+  });
+
+  it('does not emit a partial update when a legitimate change is combined with a blocked clear', () => {
+    edit(component.form.controls.title, 'New title');
+    edit(component.form.controls.salary, null);
+
+    component.onSubmit();
+
+    expect(updates).toEqual([]);
+  });
+
+  it('shows the cannot-clear message only on the cleared field, and only once it is touched or dirty', () => {
+    // Value changed programmatically without dirtying: nothing shown yet.
+    component.form.controls.skills.setValue([]);
+    fixture.detectChanges();
+    expect(component.errorFor('skills')).toBe('');
+
+    component.form.controls.skills.markAsDirty();
+    fixture.detectChanges();
+    expect(component.errorFor('skills')).toContain("can't be cleared");
+    expect(component.errorFor('salary')).toBe('');
+    expect(component.errorFor('currency')).toBe('');
+    expect(component.errorFor('title')).toBe('');
+  });
+
+  it.each([
+    ['skills', 'ui-tag-input'],
+    ['salary', 'ui-text-field[name="salary"]'],
+    ['currency', 'ui-select-field[name="currency"]'],
+  ] as const)('renders the cannot-clear message in the template for %s', (field, selector) => {
+    edit(component.form.controls[field] as never, (field === 'skills' ? [] : field === 'salary' ? null : '') as never);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector(selector).textContent).toContain("can't be cleared");
+    const others = fixture.nativeElement.querySelectorAll('[id$="-error"], [role="alert"]');
+    expect(Array.from(others).filter((n) => (n as HTMLElement).textContent?.includes("can't be cleared")).length).toBe(1);
+  });
+
+  it('keeps Save disabled for an invalid edit', () => {
+    edit(component.form.controls.title, 'x'.repeat(501));
+
+    expect(component.canSubmit).toBe(false);
+    expect(submitButton().disabled).toBe(true);
+  });
+
+  it('requires the form to be dirty even when the values differ from the baseline', () => {
+    component.form.controls.title.setValue('Changed programmatically');
+    fixture.detectChanges();
+
+    expect(component.form.dirty).toBe(false);
+    expect(component.canSubmit).toBe(false);
+  });
+
+  it('clears a stale general banner and row errors when the saved résumé arrives', () => {
+    edit(component.form.controls.title, 'Changed');
+    component.applyServerErrors({
+      status: 400,
+      title: 'Validation failed',
+      errors: { Mystery: ['nope'] },
+    } as ProblemDetails);
+    expect(component.generalError()).not.toBe('');
+
+    fixture.componentRef.setInput('resume', { ...LOADED, title: 'Changed' });
+    fixture.detectChanges();
+
+    expect(component.generalError()).toBe('');
+  });
+
+  it('clears the general banner when handed a different résumé', () => {
+    component.applyServerErrors({ status: 500, title: 'Boom' } as ProblemDetails);
+    expect(component.generalError()).toBe('Boom');
+
+    fixture.componentRef.setInput('resume', { ...LOADED, id: 'r-2' });
+    fixture.detectChanges();
+
+    expect(component.generalError()).toBe('');
+  });
+
+  it('after a 400 Save stays disabled until the rejected field is edited again', () => {
+    edit(component.form.controls.title, 'Rejected');
+    component.onSubmit();
+    component.applyServerErrors({
+      status: 400,
+      title: 'Validation failed',
+      errors: { Title: ['title is not allowed.'] },
+    } as ProblemDetails);
+    fixture.detectChanges();
+    expect(component.canSubmit).toBe(false);
+
+    edit(component.form.controls.title, 'Accepted');
+    expect(component.canSubmit).toBe(true);
+  });
+
+  it('treats removing a language row as an edit that enables Save', () => {
+    component.removeLanguageRow(0);
+    fixture.detectChanges();
+
+    expect(component.form.dirty).toBe(true);
+    expect(component.canSubmit).toBe(true);
+    component.onSubmit();
+    expect(updates).toEqual([{ languages: [] }]);
+  });
+
+  it('adding an empty language row alone is not a change', () => {
+    component.addLanguageRow();
+    fixture.detectChanges();
+
+    expect(component.canSubmit).toBe(false);
+  });
+
+  it('shows the validation error for a stored value the form rejects, instead of a silently disabled Save', () => {
+    fixture.componentRef.setInput('resume', { ...LOADED, experience: 'SomethingNew' });
+    fixture.detectChanges();
+
+    expect(component.form.pristine).toBe(true);
+    expect(component.canSubmit).toBe(false);
+    expect(component.errorFor('experience')).toBe('Please choose a valid option.');
+  });
+
+  it('does not show errors on load when every stored value is valid', () => {
+    expect(component.form.touched).toBe(false);
+  });
+
+  describe('edits made while an update is in flight', () => {
+    it('keeps the newer edits when the saved résumé arrives, and sends only them next', () => {
+      edit(component.form.controls.title, 'Sent title');
+      component.onSubmit();
+      expect(updates).toEqual([{ title: 'Sent title' }]);
+
+      edit(component.form.controls.currency, 'EUR');
+      fixture.componentRef.setInput('resume', { ...LOADED, title: 'Sent title' });
+      fixture.detectChanges();
+
+      expect(component.form.controls.currency.value).toBe('EUR');
+      expect(component.form.controls.title.value).toBe('Sent title');
+      expect(component.canSubmit).toBe(true);
+
+      component.onSubmit();
+      expect(updates[1]).toEqual({ currency: 'EUR' });
+    });
+
+    it('resets normally when nothing was edited after sending', () => {
+      edit(component.form.controls.title, 'Sent title');
+      component.onSubmit();
+
+      fixture.componentRef.setInput('resume', { ...LOADED, title: 'Sent title' });
+      fixture.detectChanges();
+
+      expect(component.form.pristine).toBe(true);
+      expect(component.canSubmit).toBe(false);
+    });
+
+    it('always repopulates when handed a different résumé, even after edits since sending', () => {
+      edit(component.form.controls.title, 'Sent title');
+      component.onSubmit();
+      edit(component.form.controls.currency, 'EUR');
+
+      fixture.componentRef.setInput('resume', { ...LOADED, id: 'r-2', title: 'Other', currency: 'USD' });
+      fixture.detectChanges();
+
+      expect(component.form.controls.title.value).toBe('Other');
+      expect(component.form.controls.currency.value).toBe('USD');
+      expect(component.form.pristine).toBe(true);
+    });
+  });
+
+  it('still emits create (not update) when no résumé is supplied', () => {
+    const create = TestBed.createComponent(ResumeFormComponent);
+    const createEmits: CreateResumeCommand[] = [];
+    const updateEmits: UpdateResumeCommand[] = [];
+    create.componentInstance.create.subscribe((c) => createEmits.push(c));
+    create.componentInstance.update.subscribe((u) => updateEmits.push(u));
+    create.detectChanges();
+    create.componentInstance.form.controls.title.setValue('Fresh');
+    create.componentInstance.form.controls.title.markAsDirty();
+
+    create.componentInstance.onSubmit();
+
+    expect(createEmits).toHaveLength(1);
+    expect(updateEmits).toEqual([]);
+    expect(create.nativeElement.querySelector('button[type="submit"]').textContent.trim()).toBe(
+      'Create resume',
+    );
   });
 });

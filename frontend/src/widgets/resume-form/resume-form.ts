@@ -2,10 +2,13 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  computed,
+  effect,
   inject,
   output,
   input,
   signal,
+  untracked,
 } from '@angular/core';
 import { AbstractControl, FormArray, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -22,9 +25,11 @@ import {
   LOCATIONS,
   WORK_LOCATION_TYPES,
 } from '@entities/resume';
-import type { CreateResumeCommand } from '@entities/resume';
+import type { CreateResumeCommand, ResumeResult, UpdateResumeCommand } from '@entities/resume';
 import type { ProblemDetails } from '@shared/api';
 import { SelectFieldComponent, TagInputComponent, TextFieldComponent } from '@shared/ui';
+import { buildUpdateCommand, resumeToFormValue } from './resume-form.diff';
+import type { UpdateDiff } from './resume-form.diff';
 import {
   enumArrayMemberValidator,
   enumMemberValidator,
@@ -82,11 +87,29 @@ function buildLanguageRow(): FormGroup<LanguageRowForm> {
   );
 }
 
+/** Message shown under a field the user emptied but the API cannot clear. */
+const BLOCKED_CLEAR_MESSAGE =
+  "This can't be cleared yet — choose a new value or leave it as it was.";
+
+/** Maps the lowercase keys `errorFor` takes to the control names the diff reports as un-clearable. */
+const BLOCKED_CLEAR_FIELD: Partial<Record<SimpleFieldKey, string>> = {
+  skills: 'skills',
+  worklocationtype: 'workLocationType',
+  experience: 'experience',
+  currency: 'currency',
+  salary: 'salary',
+};
+
 /**
- * Résumé create/edit form (Story 2.1 AC1, AC3). Owns its typed `FormGroup`
- * and client validation; never injects `HttpClient` — the host page owns the
- * network call and calls {@link applyServerErrors} on a `400` (feature-sliced
- * rule: a widget must not call HttpClient directly — Story 1.6 Dev Notes).
+ * Résumé create/edit form (Story 2.1 AC1, AC3; Story 2.3). Owns its typed
+ * `FormGroup` and client validation; never injects `HttpClient` — the host page
+ * owns the network call and calls {@link applyServerErrors} on a `400`
+ * (feature-sliced rule: a widget must not call HttpClient directly — Story 1.6
+ * Dev Notes).
+ *
+ * Create mode (no {@link resume}) emits {@link create}. Edit mode (a loaded
+ * {@link resume}) emits {@link update} with only the fields that differ from
+ * that résumé.
  */
 @Component({
   selector: 'widget-resume-form',
@@ -97,8 +120,19 @@ function buildLanguageRow(): FormGroup<LanguageRowForm> {
 export class ResumeFormComponent {
   /** Disables the submit button while a create request is in flight. */
   readonly submitting = input<boolean>(false);
-  /** Emits the mapped command shape on a valid submit. */
+  /** Emits the mapped command shape on a valid submit (create mode). */
   readonly create = output<CreateResumeCommand>();
+  /**
+   * The résumé being edited, or null to create a new one. Assigning a new value
+   * (e.g. the response to a save) repopulates the form and becomes the baseline
+   * the next diff is computed against.
+   */
+  readonly resume = input<ResumeResult | null>(null);
+  /** Emits only the changed fields on a valid submit (edit mode). */
+  readonly update = output<UpdateResumeCommand>();
+
+  /** True when a résumé was supplied, i.e. the form edits rather than creates. */
+  readonly editing = computed(() => this.resume() !== null);
 
   protected readonly workLocationTypeOptions = WORK_LOCATION_TYPE_OPTIONS;
   protected readonly experienceOptions = EXPERIENCE_OPTIONS;
@@ -152,16 +186,41 @@ export class ResumeFormComponent {
    * `signal()` write normally does).
    */
   private languageRowServerErrors: Record<string, string> = {};
+  /** The form's value when the last update was emitted, to tell edits made while it was in flight. */
+  private submittedSnapshot: string | null = null;
+  /** Id of the résumé the form was last populated from. */
+  private populatedId: string | undefined;
   private readonly cdr = inject(ChangeDetectorRef);
 
-  /** Submit is enabled only when the form is dirty, valid, and not already submitting. */
+  constructor() {
+    effect(() => {
+      const resume = this.resume();
+      if (resume) {
+        untracked(() => this.adopt(resume));
+      }
+    });
+  }
+
+  /**
+   * Create mode: enabled when the form is dirty, valid, and not submitting.
+   * Edit mode: enabled when it is valid, not submitting, differs from the loaded
+   * résumé (so edit-then-revert disables it again) and has no blocked clears.
+   */
   get canSubmit(): boolean {
-    return this.form.dirty && this.form.valid && !this.submitting();
+    if (this.submitting() || !this.form.valid) {
+      return false;
+    }
+    const diff = this.currentDiff();
+    if (diff === null) {
+      return this.form.dirty;
+    }
+    return this.form.dirty && Object.keys(diff.command).length > 0 && diff.blockedClears.length === 0;
   }
 
   /** Appends an empty language-proficiency row. */
   addLanguageRow(): void {
     this.form.controls.languages.push(buildLanguageRow());
+    this.form.controls.languages.markAsDirty();
     // Row indices shift on add/remove; a stale index→error mapping could point at the wrong row.
     this.languageRowServerErrors = {};
     this.cdr.markForCheck();
@@ -170,6 +229,7 @@ export class ResumeFormComponent {
   /** Removes the language-proficiency row at the given index. */
   removeLanguageRow(index: number): void {
     this.form.controls.languages.removeAt(index);
+    this.form.controls.languages.markAsDirty();
     this.languageRowServerErrors = {};
     this.cdr.markForCheck();
   }
@@ -181,8 +241,12 @@ export class ResumeFormComponent {
    */
   errorFor(field: SimpleFieldKey): string {
     const control = this.simpleControl(field);
-    if (!control.errors || !(control.touched || control.dirty)) {
+    if (!(control.touched || control.dirty)) {
       return '';
+    }
+    if (!control.errors) {
+      const blocked = BLOCKED_CLEAR_FIELD[field];
+      return blocked && this.currentDiff()?.blockedClears.includes(blocked) ? BLOCKED_CLEAR_MESSAGE : '';
     }
     return this.messageForErrors(control.errors);
   }
@@ -216,7 +280,17 @@ export class ResumeFormComponent {
       return;
     }
 
-    this.create.emit(this.buildCommand());
+    const diff = this.currentDiff();
+    if (diff === null) {
+      this.create.emit(this.buildCommand());
+      return;
+    }
+    if (Object.keys(diff.command).length === 0 || diff.blockedClears.length > 0) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    this.submittedSnapshot = JSON.stringify(this.form.getRawValue());
+    this.update.emit(diff.command);
   }
 
   /**
@@ -282,6 +356,67 @@ export class ResumeFormComponent {
       locations: [],
     });
     this.generalError.set('');
+  }
+
+  /** The diff against the loaded résumé, or null in create mode. */
+  private currentDiff(): UpdateDiff | null {
+    const resume = this.resume();
+    return resume ? buildUpdateCommand(resume, this.form.getRawValue()) : null;
+  }
+
+  /**
+   * Takes a new `resume` input as the baseline. Normally that repopulates the
+   * form, but if the user kept editing after the last update was sent, the
+   * response must not wipe those edits: the form is left alone and only the
+   * baseline (which the diff reads from the input) moves, so the next Save sends
+   * just the newer edits.
+   */
+  private adopt(resume: ResumeResult): void {
+    const sameResume = resume.id !== undefined && resume.id === this.populatedId;
+    const editedSinceSend =
+      this.submittedSnapshot !== null && this.submittedSnapshot !== JSON.stringify(this.form.getRawValue());
+    this.submittedSnapshot = null;
+    this.populatedId = resume.id;
+    if (sameResume && editedSinceSend) {
+      this.cdr.markForCheck();
+      return;
+    }
+    this.populate(resume);
+  }
+
+  /**
+   * Fills the form from a loaded résumé, leaving it pristine and untouched so
+   * Save stays disabled until the user changes something. Language rows are
+   * rebuilt after the reset (the reset would otherwise blank them).
+   */
+  private populate(resume: ResumeResult): void {
+    const value = resumeToFormValue(resume);
+    // Reset first: form.reset() also resets every row already in the FormArray,
+    // which would blank rows built beforehand.
+    this.form.reset({
+      title: value.title,
+      skills: value.skills,
+      workLocationType: value.workLocationType as WorkLocationType | '',
+      experience: value.experience as Experience | '',
+      currency: value.currency as Currency | '',
+      salary: value.salary,
+      locations: value.locations as Location[],
+    });
+    const languages = this.form.controls.languages;
+    languages.clear();
+    for (const row of value.languages) {
+      const group = buildLanguageRow();
+      group.setValue({ language: row.language as Language, level: row.level as LanguageLevel });
+      languages.push(group);
+    }
+    this.languageRowServerErrors = {};
+    this.generalError.set('');
+    // A stored value the form considers invalid (e.g. an unknown enum string)
+    // would otherwise disable Save with no visible reason.
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+    }
+    this.cdr.markForCheck();
   }
 
   private buildCommand(): CreateResumeCommand {

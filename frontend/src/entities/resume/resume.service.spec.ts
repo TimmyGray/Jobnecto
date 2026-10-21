@@ -8,7 +8,7 @@ import { TestBed } from '@angular/core/testing';
 import { httpInterceptor } from '@shared/api/http.interceptor';
 import { env } from '@shared/config';
 import { ResumeService } from './resume.service';
-import type { CreateResumeCommand, PagedResumes, ResumeResult } from './model';
+import type { CreateResumeCommand, PagedResumes, ResumeResult, UpdateResumeCommand } from './model';
 import type { ProblemDetails } from '@shared/api';
 
 /** A minimal but structurally complete paged response. */
@@ -189,4 +189,122 @@ describe('ResumeService', () => {
       httpMock.verify();
     });
   });
+
+  describe('get()', () => {
+    it('GETs /resumes/{id} with credentials', () => {
+      let result: ResumeResult | undefined;
+      service.get('r-7').subscribe((r) => (result = r));
+
+      const req = httpMock.expectOne(`${env.apiBaseUrl}/resumes/r-7`);
+      expect(req.request.method).toBe('GET');
+      expect(req.request.withCredentials).toBe(true);
+      req.flush({ id: 'r-7', title: 'Detail' });
+
+      expect(result?.title).toBe('Detail');
+      httpMock.verify();
+    });
+
+    it('does not touch the list cache', () => {
+      service.list(5).subscribe();
+      listRequest().flush(pagedResumes({ totalCount: 2 }));
+
+      service.get('r-7').subscribe();
+      httpMock.expectOne(`${env.apiBaseUrl}/resumes/r-7`).flush({ id: 'r-7' });
+
+      expect(service.page()?.totalCount).toBe(2);
+      httpMock.verify();
+    });
+
+    it('propagates a 404 ProblemDetails', () => {
+      let error: ProblemDetails | undefined;
+      service.get('missing').subscribe({ error: (e: ProblemDetails) => (error = e) });
+      httpMock
+        .expectOne(`${env.apiBaseUrl}/resumes/missing`)
+        .flush({ title: 'Not found', status: 404 }, { status: 404, statusText: 'Not Found' });
+
+      expect(error?.status).toBe(404);
+      httpMock.verify();
+    });
+  });
+
+  describe('id encoding', () => {
+    it('percent-encodes the id in get() so a crafted route param cannot change the path', () => {
+      service.get('../users/me').subscribe();
+
+      const req = httpMock.expectOne((r) => r.method === 'GET');
+      expect(req.request.url).toBe(`${env.apiBaseUrl}/resumes/..%2Fusers%2Fme`);
+      req.flush({});
+    });
+
+    it('percent-encodes the id in update()', () => {
+      service.update('x?a=b#c', { title: 'T' }).subscribe();
+
+      const req = httpMock.expectOne((r) => r.method === 'PATCH');
+      expect(req.request.url).toBe(`${env.apiBaseUrl}/resumes/x%3Fa%3Db%23c`);
+      req.flush({});
+    });
+  });
+
+  describe('update()', () => {
+    const command: UpdateResumeCommand = { title: 'Renamed' };
+    const updated: ResumeResult = { id: 'r-7', title: 'Renamed' };
+
+    it('PATCHes exactly the given body to /resumes/{id} with credentials', () => {
+      service.update('r-7', command).subscribe();
+
+      const req = httpMock.expectOne(`${env.apiBaseUrl}/resumes/r-7`);
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.withCredentials).toBe(true);
+      expect(req.request.body).toEqual(command);
+
+      req.flush(updated);
+      httpMock.verify();
+    });
+
+    it('emits the updated résumé and invalidates the cached page on success', () => {
+      service.list(5).subscribe();
+      listRequest().flush(pagedResumes({ totalCount: 1 }));
+      expect(service.page()).not.toBeNull();
+
+      let result: ResumeResult | undefined;
+      service.update('r-7', command).subscribe((r) => (result = r));
+      httpMock.expectOne(`${env.apiBaseUrl}/resumes/r-7`).flush(updated);
+
+      expect(result).toEqual(updated);
+      expect(service.page()).toBeNull();
+      httpMock.verify();
+    });
+
+    it('a stale in-flight list() cannot resurrect the cache after update() invalidates it', () => {
+      service.list(5).subscribe();
+      const staleListReq = listRequest();
+
+      service.update('r-7', command).subscribe();
+      httpMock.expectOne(`${env.apiBaseUrl}/resumes/r-7`).flush(updated);
+      staleListReq.flush(pagedResumes({ totalCount: 3 }));
+
+      expect(service.page()).toBeNull();
+      httpMock.verify();
+    });
+
+    it.each([
+      [400, 'Validation failed'],
+      [403, 'Forbidden'],
+      [404, 'Not found'],
+    ])('propagates a %i ProblemDetails and leaves the cache alone', (status, title) => {
+      service.list(5).subscribe();
+      listRequest().flush(pagedResumes({ totalCount: 2 }));
+
+      let error: ProblemDetails | undefined;
+      service.update('r-7', command).subscribe({ error: (e: ProblemDetails) => (error = e) });
+      httpMock
+        .expectOne(`${env.apiBaseUrl}/resumes/r-7`)
+        .flush({ title, status }, { status, statusText: title });
+
+      expect(error?.status).toBe(status);
+      expect(service.page()?.totalCount).toBe(2);
+      httpMock.verify();
+    });
+  });
+
 });

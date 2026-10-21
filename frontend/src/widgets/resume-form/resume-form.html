@@ -109,6 +109,6 @@
     [disabled]="!canSubmit"
     class="self-start rounded-md bg-action-primary px-4 py-2 text-md font-medium text-text-inverse transition-colors duration-standard hover:bg-action-primaryHover disabled:cursor-not-allowed disabled:opacity-50"
   >
-    Create resume
+    {{ editing() ? 'Save changes' : 'Create resume' }}
   </button>
 </form>

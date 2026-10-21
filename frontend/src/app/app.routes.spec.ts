@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Route } from '@angular/router';
+import { ResumeDetailPage } from '@pages/resume-detail/resume-detail.page';
 import { ResumeListPage } from '@pages/resume-list/resume-list.page';
 import { routes } from './app.routes';
 import { authGuard } from './auth.guard';
@@ -69,6 +70,19 @@ describe('routes', () => {
     const component = await (child?.loadComponent as () => Promise<unknown>)();
 
     expect(component).toBe(ResumeListPage);
+  });
+
+  it('serves /resumes/:id with the real detail page, not the coming-soon stub', async () => {
+    const child = findShellRoute().children?.find((c) => c.path === 'resumes/:id');
+    const component = await (child?.loadComponent as () => Promise<unknown>)();
+
+    expect(component).toBe(ResumeDetailPage);
+  });
+
+  it('titles the résumé detail route', () => {
+    const child = findShellRoute().children?.find((c) => c.path === 'resumes/:id');
+
+    expect(child?.data?.['title']).toBe('Resume');
   });
 
   it('registers resumes/new before resumes/:id so :id cannot swallow "new"', () => {
