@@ -1,5 +1,15 @@
 # Deferred Work
 
+## Deferred from: Story 2.4 soft-delete-a-resume (2026-10-21)
+
+- **Delete from the list and undo** are not built (no card menu; the API exposes no restore). Product call.
+- **Cover letters generated from a deleted résumé** — check the coupling when Epics 4/5 land (a soft-deleted résumé must not break a saved letter's view).
+- **No scroll lock behind the modal dialog** (`showModal` makes the page inert but doesn't stop wheel/touch scrolling).
+- **Focus after a successful delete** lands on <body> on the list page; the app shell has no post-navigation focus management (e.g. move focus to the page `h1`). Applies to every route change.
+- **The dialog backdrop uses an arbitrary Tailwind value** (`backdrop:bg-[color:var(--color-text-primary)]`) because there is no overlay token; add one to the token set.
+- **Two copies of the `<dialog>` jsdom stub** (dialog spec and detail-page spec); extract a shared test helper if a third dialog consumer appears.
+- **Native `<dialog>` behaviour is only verified against a stub in jsdom** — focus trap, Escape, backdrop and top layer need a browser (e2e/manual) check.
+
 ## Deferred from: Story 2.3 view-edit-a-resume (2026-10-21)
 
 - **The API cannot clear skills, salary, currency, work-location or experience once set** (validator

@@ -95,6 +95,20 @@ export class ResumeService {
       .pipe(tap(() => this.invalidate()));
   }
 
+  /**
+   * Soft-deletes one of the caller's résumés.
+   * @param id The résumé id.
+   * @returns Completes on `204`; on success the cached list page is invalidated
+   * (it still contains the row). Errors with `403` (another user's résumé) or
+   * `404` (unknown, already deleted, or not a valid id) — a repeated delete is a
+   * `404`, not a `204`.
+   */
+  delete(id: string): Observable<void> {
+    return this.http
+      .delete<void>(`/resumes/${encodeURIComponent(id)}`)
+      .pipe(tap(() => this.invalidate()));
+  }
+
   /** Clears the cached page so the next read refetches, and fences off any in-flight list(). */
   invalidate(): void {
     this.generation++;

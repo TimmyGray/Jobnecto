@@ -18,12 +18,12 @@ import type { ResumeResult, UpdateResumeCommand } from '@entities/resume';
 import { mapProblemToUxState } from '@shared/api';
 import type { ProblemDetails } from '@shared/api';
 import {
+  ConfirmDialogComponent,
   ErrorStateComponent,
   ForbiddenStateComponent,
   NotFoundStateComponent,
   PageHeaderComponent,
   SkeletonComponent,
-  ToastHostComponent,
   ToastService,
 } from '@shared/ui';
 import { ResumeFormComponent } from '@widgets/resume-form';
@@ -55,7 +55,7 @@ type DetailStatus = 'loading' | 'ready' | 'not-found' | 'forbidden' | 'error';
     NotFoundStateComponent,
     ForbiddenStateComponent,
     ErrorStateComponent,
-    ToastHostComponent,
+    ConfirmDialogComponent,
   ],
   templateUrl: './resume-detail.page.html',
 })
@@ -69,8 +69,11 @@ export class ResumeDetailPage {
 
   private readonly form = viewChild(ResumeFormComponent);
   private readonly loadingRegion = viewChild<ElementRef<HTMLElement>>('loadingRegion');
+  private readonly recoveryRegion = viewChild('recoveryRegion', { read: ElementRef<HTMLElement> });
+  protected readonly deleteButton = viewChild<ElementRef<HTMLButtonElement>>('deleteButton');
   private loadSubscription: Subscription | undefined;
   private saveSubscription: Subscription | undefined;
+  private deleteSubscription: Subscription | undefined;
   private id = '';
 
   /** Which of the page's views is showing. */
@@ -79,6 +82,10 @@ export class ResumeDetailPage {
   readonly resume = signal<ResumeResult | null>(null);
   /** True while a save request is in flight. */
   readonly saving = signal(false);
+  /** True while the delete confirmation dialog is showing. */
+  readonly confirmingDelete = signal(false);
+  /** True while a delete request is in flight. */
+  readonly deleting = signal(false);
 
   /** The heading: the résumé's title once loaded, with a placeholder for a blank one. */
   protected readonly heading = computed(() => {
@@ -127,7 +134,7 @@ export class ResumeDetailPage {
    * @param command Only the fields that changed.
    */
   onUpdate(command: UpdateResumeCommand): void {
-    if (this.saving()) {
+    if (this.saving() || this.deleting()) {
       return;
     }
     this.saving.set(true);
@@ -146,15 +153,94 @@ export class ResumeDetailPage {
       });
   }
 
+  /** Opens the delete confirmation. Nothing is sent until the user confirms; ignored while a save is in flight. */
+  openDelete(): void {
+    if (!this.saving()) {
+      this.confirmingDelete.set(true);
+    }
+  }
+
+  /** Dismisses the delete confirmation without deleting. Ignored once the request is in flight. */
+  cancelDelete(): void {
+    if (!this.deleting()) {
+      this.confirmingDelete.set(false);
+    }
+  }
+
+  /**
+   * Soft-deletes the résumé after the user confirmed. On success the list cache
+   * has been invalidated by the service, so the page toasts and goes to the
+   * list, whose first load fetches a fresh page, cursor and total. A `403` or
+   * `404` replaces the page with the matching recovery state (a `404` means it
+   * is already gone, which is what the user wanted); anything else toasts and
+   * leaves the résumé as it was so the user can try again.
+   */
+  onConfirmDelete(): void {
+    if (this.deleting()) {
+      return;
+    }
+    this.deleting.set(true);
+    this.deleteSubscription = this.resumeService
+      .delete(this.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.afterDeleted(),
+        error: (problem: ProblemDetails) => {
+          this.deleting.set(false);
+          this.handleDeleteError(problem);
+        },
+      });
+  }
+
+  /**
+   * The résumé is gone. `deleting` stays true until the page is torn down by the
+   * navigation, so Save and Delete cannot be used on a résumé that no longer
+   * exists while the (lazy) list route loads. The URL is replaced so Back does not
+   * return to this now-dead address, and the toast is raised only once the list
+   * is showing, so its auto-dismiss timer does not run while the route loads.
+   */
+  private afterDeleted(): void {
+    this.confirmingDelete.set(false);
+    void this.router.navigate(['/resumes'], { replaceUrl: true }).then((navigated) => {
+      this.toastService.show('Résumé deleted', 'success');
+      if (!navigated) {
+        // Still here although the résumé is gone: show the honest state.
+        this.deleting.set(false);
+        this.resume.set(null);
+        this.status.set('not-found');
+        this.focusRecoveryRegion();
+      }
+    });
+  }
+
+  /**
+   * After the page swaps to a recovery state the control that held focus (Save,
+   * Delete) is gone; move focus to the recovery region so it is not left on <body>.
+   */
+  private focusRecoveryRegion(): void {
+    afterNextRender(
+      () => {
+        const active = document.activeElement;
+        if (!active || active === document.body) {
+          this.recoveryRegion()?.nativeElement.focus();
+        }
+      },
+      { injector: this.injector },
+    );
+  }
+
   /**
    * Loads the résumé for the current id. Cancels any load still in flight and
-   * any save issued for the previous id, so a late response can never be applied
-   * to the résumé now showing.
+   * any save or delete issued for the previous id, so a late response can never
+   * be applied to the résumé now showing.
    */
   private load(): void {
     this.loadSubscription?.unsubscribe();
     this.saveSubscription?.unsubscribe();
+    this.deleteSubscription?.unsubscribe();
     this.saving.set(false);
+    this.deleting.set(false);
+    this.confirmingDelete.set(false);
     this.resume.set(null);
     this.status.set('loading');
     this.loadSubscription = this.resumeService
@@ -169,6 +255,18 @@ export class ResumeDetailPage {
       });
   }
 
+  private handleDeleteError(problem: ProblemDetails): void {
+    this.confirmingDelete.set(false);
+    const state = mapProblemToUxState(problem);
+    if (state === 'error') {
+      this.toastService.show(problem.detail ?? problem.title, 'error');
+      return;
+    }
+    this.resume.set(null);
+    this.status.set(state);
+    this.focusRecoveryRegion();
+  }
+
   private handleSaveError(problem: ProblemDetails): void {
     if (problem.status === 400) {
       this.form()?.applyServerErrors(problem);
@@ -181,5 +279,6 @@ export class ResumeDetailPage {
     }
     this.resume.set(null);
     this.status.set(state);
+    this.focusRecoveryRegion();
   }
 }

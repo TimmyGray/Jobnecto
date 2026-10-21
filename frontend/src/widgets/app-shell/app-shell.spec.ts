@@ -2,6 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { ToastService } from '@shared/ui';
 import { AppShellComponent } from './app-shell';
 import { NAV_ITEMS } from './nav-items';
 
@@ -10,6 +11,21 @@ describe('AppShellComponent', () => {
     TestBed.configureTestingModule({
       providers: [provideRouter([{ path: '**', component: AppShellComponent }])],
     });
+  });
+
+  it('hosts the toasts once, so a toast raised on one page is announced by a live region that already exists', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/dashboard', AppShellComponent);
+    const hosts = harness.fixture.nativeElement.querySelectorAll('ui-toast-host');
+    expect(hosts).toHaveLength(1);
+    const region = hosts[0].querySelector('[aria-live="polite"]');
+    expect(region).not.toBeNull();
+
+    TestBed.inject(ToastService).show('Résumé deleted', 'success');
+    harness.fixture.detectChanges();
+
+    expect(harness.fixture.nativeElement.querySelector('ui-toast-host [aria-live="polite"]')).toBe(region);
+    expect(region.textContent).toContain('Résumé deleted');
   });
 
   it('renders every NAV_ITEMS label as a link to its route', async () => {
