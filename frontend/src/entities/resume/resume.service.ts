@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { PageCursor } from '@shared/api';
-import { CreateResumeCommand, PagedResumes, ResumeResult } from './model';
+import { CreateResumeCommand, PagedResumes, ResumeResult, UpdateResumeCommand } from './model';
 
 /** Server-side default; the API caps anything above 100. */
 const DEFAULT_PAGE_SIZE = 20;
@@ -67,6 +67,31 @@ export class ResumeService {
   create(command: CreateResumeCommand): Observable<ResumeResult> {
     return this.http
       .post<ResumeResult>('/resumes', command)
+      .pipe(tap(() => this.invalidate()));
+  }
+
+  /**
+   * Fetches one of the caller's résumés. Never cached: the detail page always
+   * wants the server's current copy.
+   * @param id The résumé id.
+   * @returns The résumé. Errors with a `404` for an unknown, soft-deleted or
+   * other-user id (existence is not disclosed).
+   */
+  get(id: string): Observable<ResumeResult> {
+    return this.http.get<ResumeResult>(`/resumes/${encodeURIComponent(id)}`);
+  }
+
+  /**
+   * Partially updates a résumé: the server leaves omitted/null fields unchanged.
+   * @param id The résumé id.
+   * @param command Only the fields that changed.
+   * @returns The updated résumé. On success, invalidates the cached list page
+   * (its copy of this résumé is now stale). Errors with `400` (validation),
+   * `403` (another user's résumé) or `404` (unknown/soft-deleted).
+   */
+  update(id: string, command: UpdateResumeCommand): Observable<ResumeResult> {
+    return this.http
+      .patch<ResumeResult>(`/resumes/${encodeURIComponent(id)}`, command)
       .pipe(tap(() => this.invalidate()));
   }
 

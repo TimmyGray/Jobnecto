@@ -58,10 +58,8 @@ export const routes: Routes = [
       {
         path: 'resumes/:id',
         loadComponent: () =>
-          import('@pages/coming-soon-stub/coming-soon-stub.page').then(
-            (m) => m.ComingSoonStubPage,
-          ),
-        data: { title: 'Resumes detail' },
+          import('@pages/resume-detail/resume-detail.page').then((m) => m.ResumeDetailPage),
+        data: { title: 'Resume' },
       },
       {
         path: 'educations',

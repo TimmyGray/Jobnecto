@@ -1,5 +1,22 @@
 # Deferred Work
 
+## Deferred from: Story 2.3 view-edit-a-resume (2026-10-21)
+
+- **The API cannot clear skills, salary, currency, work-location or experience once set** (validator
+  rejects `[]` / `""`, `null` means "unchanged"; verified live). The edit form blocks those clears
+  with an inline message. If users need to clear them: a small backend story (accept explicit
+  clears, relax the skills rule) plus removing the blocked-clear handling in `resume-form.diff.ts`.
+- **No unsaved-changes guard** when navigating away from `/resumes/:id` with edits.
+- **Duplicate skills** render with a duplicate `@for` track key in `TagInputComponent` (NG0955) and
+  can be sent as typed or returned by the server.
+- **Legacy server language rows with only a language or only a level are dropped** from a
+  `languages` PATCH (the form only edits complete rows and the array is sent whole).
+- **A save cancelled by navigating away skips `invalidate()`** (it runs on the response), so the
+  cached list page may briefly show the old title if the server had already committed.
+- **403/404 on save does not move focus** to the forbidden/not-found state (the form that held focus is removed).
+- **`currentDiff()` is recomputed several times per change-detection pass** (`canSubmit`, each
+  `errorFor`). Harmless at this size; a `computed` over a form-value signal would be cleaner.
+
 ## Deferred from: Story 2.2 browse-my-resumes (2026-10-21)
 
 - **Card markup is duplicated between `widgets/recent-resumes` and `widgets/resume-list`.** Same
@@ -25,10 +42,7 @@
 - **`totalCount` is overwritten per page**, so rows added or removed mid-paging can announce
   "Showing 25 of 24 résumés".
 - **`updatedAt | date` throws NG02100 on an unparsable string**, which would blank the whole list.
-- **Load-more can add nothing and say nothing.** `BaseRepository` only applies the cursor filter if
-  a row with that exact `Id`/`UpdatedAt` still exists; if the cursor row was edited or soft-deleted
-  since the page loaded the server returns page 1 again, `uniqueById` drops all of it, and the
-  button just re-enables. Consider an "Already up to date / list changed — refresh" message.
+- ~~Load-more can add nothing and say nothing when the cursor row is edited~~ — **disproved 2026-10-21** against the live API (25 seeded résumés, PATCH the page-1 cursor row, request page 2 with the old cursor): the server returned the remaining 5 items correctly; it keyset-filters on the cursor values and does not need the row to still exist. No action.
 - **`ResumeListPage` and `ResumeListComponent` use DOM queries** (`querySelector('ui-cursor-pagination')`
   was removed, but `focusCard` still uses `:scope > ul > li > *`, and the page reads
   `document.activeElement`). Prefer `viewChildren` and an injected `DOCUMENT` (SSR-safe).

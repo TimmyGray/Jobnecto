@@ -1,0 +1,52 @@
+<ui-page-header eyebrow="Résumés">
+  {{ heading() }}
+
+  <a
+    primaryAction
+    routerLink="/resumes"
+    class="inline-flex shrink-0 items-center rounded-md border border-border-default bg-surface px-4 py-2 text-md font-medium text-text-primary transition-colors duration-standard hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-focus"
+    >Back to résumés</a
+  >
+</ui-page-header>
+
+@switch (status()) {
+  @case ('loading') {
+    <div
+      #loadingRegion
+      data-testid="resume-skeleton"
+      tabindex="-1"
+      class="flex flex-col gap-4"
+      role="status"
+    >
+      <span class="sr-only">Loading résumé…</span>
+      <ui-skeleton [lines]="8" />
+    </div>
+  }
+  @case ('ready') {
+    <widget-resume-form [resume]="resume()" [submitting]="saving()" (update)="onUpdate($event)" />
+  }
+  @case ('not-found') {
+    <ui-not-found-state
+      headline="Résumé not found"
+      guidance="It may have been deleted, or the link may be wrong."
+      backLabel="Back to résumés"
+      (back)="goBack()"
+    />
+  }
+  @case ('forbidden') {
+    <ui-forbidden-state
+      guidance="This résumé isn't available to you."
+      recoverLabel="Back to résumés"
+      (recover)="goBack()"
+    />
+  }
+  @case ('error') {
+    <ui-error-state
+      headline="Couldn't load this résumé"
+      detail="Check your connection and try again."
+      (retry)="retry()"
+    />
+  }
+}
+
+<ui-toast-host />

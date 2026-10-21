@@ -17,3 +17,6 @@ export type PagedResumes = components['schemas']['PagedResultOfResumeResult'];
 
 /** Request body for `POST /api/v1/resumes`. */
 export type CreateResumeCommand = components['schemas']['CreateResumeCommand'];
+
+/** Request body for `PATCH /api/v1/resumes/{id}`; omitted/null fields are left unchanged by the server. */
+export type UpdateResumeCommand = components['schemas']['UpdateResumeCommand'];

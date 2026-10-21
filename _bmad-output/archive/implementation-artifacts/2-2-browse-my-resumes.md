@@ -252,7 +252,7 @@ Regression lens: **no findings** (every caller of `toCount`, the `/resumes` rout
 - [x] [Patch] **medium (tests)** — AC3 layout untested (skeleton count/grid parity now asserted), `aria-disabled`-not-`disabled` untested, the focus-while-button-survives branch untested, one failing page test cascaded into dozens (`afterEach` now `try/finally` + stray-node cleanup), a timezone-dependent date assertion (now computed with the same local formatting), fixtures redundantly appended to `document.body`, `nextCursor` with omitted fields.
 - [x] [Dismiss] `toCount` still accepts `[]`/`false`/negatives — input is typed `number | string` from an int32; no reachable impact.
 - [x] [Dismiss] `retry()` re-entry guard is unreachable from the UI — harmless defensive code, and tested directly.
-- [ ] [Defer] `aria-busy` on a button is ignored by most AT (harmless, kept). Page/widget use DOM queries (`querySelector`, `:scope > ul > li > *`) rather than Angular queries. The whole-card link has a verbose accessible name (matches the dashboard pattern). Server silently returns page 1 when the cursor row was edited/soft-deleted since load, so a load-more can add nothing new with no feedback. All logged to `deferred-work.md`.
+- [ ] [Defer] `aria-busy` on a button is ignored by most AT (harmless, kept). Page/widget use DOM queries (`querySelector`, `:scope > ul > li > *`) rather than Angular queries. The whole-card link has a verbose accessible name (matches the dashboard pattern). (The review lens also claimed the server returns page 1 again when the cursor row was edited; disproved against the live API in the post-merge smoke test — it returns the remaining items correctly.) All logged to `deferred-work.md`.
 
 ## Change Log
 
