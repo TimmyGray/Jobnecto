@@ -17,6 +17,11 @@ describe('nextCursor', () => {
     expect(nextCursor({ hasNext: true, lastSeenId: ID, lastSeenUpdatedAt: null })).toBeNull();
   });
 
+  it('returns null when cursor fields are omitted entirely', () => {
+    const omitted = { hasNext: true } as unknown as Parameters<typeof nextCursor>[0];
+    expect(nextCursor(omitted)).toBeNull();
+  });
+
   it('returns null for empty-string cursor fields', () => {
     expect(nextCursor({ hasNext: true, lastSeenId: '', lastSeenUpdatedAt: UPDATED })).toBeNull();
     expect(nextCursor({ hasNext: true, lastSeenId: ID, lastSeenUpdatedAt: '' })).toBeNull();

@@ -39,11 +39,14 @@ describe('ResumeListComponent', () => {
     expect(cards()).toHaveLength(3);
   });
 
-  it('renders cards, never a table', () => {
+  it('renders cards in a one-column, md-two-column grid, never a table', () => {
     render([resume()]);
 
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
-    expect(fixture.nativeElement.querySelector('ul')).not.toBeNull();
+    const list = fixture.nativeElement.querySelector('ul');
+    expect(list.className).toContain('grid');
+    expect(list.className).toContain('md:grid-cols-2');
+    expect(list.className).not.toContain('grid-cols-3');
   });
 
   it('links each card to its detail route', () => {
@@ -61,7 +64,12 @@ describe('ResumeListComponent', () => {
     ]);
 
     const titles = cards().map((c) => c.querySelector('h2')?.textContent?.trim());
-    expect(titles).toEqual(['Staff Engineer', 'Untitled resume', 'Untitled resume', 'Untitled resume']);
+    expect(titles).toEqual([
+      'Staff Engineer',
+      'Untitled resume',
+      'Untitled resume',
+      'Untitled resume',
+    ]);
   });
 
   it('humanizes enum values in the meta line', () => {
@@ -95,7 +103,12 @@ describe('ResumeListComponent', () => {
     const chips = Array.from(
       fixture.nativeElement.querySelectorAll('[data-testid="resume-skill"]'),
     ).map((c) => (c as HTMLElement).textContent?.trim());
-    expect(chips).toEqual(['a', 'b', 'c', 'd', 'e', '+2']);
+    expect(chips).toEqual(['a', 'b', 'c', 'd', 'e']);
+
+    const overflow = fixture.nativeElement.querySelector('[data-testid="resume-skill-overflow"]');
+    expect(overflow.textContent).toContain('+2');
+    expect(overflow.querySelector('.sr-only').textContent.trim()).toBe('and 2 more skills');
+    expect(overflow.querySelector('[aria-hidden="true"]').textContent.trim()).toBe('+2');
   });
 
   it('shows all skills with no overflow chip when there are five or fewer', () => {
@@ -103,7 +116,7 @@ describe('ResumeListComponent', () => {
 
     const chips = fixture.nativeElement.querySelectorAll('[data-testid="resume-skill"]');
     expect(chips).toHaveLength(5);
-    expect(fixture.nativeElement.textContent).not.toContain('+0');
+    expect(fixture.nativeElement.querySelector('[data-testid="resume-skill-overflow"]')).toBeNull();
   });
 
   it('drops blank skills before capping and counting', () => {
@@ -112,7 +125,10 @@ describe('ResumeListComponent', () => {
     const chips = Array.from(
       fixture.nativeElement.querySelectorAll('[data-testid="resume-skill"]'),
     ).map((c) => (c as HTMLElement).textContent?.trim());
-    expect(chips).toEqual(['a', 'b', 'c', 'd', 'e', '+1']);
+    expect(chips).toEqual(['a', 'b', 'c', 'd', 'e']);
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="resume-skill-overflow"]').textContent,
+    ).toContain('+1');
   });
 
   it('lets long unbroken titles and skills wrap instead of widening the grid', () => {
@@ -126,7 +142,11 @@ describe('ResumeListComponent', () => {
   });
 
   it('preserves the order it is given (no client-side sorting)', () => {
-    render([resume({ id: 'z', title: 'Zed' }), resume({ id: 'a', title: 'Alpha' }), resume({ id: 'm', title: 'Mid' })]);
+    render([
+      resume({ id: 'z', title: 'Zed' }),
+      resume({ id: 'a', title: 'Alpha' }),
+      resume({ id: 'm', title: 'Mid' }),
+    ]);
 
     expect(cards().map((c) => c.querySelector('h2')?.textContent?.trim())).toEqual([
       'Zed',
@@ -147,7 +167,13 @@ describe('ResumeListComponent', () => {
     const updated = fixture.nativeElement.querySelectorAll('[data-testid="resume-updated"]');
     expect(updated).toHaveLength(1);
     expect(updated[0].textContent).toContain('Updated');
-    expect(updated[0].textContent).toContain('Sep 28, 2026');
+    // Same local-time formatting the DatePipe applies, so the test holds in any timezone.
+    const expected = new Date('2026-09-28T12:00:00Z').toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+    expect(updated[0].textContent).toContain(expected);
   });
 
   it('renders a résumé without an id as a non-link card and never links to /resumes/undefined', () => {
@@ -164,33 +190,27 @@ describe('ResumeListComponent', () => {
 
   it('focusCard() focuses a linked card', () => {
     render([resume({ id: 'a' }), resume({ id: 'b' })]);
-    document.body.appendChild(fixture.nativeElement);
 
     fixture.componentInstance.focusCard(1);
 
     expect(document.activeElement).toBe(cards()[1]);
-    fixture.nativeElement.remove();
   });
 
   it('focusCard() focuses a non-link card too (tabindex -1)', () => {
     render([resume({ id: undefined })]);
-    document.body.appendChild(fixture.nativeElement);
 
     fixture.componentInstance.focusCard(0);
 
     expect(document.activeElement).toBe(cards()[0]);
-    fixture.nativeElement.remove();
   });
 
   it('focusCard() with an out-of-range index is a no-op', () => {
     render([resume()]);
 
-    document.body.appendChild(fixture.nativeElement);
     const before = document.activeElement;
 
     expect(() => fixture.componentInstance.focusCard(5)).not.toThrow();
     expect(document.activeElement).toBe(before);
-    fixture.nativeElement.remove();
   });
 
   it('does not throw when two id-less résumés are rendered together', () => {

@@ -35,7 +35,11 @@ function paged(items: ResumeResult[], options: PageOptions = {}) {
     totalCount: options.totalCount ?? items.length,
     lastSeenId: options.lastSeenId !== undefined ? options.lastSeenId : hasNext ? CURSOR_ID : null,
     lastSeenUpdatedAt:
-      options.lastSeenUpdatedAt !== undefined ? options.lastSeenUpdatedAt : hasNext ? CURSOR_AT : null,
+      options.lastSeenUpdatedAt !== undefined
+        ? options.lastSeenUpdatedAt
+        : hasNext
+          ? CURSOR_AT
+          : null,
     pageSize: 20,
     hasNext,
   };
@@ -45,6 +49,8 @@ describe('ResumeListPage', () => {
   let fixture: ComponentFixture<ResumeListPage>;
   let page: ResumeListPage;
   let httpMock: HttpTestingController;
+  /** Nodes a test attached outside the fixture; removed even when the test fails. */
+  const strays: HTMLElement[] = [];
 
   const listUrl = `${env.apiBaseUrl}/resumes`;
   const expectList = (): TestRequest => httpMock.expectOne((req) => req.url === listUrl);
@@ -53,6 +59,11 @@ describe('ResumeListPage', () => {
     Array.from(el().querySelectorAll('[data-testid="resume-card"]'));
   const loadMoreButton = (): HTMLButtonElement | null =>
     el().querySelector('ui-cursor-pagination button');
+  const addStray = (node: HTMLElement): HTMLElement => {
+    document.body.appendChild(node);
+    strays.push(node);
+    return node;
+  };
   const announcement = (): string | undefined =>
     el().querySelector('[data-testid="list-announcement"]')?.textContent?.trim();
   const serverError = (req: TestRequest): void =>
@@ -74,7 +85,15 @@ describe('ResumeListPage', () => {
     fixture.detectChanges();
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    try {
+      httpMock.verify();
+    } finally {
+      strays.forEach((n) => n.remove());
+      strays.length = 0;
+      (document.activeElement as HTMLElement | null)?.blur?.();
+    }
+  });
 
   describe('first load', () => {
     it('requests the first page with the default page size and no cursor', () => {
@@ -92,6 +111,20 @@ describe('ResumeListPage', () => {
       expect(el().querySelector('ui-empty-state')).toBeNull();
       expect(cards()).toHaveLength(0);
       expectList().flush(paged([]));
+    });
+
+    it('renders the skeleton in the same grid as the real cards, as a labelled status region', () => {
+      const skeleton = el().querySelector('[data-testid="resume-skeleton"]') as HTMLElement;
+      expect(skeleton.children.length).toBe(5); // sr-only label + 4 placeholder cards
+      expect(skeleton.getAttribute('role')).toBe('status');
+      expect(skeleton.querySelector('.sr-only')?.textContent).toContain('Loading résumés');
+      const skeletonGrid = skeleton.className.trim();
+
+      expectList().flush(paged([resume('a')]));
+      fixture.detectChanges();
+
+      expect(el().querySelector('widget-resume-list ul')?.className.trim()).toBe(skeletonGrid);
+      expect(skeletonGrid).toContain('md:grid-cols-2');
     });
 
     it('reserves the subtitle line while loading so the header does not jump', () => {
@@ -146,6 +179,13 @@ describe('ResumeListPage', () => {
       fixture.detectChanges();
 
       expect(el().querySelector('[data-testid="subtitle"]')).toBeNull();
+    });
+
+    it('announces the singular noun for exactly one résumé', () => {
+      expectList().flush(paged([resume('a')], { totalCount: 1 }));
+      fixture.detectChanges();
+
+      expect(announcement()).toBe('Showing 1 of 1 résumé');
     });
 
     it('announces without a total, and omits the subtitle, when totalCount is null', () => {
@@ -308,22 +348,20 @@ describe('ResumeListPage', () => {
       reqs[0].flush(paged([]));
     });
 
-    it('marks the button busy and aria-disabled while loading, keeping focus on it', () => {
-      document.body.appendChild(el());
+    it('marks the button busy and aria-disabled (not disabled) while loading, keeping focus on it', () => {
       loadMoreButton()!.focus();
       loadMoreButton()!.click();
       fixture.detectChanges();
 
       expect(loadMoreButton()?.getAttribute('aria-busy')).toBe('true');
       expect(loadMoreButton()?.getAttribute('aria-disabled')).toBe('true');
+      expect(loadMoreButton()?.hasAttribute('disabled')).toBe(false);
       expect(loadMoreButton()?.textContent?.trim()).toBe('Loading…');
       expect(document.activeElement).toBe(loadMoreButton());
       expectList().flush(paged([]));
-      el().remove();
     });
 
     it('keeps the loaded cards and relabels the same button "Try again" when load-more fails', () => {
-      document.body.appendChild(el());
       loadMoreButton()!.focus();
       loadMoreButton()!.click();
       serverError(expectList());
@@ -347,24 +385,58 @@ describe('ResumeListPage', () => {
 
       expect(cards()).toHaveLength(3);
       expect(el().querySelector('[data-testid="load-more-error"]')).toBeNull();
-      el().remove();
     });
 
-    it('moves focus to the first newly loaded card', () => {
-      document.body.appendChild(el());
+    it('re-announces a second consecutive load-more failure', () => {
+      loadMoreButton()!.click();
+      serverError(expectList());
+      fixture.detectChanges();
+      expect(el().querySelector('[data-testid="load-more-error"]')).not.toBeNull();
+
+      loadMoreButton()!.click();
+      fixture.detectChanges();
+      expect(el().querySelector('[data-testid="load-more-error"]')).toBeNull();
+      serverError(expectList());
+      fixture.detectChanges();
+
+      expect(el().querySelector('[data-testid="load-more-error"]')).not.toBeNull();
+      expect(cards()).toHaveLength(2);
+    });
+
+    it('leaves focus on the button after a non-final page (keyboard users can keep paging)', () => {
+      loadMoreButton()!.focus();
+      loadMoreButton()!.click();
+      expectList().flush(paged([resume('c'), resume('d')], { hasNext: true }));
+      fixture.detectChanges();
+      fixture.detectChanges();
+
+      expect(loadMoreButton()).not.toBeNull();
+      expect(document.activeElement).toBe(loadMoreButton());
+    });
+
+    it('leaves focus on the button when a page adds nothing new but more pages remain', () => {
+      loadMoreButton()!.focus();
+      loadMoreButton()!.click();
+      expectList().flush(paged([resume('a'), resume('b')], { hasNext: true }));
+      fixture.detectChanges();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(loadMoreButton());
+    });
+
+    it('moves focus to the first new card when the final page removes the button', () => {
+      loadMoreButton()!.focus();
       loadMoreButton()!.click();
       expectList().flush(paged([resume('c'), resume('d')]));
       fixture.detectChanges();
       fixture.detectChanges();
 
+      expect(loadMoreButton()).toBeNull();
       expect(document.activeElement).toBe(cards()[2]);
-      el().remove();
     });
 
     it('does not steal focus if the user moved it elsewhere while loading', () => {
-      document.body.appendChild(el());
-      const elsewhere = document.createElement('button');
-      document.body.appendChild(elsewhere);
+      const elsewhere = addStray(document.createElement('button'));
       loadMoreButton()!.click();
       elsewhere.focus();
 
@@ -373,12 +445,9 @@ describe('ResumeListPage', () => {
       fixture.detectChanges();
 
       expect(document.activeElement).toBe(elsewhere);
-      elsewhere.remove();
-      el().remove();
     });
 
     it('lands focus on the last card when the final page adds nothing new and the button disappears', () => {
-      document.body.appendChild(el());
       loadMoreButton()!.focus();
       loadMoreButton()!.click();
       expectList().flush(paged([resume('a'), resume('b')]));
@@ -387,7 +456,6 @@ describe('ResumeListPage', () => {
 
       expect(loadMoreButton()).toBeNull();
       expect(document.activeElement).toBe(cards()[1]);
-      el().remove();
     });
   });
 
@@ -431,6 +499,16 @@ describe('ResumeListPage', () => {
       const reqs = httpMock.match((req) => req.url === listUrl);
       expect(reqs).toHaveLength(1);
       reqs[0].flush(paged([]));
+    });
+
+    it('moves focus to the loading region when Retry removes its own button', () => {
+      (el().querySelector('ui-error-state button') as HTMLButtonElement).focus();
+      (el().querySelector('ui-error-state button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(el().querySelector('[data-testid="resume-skeleton"]'));
+      expectList().flush(paged([]));
     });
 
     it('retries from the beginning and recovers', () => {

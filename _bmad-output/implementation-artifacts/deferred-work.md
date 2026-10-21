@@ -25,6 +25,17 @@
 - **`totalCount` is overwritten per page**, so rows added or removed mid-paging can announce
   "Showing 25 of 24 résumés".
 - **`updatedAt | date` throws NG02100 on an unparsable string**, which would blank the whole list.
+- **Load-more can add nothing and say nothing.** `BaseRepository` only applies the cursor filter if
+  a row with that exact `Id`/`UpdatedAt` still exists; if the cursor row was edited or soft-deleted
+  since the page loaded the server returns page 1 again, `uniqueById` drops all of it, and the
+  button just re-enables. Consider an "Already up to date / list changed — refresh" message.
+- **`ResumeListPage` and `ResumeListComponent` use DOM queries** (`querySelector('ui-cursor-pagination')`
+  was removed, but `focusCard` still uses `:scope > ul > li > *`, and the page reads
+  `document.activeElement`). Prefer `viewChildren` and an injected `DOCUMENT` (SSR-safe).
+- **The whole-card link's accessible name is verbose** (title + meta + skills + date). Consider
+  `aria-labelledby` on the title; same pattern exists on the dashboard's recent-résumés cards.
+- **`aria-busy` on the Load more button** is ignored by most assistive tech; the label and live
+  region already convey the state. Move it to the list container or drop it.
 - **`hasNext: true` with a half-populated cursor ends the list silently** (no error, no retry).
   A backend contract violation today; revisit if it is ever observed.
 

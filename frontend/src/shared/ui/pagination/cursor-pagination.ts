@@ -17,7 +17,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
       <div class="mt-6 flex justify-center">
         <button
           type="button"
-          class="inline-flex items-center rounded-md border border-border-default bg-surface px-4 py-2 text-md font-medium text-text-primary transition-colors duration-standard hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-focus aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+          class="inline-flex items-center rounded-md border border-border-default bg-surface px-4 py-2 text-md font-medium text-text-primary transition-colors duration-standard hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-focus aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:hover:bg-surface"
           [attr.aria-disabled]="loading()"
           [attr.aria-busy]="loading()"
           (click)="onClick()"

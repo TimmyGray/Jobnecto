@@ -75,7 +75,7 @@ so that **I can find and manage them**.
     - `retry()` (initial-load error) re-runs the initial load; `status` returns to `'loading'`.
     - Both subscriptions use `takeUntilDestroyed(destroyRef)` (Story 2.1 lesson).
     - Template: `ui-page-header` (eyebrow "Résumés", h1 "Your *résumés*" with the serif accent word like 2.1's header, subtitle "N résumé(s)" when `totalCount` is known), then by `status`: `loading` → skeleton **cards** (4, in the same grid as the real cards; the subtitle line is reserved with a non-breaking space so the header does not jump); `error` → `ui-error-state` with retry; `ready` with no items → `ui-empty-state` ("No resumes yet", CTA `<a routerLink="/resumes/new">Create first resume</a>`); `ready` with items → `widget-resume-list` + `ui-cursor-pagination`. The header "Create résumé" `primaryAction` link (→ `/resumes/new`) renders only when `ready` and non-empty.
-    - A polite live region announces "Showing X of Y résumés" after each successful load/load-more; after a load-more that appends, move focus to the first newly appended card's link (or the card itself, `tabindex="-1"`, when it has no link) so keyboard focus is not lost when the Load-more button disappears at the end of the list.
+    - A polite live region announces "Showing X of Y résumés" after each successful load/load-more; when a load-more removes the Load-more button (the last page), move focus to the first newly appended card's link (or the card itself, `tabindex="-1"`, when it has no link) so keyboard focus is not lost; on a non-final page focus stays on the button. Focus is never moved if the user has since focused something else.
   - [x] `frontend/src/pages/resume-list/resume-list.page.spec.ts` (CREATE) — see Task 7.
   - [x] `frontend/src/app/app.routes.ts` (UPDATE) — replace the `resumes` route's `ComingSoonStubPage` with `loadComponent` → `ResumeListPage`, keep `data: { title: 'Resumes' }`. Leave `resumes/new` and `resumes/:id` exactly as they are.
 
@@ -171,7 +171,7 @@ Sonnet 5.5 (claude-sonnet-5-5)
 - Baseline revision for the review diff: `a1839910db54e7fcbdde1efabf16d28355e74da7` (branch `story/2-2-browse-my-resumes`, the docs commit directly on top of `f05a5f6`).
 - Backend (unchanged by this story, run once to confirm): `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` → `Build succeeded. 0 Warning(s) 0 Error(s)`. `dotnet test backend/JobNecto.slnx --configuration Release --no-build` → `Passed! - Failed: 0, Passed: 632, Skipped: 0, Total: 632`.
 - Frontend baseline before changes: `npx ng test --no-watch` → 344 passing.
-- Frontend after review patches: `cd frontend && npx ng test --no-watch` → `Test Files 37 passed (37)`, `Tests 422 passed (422)`, coverage `96.76% stmts / 94.39% branches / 97.63% lines`, no per-file threshold failures (including the newly un-excluded `shared/api/pagination.ts`).
+- Frontend after review patches: `cd frontend && npx ng test --no-watch` → `Test Files 37 passed (37)`, `Tests 422 passed (422)`, coverage `96.76% stmts / 94.39% branches / 97.63% lines`; after the PR-review (RV) patches: `Tests 429 passed (429)`, coverage `96.86% stmts / 94.69% branches / 97.71% lines`, no per-file threshold failures (including the newly un-excluded `shared/api/pagination.ts`).
 - `cd frontend && npx ng build --configuration production` → `Application bundle generation complete.` with no errors or warnings (AOT compiles the new templates).
 
 ### Completion Notes List
@@ -196,6 +196,7 @@ Sonnet 5.5 (claude-sonnet-5-5)
 - `frontend/src/shared/ui/pagination/cursor-pagination.spec.ts` (CREATED)
 - `frontend/src/shared/ui/index.ts` (UPDATED — export `CursorPaginationComponent`)
 - `frontend/src/widgets/resume-list/resume-list.ts` (CREATED)
+- `frontend/src/widgets/resume-list/resume-card.ts` (CREATED — typed card body, extracted in PR review so the template is type-checked)
 - `frontend/src/widgets/resume-list/resume-list.spec.ts` (CREATED)
 - `frontend/src/widgets/resume-list/index.ts` (CREATED)
 - `frontend/src/pages/resume-list/resume-list.page.ts` (CREATED)
@@ -235,7 +236,24 @@ Four parallel lenses (Adversarial, Edge-case hunter, Verification gap, Acceptanc
 - [ ] [Defer] `updatedAt` through `DatePipe` throws on an unparsable string and would blank the list — logged.
 - [ ] [Defer] `hasNext: true` with a half-populated cursor ends the list silently (no error/retry) — logged.
 
+## PR Review (jobnecto-qa, RV) — 2026-10-21
+
+Target: `story/2-2-browse-my-resumes` vs `origin/master` (`f05a5f6`). Lenses run: correctness, regression, architecture & quality, test coverage (edge-cases were covered by the earlier self-review lens, so not repeated). Tests: backend 632/632 (unchanged, Release build 0 warnings); frontend 429/429 after patches, per-file coverage gate clean, AOT production build clean.
+
+Regression lens: **no findings** (every caller of `toCount`, the `/resumes` route, the `/resumes/new` links, the barrels and the `coverageExclude` change traced). Correctness lens: no high/medium. Findings and disposition:
+
+- [x] [Patch] **medium** — `ng-template let-resume` was untyped (`any`) under `strictTemplates`, duplicating the card shell: extracted `widget-resume-card` with a typed required input and `computed` view-model (`resume-card.ts`).
+- [x] [Patch] **medium** — Focus moved off the Load more button to the first new card after *every* page, forcing keyboard users to tab through ~20 links to page again: focus now moves only when the button disappears (last page), else stays put.
+- [x] [Patch] **medium** — Focus dropped to `<body>` when first-load Retry destroyed its own button: focus moves to the loading region.
+- [x] [Patch] **medium** — "+N" overflow chip was read as a skill: now `aria-hidden` "+N" plus sr-only "and N more skills", own test id.
+- [x] [Patch] **minor** — token violations (`rounded-full`→`rounded-pill`, `py-0.5`→`py-1`); skeleton `role=status` had no text (sr-only "Loading résumés…" added, redundant height dropped); hover feedback on an `aria-disabled` button; "Showing 1 of 1 résumés" grammar; missing doc comments; nested ternary replaced; prettier applied to files this PR created.
+- [x] [Patch] **medium (tests)** — AC3 layout untested (skeleton count/grid parity now asserted), `aria-disabled`-not-`disabled` untested, the focus-while-button-survives branch untested, one failing page test cascaded into dozens (`afterEach` now `try/finally` + stray-node cleanup), a timezone-dependent date assertion (now computed with the same local formatting), fixtures redundantly appended to `document.body`, `nextCursor` with omitted fields.
+- [x] [Dismiss] `toCount` still accepts `[]`/`false`/negatives — input is typed `number | string` from an int32; no reachable impact.
+- [x] [Dismiss] `retry()` re-entry guard is unreachable from the UI — harmless defensive code, and tested directly.
+- [ ] [Defer] `aria-busy` on a button is ignored by most AT (harmless, kept). Page/widget use DOM queries (`querySelector`, `:scope > ul > li > *`) rather than Angular queries. The whole-card link has a verbose accessible name (matches the dashboard pattern). Server silently returns page 1 when the cursor row was edited/soft-deleted since load, so a load-more can add nothing new with no feedback. All logged to `deferred-work.md`.
+
 ## Change Log
 
 - 2026-10-21: Story created (ready-for-dev). Baseline `f05a5f6`.
+- 2026-10-21: PR review (RV) run with four lenses; 6 patch groups applied, 2 dismissed, 4 deferred. Frontend 429/429.
 - 2026-10-21: Implemented all tasks test-first; self-reviewed with four parallel lenses; 11 findings patched, 5 deferred, 5 dismissed. Frontend 422/422, backend 632/632, AOT production build clean. Manual smoke not run. Status set to `review`.

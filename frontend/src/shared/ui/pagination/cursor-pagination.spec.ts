@@ -52,6 +52,8 @@ describe('CursorPaginationComponent', () => {
     fixture.detectChanges();
 
     expect(button()?.getAttribute('aria-disabled')).toBe('true');
+    // Must stay a focusable button: a native `disabled` would drop keyboard focus mid-request.
+    expect(button()?.hasAttribute('disabled')).toBe(false);
     expect(button()?.getAttribute('aria-busy')).toBe('true');
     expect(button()?.textContent?.trim()).toBe('Loading…');
 
@@ -62,14 +64,12 @@ describe('CursorPaginationComponent', () => {
   it('keeps keyboard focus on the button while loading starts', () => {
     fixture.componentRef.setInput('hasNext', true);
     fixture.detectChanges();
-    document.body.appendChild(fixture.nativeElement);
     button()?.focus();
 
     fixture.componentRef.setInput('loading', true);
     fixture.detectChanges();
 
     expect(document.activeElement).toBe(button());
-    fixture.nativeElement.remove();
   });
 
   it('does not emit if click() is forced through while loading', () => {

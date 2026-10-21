@@ -77,9 +77,9 @@ export class ResumeListPage {
   private readonly resumeService = inject(ResumeService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private readonly list = viewChild(ResumeListComponent);
+  private readonly skeleton = viewChild<ElementRef<HTMLElement>>('skeleton');
 
   /** Placeholder rows for the first-load skeleton. */
   protected readonly skeletonCards = SKELETON_CARDS;
@@ -117,19 +117,25 @@ export class ResumeListPage {
     }
     const shown = this.items().length;
     const total = this.totalCount();
-    return total === null ? `Showing ${shown} résumés` : `Showing ${shown} of ${total} résumés`;
+    const noun = (total ?? shown) === 1 ? 'résumé' : 'résumés';
+    return total === null ? `Showing ${shown} ${noun}` : `Showing ${shown} of ${total} ${noun}`;
   });
 
   constructor() {
     this.loadFirstPage();
   }
 
-  /** Reloads from the first page after a failed first load. */
+  /**
+   * Reloads from the first page after a failed first load. The Retry button is
+   * destroyed by the state change, so focus moves to the loading region instead
+   * of dropping to <body>.
+   */
   retry(): void {
     if (this.status() === 'loading') {
       return;
     }
     this.loadFirstPage();
+    this.focusWhenFree(() => this.skeleton()?.nativeElement.focus());
   }
 
   /**
@@ -156,9 +162,12 @@ export class ResumeListPage {
           this.items.update((current) => [...current, ...fresh]);
           this.applyPageMeta(page);
           this.loadingMore.set(false);
-          this.restoreFocusAfterRender(
-            fresh.length > 0 ? firstNewIndex : this.cursor() === null ? firstNewIndex - 1 : null,
-          );
+          if (this.cursor() === null) {
+            // The Load more button is gone: land on the first new card, or on the
+            // last existing one if this final page added nothing new.
+            const target = fresh.length > 0 ? firstNewIndex : firstNewIndex - 1;
+            this.focusWhenFree(() => this.list()?.focusCard(target));
+          }
         },
         error: () => {
           this.loadingMore.set(false);
@@ -168,27 +177,24 @@ export class ResumeListPage {
   }
 
   /**
-   * The Load more button the user just used may disappear with the last page,
-   * which would drop focus to <body>; land on a card instead. Skipped when the
-   * user has since moved focus somewhere else, so a slow response never steals it.
-   * @param index Card to focus, or null to leave focus alone.
+   * Runs {@link focus} after the next render, but only if focus has fallen to
+   * <body> (the control the user used was removed). If the user has since moved
+   * focus somewhere else, a slow response must not steal it.
+   * @param focus Moves focus to the intended target.
    */
-  private restoreFocusAfterRender(index: number | null): void {
-    if (index === null || index < 0) {
-      return;
-    }
+  private focusWhenFree(focus: () => void): void {
     afterNextRender(
       () => {
         const active = document.activeElement;
-        const pagination = this.host.nativeElement.querySelector('ui-cursor-pagination');
-        if (!active || active === document.body || pagination?.contains(active)) {
-          this.list()?.focusCard(index);
+        if (!active || active === document.body) {
+          focus();
         }
       },
       { injector: this.injector },
     );
   }
 
+  /** Loads the first page, resetting the view to its loading state. */
   private loadFirstPage(): void {
     this.status.set('loading');
     this.resumeService
