@@ -55,7 +55,8 @@
   now has `SignInCommand`/`SignInResponse`/`POST /api/v1/users/sessions` available, but switching
   `entities/user` over to them is unrelated to résumé creation and out of this story's scope.
   Pick up whenever a story next touches `entities/user`.
-- **`TagInputComponent` doesn't split a pasted string with embedded (non-trailing) commas into
+- **[RESOLVED in `ee2a08d` "split pasted comma-separated values in tag input", merged via PR #95 — kept for history]**
+  **`TagInputComponent` doesn't split a pasted string with embedded (non-trailing) commas into
   multiple tags.** Typing/pasting `"a,b,c"` then pressing Enter (without a comma keystroke per
   segment) adds one raw tag `"a,b,c"` rather than three. `tryAddTag()` only strips a single
   *trailing* comma. Low value fix, real UX rough edge for paste-heavy skill entry.

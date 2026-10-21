@@ -1,0 +1,176 @@
+# Story 2.2: Browse my résumés
+
+Status: ready-for-dev
+
+## Story
+
+As a **user**,
+I want **a paginated list of my résumés**,
+so that **I can find and manage them**.
+
+<!-- Track: [FE] — Covers: FR12, FR41, NFR2, NFR5, UX-DR12, UX-DR16, AR16 -->
+
+## Decision Record
+
+- 2026-10-21: **Accumulate pages in the page component, not in `ResumeService`.** `ResumeService.list()` overwrites `page()` with whichever single page it last received (and `invalidate()` nulls it), so `page()` cannot back a load-more list. The page keeps its own `items` signal, appends each loaded page, and always calls `list()` on init (the service never short-circuits from cache), so revisiting `/resumes` after a create (which `invalidate()`s) always shows fresh data. Do **not** change `list()`'s signature or caching semantics — Story 1.6's dashboard depends on them.
+- 2026-10-21: **Narrow the cursor at the boundary with a helper, rather than loosening `PageCursor`.** The generated `lastSeenId`/`lastSeenUpdatedAt` are `null | string`; `PageCursor` (`shared/api/pagination.ts`) is non-nullable (deferred from Story 1.6 PR review, `deferred-work.md`). Add `nextCursor(page): PageCursor | null` to `shared/api/pagination.ts`, returning `null` unless `hasNext` is true **and** both fields are non-null strings. Epic 3's vacancy board reuses it. Because this adds runtime code, remove `src/shared/api/pagination.ts` from `coverageExclude` in `frontend/angular.json` and give it a spec (it is no longer a pure-type file).
+- 2026-10-21: **Share `toCount` instead of duplicating it.** `dashboard.page.ts` has a private `toCount()` that safely coerces `totalCount` (`number | string`) to `number | null`. This story needs the same coercion for the "N résumés" subtitle. Move it to `shared/api/pagination.ts` (exported), import it in `dashboard.page.ts`, and delete the local copy. Behavior must be byte-for-byte unchanged; the dashboard's existing specs are the regression guard.
+- 2026-10-21: **Build `CursorPaginationComponent` in `shared/ui`** (`ui-cursor-pagination`). It is named in UX's component inventory (`ux-design-specification.md:524`, "`CursorPagination` (load-more, not page numbers)") and does not exist yet. It is generic — inputs `hasNext`, `loading`; output `loadMore` — so Epic 3 reuses it unchanged. A thin wrapper over a native `<button>`, matching `ErrorStateComponent`'s button styling (no spartan-ng, same deferral as Story 2.1).
+- 2026-10-21: **Presentational `widgets/resume-list` + container `pages/resume-list`.** Same split as Story 1.6/2.1: the widget renders cards and takes plain inputs (no `HttpClient`, no `ResumeService`); the page owns fetching, accumulation, and load state. The card markup is *similar* to `widgets/recent-resumes`'s but not identical (skills, updated date, non-link fallback) — do **not** refactor `recent-resumes` to share it in this story; note the duplication in Completion Notes for a later cleanup.
+- 2026-10-21: **A résumé without an `id` renders as a non-link card.** `ResumeResult.id` is optional in the generated schema. The dashboard widget links such a row to `/resumes/undefined` (deferred from Story 1.6). This story makes the list the main entry point, so the list must not: a card with no `id` renders as a plain (non-anchor) card. Do not touch `recent-resumes` here.
+- 2026-10-21: **Card links target `/resumes/:id`, which is still a `ComingSoonStubPage` until Story 2.3.** That is intentional and consistent with the shell's "no dead ends" stub policy (Story 1.5); do not build any detail UI here.
+- 2026-10-21: **Single primary action.** UX-DR14 allows at most one primary action per page. The page-header "Create résumé" action (→ `/resumes/new`) is shown only when the list is non-empty; when empty, the empty-state CTA is the one primary action.
+- 2026-10-21: **Point the dashboard's "Create your first resume" CTA at `/resumes/new`.** It currently links to `/resumes` (a stub when it was written). With this story `/resumes` is the list, whose empty state would then ask the user to click create a second time. One-line fix plus its spec assertion (`recent-resumes.spec.ts:76`).
+- 2026-10-21: **`ResumeCreatePage` is left unchanged.** Its Story 2.1 Decision Record stays on `/resumes/new` after a successful create because `/resumes` used to be a stub. That reason no longer holds, but navigating to the list on success is not in 2.1's or 2.2's epics ACs, so changing it is a product call, not a patch. Flagged in Dev Notes → *Open follow-up* for the user to decide.
+- 2026-10-21: **Cite NFR2 + UX-DR16 for AC3 exactly as epics.md does; ownership (AC4) is server-scoped.** There is no client-side ownership logic to build: the cookie scopes `GET /api/v1/resumes`, and the client must simply never send a user identifier and never filter/merge anything beyond what the server returns. AC4 is satisfied by a test proving that, plus rendering exactly the returned items.
+
+## Acceptance Criteria
+
+1. **Cursor-paginated list with load-more**
+   **Given** I have résumés
+   **When** I open `/resumes`
+   **Then** I see a cursor-paginated list using `{ items, lastSeenId, lastSeenUpdatedAt, hasNext }` with a load-more pattern (never page numbers); the next page sends both cursor fields (AR16, FR12)
+
+2. **Empty state**
+   **Given** I have no résumés
+   **When** the list loads
+   **Then** I see the "No resumes yet → Create first resume" empty state with a working CTA to `/resumes/new` (UX-DR12)
+
+3. **Skeleton and cards**
+   **Given** the list is loading, or the viewport is `xs/sm`
+   **When** it renders
+   **Then** a layout-preserving skeleton shows first (no layout shift) and rows render as cards, not a dense table (NFR2, UX-DR16)
+
+4. **Ownership**
+   **Given** another user's résumés exist
+   **When** I list
+   **Then** I only ever see my own (server-scoped; the client respects ownership and sends no user identifier) (FR41, NFR5)
+
+## Tasks / Subtasks
+
+- [ ] Task 0: Test-first baseline
+  - [ ] Confirm baseline is green before changing anything: `cd frontend && npx ng test --no-watch` (expect 344 passing at `f05a5f6`).
+
+- [ ] Task 1: Cursor helper and shared `toCount` (AC: 1)
+  - [ ] `frontend/src/shared/api/pagination.ts` (UPDATE) — add `nextCursor(page: { hasNext: boolean; lastSeenId: string | null; lastSeenUpdatedAt: string | null }): PageCursor | null` (null unless `hasNext` and both fields are non-empty strings) and move `toCount(totalCount: unknown): number | null` here from `dashboard.page.ts` (exported, with the same XML-style doc comment).
+  - [ ] `frontend/src/shared/api/pagination.spec.ts` (CREATE) — `nextCursor`: `hasNext=false` → null; `hasNext=true` with either field null → null; both present → exact cursor object. `toCount`: number, numeric string, `undefined`, `'abc'`, `NaN` → expected values.
+  - [ ] `frontend/src/shared/api/index.ts` (UPDATE if needed) — export the new functions.
+  - [ ] `frontend/src/pages/dashboard/dashboard.page.ts` (UPDATE) — import `toCount` from `@shared/api`, delete the local function. No behavior change.
+  - [ ] `frontend/angular.json` (UPDATE) — remove `src/shared/api/pagination.ts` from `coverageExclude`.
+
+- [ ] Task 2: `CursorPaginationComponent` (AC: 1)
+  - [ ] `frontend/src/shared/ui/pagination/cursor-pagination.ts` (CREATE) — `ui-cursor-pagination`, `ChangeDetectionStrategy.OnPush`. Inputs `hasNext = input(false)`, `loading = input(false)`, `label = input('Load more')`; output `loadMore = output<void>()`. Renders nothing when `hasNext` is false. When `hasNext`, a native `<button type="button">` that is `disabled` and shows a loading label ("Loading…") while `loading`, and does not emit while loading. Token classes only; visible focus ring like `ErrorStateComponent`'s button.
+  - [ ] `frontend/src/shared/ui/pagination/cursor-pagination.spec.ts` (CREATE) — hidden when `hasNext=false`; emits `loadMore` on click; disabled and non-emitting while `loading`; label changes while loading.
+  - [ ] `frontend/src/shared/ui/index.ts` (UPDATE) — export it.
+
+- [ ] Task 3: `ResumeListComponent` widget (AC: 2, 3, 4)
+  - [ ] `frontend/src/widgets/resume-list/resume-list.ts` (CREATE) — `widget-resume-list`, `OnPush`, presentational. Inputs: `items: ResumeResult[]`, `totalCount: number | null`. Renders a `<ul>` of cards (`data-testid="resume-card"`), single column on `xs/sm`, two columns from `md` (`grid gap-3 md:grid-cols-2`), never a table. Each card: title (`resume.title || 'Untitled resume'`) as an `h2`; meta line from `experience` · `workLocationType` humanized with `humanizeEnumMember` from `@entities/resume`, skipping absent parts so no stray separator (same rule as `recent-resumes`); up to 5 skills as chips plus a "+N" chip for the rest; "Updated {date}" from `updatedAt` via `DatePipe` (`mediumDate`) when present. A card with an `id` is an `<a [routerLink]="['/resumes', id]">`; a card without one is a plain non-anchor element (Decision Record). Visible focus ring and hover state on links, tokens only.
+  - [ ] `frontend/src/widgets/resume-list/resume-list.spec.ts` (CREATE) — renders N cards; title fallback; meta line with/without each part; skills cap + "+N"; `href` is `/resumes/<id>`; id-less résumé renders no anchor and no `/resumes/undefined` anywhere; no `<table>` in the DOM.
+  - [ ] `frontend/src/widgets/resume-list/index.ts` (CREATE) — barrel.
+
+- [ ] Task 4: `ResumeListPage` (AC: 1, 2, 3, 4)
+  - [ ] `frontend/src/pages/resume-list/resume-list.page.ts` + `resume-list.page.html` (CREATE) — `page-resume-list`, `OnPush`, injects `ResumeService`. State signals: `items: ResumeResult[]`, `status: 'loading' | 'ready' | 'error'`, `nextCursor: PageCursor | null`, `totalCount: number | null`, `loadingMore: boolean`, `loadMoreFailed: boolean`.
+    - On init: `list()` (default page size); on success set `items`, `nextCursor = nextCursor(page)`, `totalCount = toCount(page.totalCount)`, `status='ready'`; on error `status='error'`.
+    - `loadMore()`: no-op if `loadingMore` or `nextCursor` is null; else `list(DEFAULT, cursor)`, **append** the returned items, skipping any whose `id` is already present; update cursor/total; on error keep the existing items, set `loadMoreFailed` and show an inline retry (the loaded list is never discarded by a failed load-more).
+    - `retry()` (initial-load error) re-runs the initial load; `status` returns to `'loading'`.
+    - Both subscriptions use `takeUntilDestroyed(destroyRef)` (Story 2.1 lesson).
+    - Template: `ui-page-header` (eyebrow "Résumés", h1 "Your *résumés*" with the serif accent word like 2.1's header, subtitle "N résumé(s)" when `totalCount` is known), then by `status`: `loading` → skeleton **cards** (3, same height/spacing as real cards so nothing shifts); `error` → `ui-error-state` with retry; `ready` with no items → `ui-empty-state` ("No resumes yet", CTA `<a routerLink="/resumes/new">Create first resume</a>`); `ready` with items → `widget-resume-list` + `ui-cursor-pagination`. The header "Create résumé" `primaryAction` link (→ `/resumes/new`) renders only when `ready` and non-empty.
+    - A polite live region announces "Showing X of Y résumés" after each successful load/load-more; after a load-more that appends, move focus to the first newly appended card's link (or the card itself, `tabindex="-1"`, when it has no link) so keyboard focus is not lost when the Load-more button disappears at the end of the list.
+  - [ ] `frontend/src/pages/resume-list/resume-list.page.spec.ts` (CREATE) — see Task 7.
+  - [ ] `frontend/src/app/app.routes.ts` (UPDATE) — replace the `resumes` route's `ComingSoonStubPage` with `loadComponent` → `ResumeListPage`, keep `data: { title: 'Resumes' }`. Leave `resumes/new` and `resumes/:id` exactly as they are.
+
+- [ ] Task 5: Dashboard CTA (AC: 2)
+  - [ ] `frontend/src/widgets/recent-resumes/recent-resumes.ts` (UPDATE) — the empty-state CTA `routerLink` becomes `/resumes/new`.
+  - [ ] `frontend/src/widgets/recent-resumes/recent-resumes.spec.ts` (UPDATE) — the CTA assertion at ~line 76 selects `a[href="/resumes/new"]`.
+
+- [ ] Task 6: Tracker and docs hygiene
+  - [ ] Add one line to `_bmad-output/implementation-artifacts/deferred-work.md` under a new `## Deferred from: Story 2.2` heading for anything surfaced and intentionally left (at minimum the `recent-resumes`/`resume-list` card duplication and the dashboard's raw, un-humanized meta line).
+
+- [ ] Task 7: Verification and test coverage (AC: all)
+  - [ ] Page spec with `HttpTestingController` + `provideRouter([])` (match requests with a predicate, not an exact URL — Trap 3): initial load shows skeleton then cards; `hasNext=true` shows Load more; clicking it sends **both** `lastSeenId` and `lastSeenUpdatedAt` from the previous page and `pageSize`, appends (does not replace) items, and hides the button when `hasNext=false`; duplicate `id` across pages is not rendered twice; double-clicking Load more while in flight sends exactly one request; load-more failure keeps existing items and shows an inline retry that succeeds on retry; initial-load failure shows the error state and Retry recovers; empty response shows the empty state with a CTA whose `href` is `/resumes/new`, and no header primary action; non-empty shows the header action; **no request carries a `userId`/user-identifying param** and exactly the returned items render (AC4); `hasNext=true` with a null cursor field shows no Load more (no crash); destroying the page before the response arrives cancels the request (Story 2.1 pattern).
+  - [ ] `dotnet` is unaffected (frontend-only) — still run `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` and `dotnet test backend/JobNecto.slnx` once to confirm; record counts.
+  - [ ] `cd frontend && npx ng test --no-watch` — all passing, per-file ≥80% coverage gate satisfied including the newly un-excluded `pagination.ts`.
+  - [ ] Manual smoke (record in Completion Notes): with the API running, create 21+ résumés (or lower the page size in the call temporarily and revert) and verify one load-more round-trip, the empty state on a fresh user, and the card layout at a narrow viewport.
+
+## Dev Notes
+
+### Technical Requirements
+- Angular Signals + injectable services, no NgRx/TanStack (AR11). Every new component: `ChangeDetectionStrategy.OnPush`; Tailwind classes mapped to Career-OS tokens only — never raw hex/px (`shared/config/tokens.ts`).
+- Feature-sliced boundaries are load-bearing (carried from 1.6 and 2.1): `shared/ui` generic, `entities/resume` API-bound state, `widgets/resume-list` composed presentational UI (never `HttpClient`), `pages/resume-list` owns the network calls and load state.
+- Heading order (NFR10): one `h1` (the page header), card titles are `h2`. `EmptyState`/`ErrorState` render their own `h2`, which is correct at page level.
+- Honor `prefers-reduced-motion` (the skeleton's shimmer is already covered by the global rule).
+
+### API / Contract Guardrail
+- `GET /api/v1/resumes` exists and is stable: `[Authorize]`, query `pageSize` (default 20, server caps at 100), `lastSeenId` (`Guid?`), `lastSeenUpdatedAt` (`DateTime?`); response is `PagedResult<ResumeResult>` = `{ items, totalCount, lastSeenId, lastSeenUpdatedAt, pageSize, hasNext, totalPages }` (`backend/src/JobNecto.API/Controllers/ResumesController.cs:65-92`; handler `ListResumesHandler.cs` caps page size at 100). Ordered `UpdatedAt DESC, Id DESC`; soft-deleted rows excluded by the global EF filter. **No backend change in this story.**
+- `ResumeService.list(pageSize, cursor?)` already builds the exact query string, including both cursor fields (`resume.service.ts:41-57`).
+
+### File Structure Requirements
+- `frontend/src/shared/api/pagination.ts` (UPDATE), `frontend/src/shared/api/pagination.spec.ts` (CREATE), `frontend/src/shared/api/index.ts` (UPDATE if needed)
+- `frontend/src/shared/ui/pagination/cursor-pagination.ts` (CREATE), `.spec.ts` (CREATE), `frontend/src/shared/ui/index.ts` (UPDATE)
+- `frontend/src/widgets/resume-list/{resume-list.ts,resume-list.spec.ts,index.ts}` (CREATE)
+- `frontend/src/pages/resume-list/{resume-list.page.ts,resume-list.page.html,resume-list.page.spec.ts}` (CREATE)
+- `frontend/src/app/app.routes.ts` (UPDATE)
+- `frontend/src/pages/dashboard/dashboard.page.ts` (UPDATE — import shared `toCount`)
+- `frontend/src/widgets/recent-resumes/{recent-resumes.ts,recent-resumes.spec.ts}` (UPDATE)
+- `frontend/angular.json` (UPDATE — `coverageExclude`)
+- `_bmad-output/implementation-artifacts/deferred-work.md` (UPDATE)
+
+### Testing Requirements
+- `HttpTestingController` for the page spec. `list()` sends a query string, so `expectOne('/resumes')` will not match — use a predicate on `req.url`/`req.params` (Story 1.6 Trap 5, hit again in 2.1).
+- Frontend runner is Vitest via `@angular/build:unit-test` (`npx ng test --no-watch`); per-file ≥80% line coverage is enforced (`AGENTS.md`).
+- `src/**/index.ts` barrels are coverage-excluded; `pagination.ts` stops being excluded in this story.
+
+### Previous Story Intelligence (2.1, merged 2026-09-28, PR #95)
+- Established the primitives to reuse: `TextField`, `SelectField<T>`, `TagInput`, `ToastService`/`ToastHostComponent` (toast host is mounted locally per page — not needed here), `humanizeEnumMember` (`entities/resume/resume-enums.ts`).
+- `ResumeService` gained a generation counter so an in-flight `list()` cannot resurrect a cache after `invalidate()`. This story must not weaken it; it also means a `list()` response arriving after `create()` is simply not cached — irrelevant here because the page never reads `page()`.
+- Lesson from 2.1's review: every subscription that touches view state needs `takeUntilDestroyed`; DOM-level assertions beat component-state assertions for OnPush rendering bugs.
+- The Angular `@for` + signal-read-inside-row-template gotcha from 2.1's review (a signal read inside a per-item template made `@for` treat the iterable as empty): keep per-row template expressions to plain item fields and pure methods; do not read page-level signals from inside the `@for` row.
+- Deferred items this story resolves: `PageCursor` nullability (Decision Record) and the `/resumes/undefined` link for the *list* (not the dashboard widget).
+
+### Git Intelligence Summary
+- Baseline `f05a5f6` (merge of PR #95). Recent FE commits: `ee2a08d` (tag-input paste split), `6a93657` (Story 2.1), `553ee7a` (1.6 docs). Backend résumé CRUD shipped in the earlier backend phase; this is the Angular counterpart for the list endpoint.
+
+### ⚠️ Trap 1 — `ResumeService.page()` is a single page, not an accumulated list
+`list()` calls `pageSignal.set(page)` with the latest page only. Binding the UI to `page()` makes "Load more" *replace* the list. Accumulate in the page's own `items` signal.
+
+### ⚠️ Trap 2 — Generated pagination fields are loosely typed
+`totalCount`/`pageSize` are `number | string`; `lastSeenId`/`lastSeenUpdatedAt` are `null | string`. Coerce `totalCount` with `toCount`; build the cursor only through `nextCursor`. Never `as PageCursor`, and never send `'null'`/`'undefined'` as a query value (`HttpParams.set` stringifies whatever it is given).
+
+### ⚠️ Trap 3 — Exact-URL `expectOne` misses querystring requests
+`httpMock.expectOne('/resumes')` fails for `/resumes?pageSize=20`. Match by predicate.
+
+### ⚠️ Trap 4 — Focus loss when Load more disappears
+When the final page loads, `hasNext` becomes false and the button the user just activated is removed from the DOM, dropping keyboard focus to `<body>`. The focus-move requirement in Task 4 exists for this; test it at the DOM level.
+
+### Open follow-up (needs a user decision, not part of this story)
+After a successful create on `/resumes/new`, should the app navigate to `/resumes` (now a real list) instead of staying on the form? Story 2.1 chose to stay only because `/resumes` was a stub. If yes, it is a small change in `pages/resume-create` plus its spec — worth a one-line story or an addition to 2.3.
+
+### References
+- [Source: `_bmad-output/planning-artifacts/epics.md` — Story 2.2, lines 436-458; AR16 line 158; UX-DR12 line 176; UX-DR14 line 178; UX-DR16 line 180]
+- [Source: `_bmad-output/planning-artifacts/prd-demo-mvp.md:332` (FR12), `:376` (FR41), `:383` (NFR2), `:389` (NFR5), `:397` (NFR10)]
+- [Source: `_bmad-output/planning-artifacts/ux-design-specification.md:524` (`CursorPagination`), `:646-647` (skeletons, load-more)]
+- [Source: `backend/src/JobNecto.API/Controllers/ResumesController.cs:57-92`; `backend/src/JobNecto.Application/Resumes/ListResumesHandler.cs`]
+- [Source: `frontend/src/entities/resume/resume.service.ts`, `model.ts`, `resume-enums.ts`]
+- [Source: `frontend/src/shared/api/pagination.ts`; `frontend/src/shared/api/generated/schema.ts:2090-2105` (`PagedResultOfResumeResult`), `:2131-2150` (`ResumeResult`)]
+- [Source: `frontend/src/widgets/recent-resumes/recent-resumes.ts` — card/meta/skeleton/empty-state precedent]
+- [Source: `frontend/src/shared/ui/state/{empty-state,error-state,skeleton}.ts`, `layout/page-header.ts`]
+- [Source: `frontend/src/pages/dashboard/dashboard.page.ts` — `toCount`, independent-load pattern]
+- [Source: `frontend/src/pages/resume-create/resume-create.page.ts` — `takeUntilDestroyed` pattern, header usage]
+- [Source: `_bmad-output/archive/implementation-artifacts/2-1-create-a-resume.md`, `1-6-orientation-dashboard.md` — previous-story intelligence]
+- [Source: `_bmad-output/implementation-artifacts/deferred-work.md` — `PageCursor` nullability, `/resumes/undefined`]
+
+## Dev Agent Record
+
+### Agent Model Used
+
+### Debug Log References
+
+### Completion Notes List
+
+### File List
+
+### Review Findings
+
+## Change Log
+
+- 2026-10-21: Story created (ready-for-dev). Baseline `f05a5f6`.
