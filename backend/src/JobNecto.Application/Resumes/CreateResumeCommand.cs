@@ -19,19 +19,23 @@ public class CreateResumeCommand : IRequest<ResumeResult>
     public Guid UserId { get; set; }
 
     /// <summary>
-    /// A descriptive title for the resume (e.g., "Senior .NET Developer").
+    /// Optional descriptive title for the resume (e.g., "Senior .NET Developer").
     /// </summary>
-    public string Title { get; set; } = null!;
+    /// <remarks>
+    /// Nullable on purpose: with nullable reference types enabled, MVC treats a non-nullable
+    /// property as implicitly required and would reject a payload that omits it.
+    /// </remarks>
+    public string? Title { get; set; }
 
     /// <summary>
-    /// List of professional skills or keywords.
+    /// Optional list of professional skills or keywords.
     /// </summary>
-    public string[] Skills { get; set; } = null!;
+    public string[]? Skills { get; set; }
 
     /// <summary>
-    /// Preferred work location type (remote, office, hybrid).
+    /// Optional preferred work location type (OnSite, Remote, Hybrid).
     /// </summary>
-    public string WorkLocationType { get; set; } = null!;
+    public string? WorkLocationType { get; set; }
 
     /// <summary>
     /// Desired salary.

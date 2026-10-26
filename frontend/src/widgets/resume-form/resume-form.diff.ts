@@ -18,18 +18,6 @@ export interface ResumeFormValue {
   languages: LanguageRowValue[];
 }
 
-/** Result of comparing the form against the loaded résumé. */
-export interface UpdateDiff {
-  /** Only the fields that changed and that the API is able to apply. */
-  command: UpdateResumeCommand;
-  /**
-   * Fields the user emptied that `PATCH /resumes/{id}` cannot clear (it treats
-   * `null` as "unchanged" and rejects `[]` / `""`): skills, salary, currency,
-   * workLocationType, experience. They are never placed in {@link command}.
-   */
-  blockedClears: string[];
-}
-
 const completeRows = (rows: LanguageRowValue[]): LanguageRowValue[] =>
   rows
     .filter((row) => row.language && row.level)
@@ -70,47 +58,44 @@ export function resumeToFormValue(resume: ResumeResult): ResumeFormValue {
 /**
  * Compares the form with the loaded résumé and builds a minimal PATCH body.
  *
+ * Follows the API's clear convention: an omitted field is unchanged, and an
+ * emptied field is sent as its empty value (`''` for title and the enum
+ * fields, `[]` for the arrays). Salary is a number with no empty value, so
+ * emptying it sends `clearSalary: true` and never `salary`; `0` is a value.
+ *
  * Arrays are compared by value (order significant) and sent whole when they
  * change, because the API replaces them. Incomplete language rows are ignored
  * on both sides. `projects`, `certifications` and `excludedWords` have no form
- * fields and are never emitted. See {@link UpdateDiff.blockedClears} for the
- * fields the API cannot empty.
+ * fields and are never emitted.
  * @param original The résumé as last loaded or saved.
  * @param current The form's current value.
- * @returns The changed fields plus any clears the API cannot honour.
+ * @returns Only the changed fields; `{}` when nothing changed.
  */
-export function buildUpdateCommand(original: ResumeResult, current: ResumeFormValue): UpdateDiff {
+export function buildUpdateCommand(
+  original: ResumeResult,
+  current: ResumeFormValue,
+): UpdateResumeCommand {
   const before = resumeToFormValue(original);
   const command: UpdateResumeCommand = {};
-  const blockedClears: string[] = [];
 
   if (current.title !== before.title) {
     command.title = current.title;
   }
 
   if (!sameList(current.skills, before.skills, Object.is)) {
-    if (current.skills.length === 0) {
-      blockedClears.push('skills');
-    } else {
-      command.skills = current.skills;
-    }
+    command.skills = current.skills;
   }
 
   if (current.salary !== before.salary) {
     if (current.salary === null) {
-      blockedClears.push('salary');
+      command.clearSalary = true;
     } else {
       command.salary = current.salary;
     }
   }
 
   for (const field of ['currency', 'workLocationType', 'experience'] as const) {
-    if (current[field] === before[field]) {
-      continue;
-    }
-    if (current[field] === '') {
-      blockedClears.push(field);
-    } else {
+    if (current[field] !== before[field]) {
       command[field] = current[field];
     }
   }
@@ -126,5 +111,5 @@ export function buildUpdateCommand(original: ResumeResult, current: ResumeFormVa
     command.languages = rows as UpdateResumeCommand['languages'];
   }
 
-  return { command, blockedClears };
+  return command;
 }

@@ -42,12 +42,12 @@ describe('nonNegativeValidator', () => {
     expect(validator(new FormControl(-1))).toEqual({ min: true });
   });
 
-  it('rejects NaN (defense-in-depth — TextFieldComponent cannot produce this from a real number input, but a non-DOM caller could)', () => {
-    expect(validator(new FormControl(NaN))).toEqual({ min: true });
+  it('rejects NaN, which TextFieldComponent emits for input the browser cannot parse', () => {
+    expect(validator(new FormControl(NaN))).toEqual({ number: true });
   });
 
   it('rejects Infinity', () => {
-    expect(validator(new FormControl(Infinity))).toEqual({ min: true });
+    expect(validator(new FormControl(Infinity))).toEqual({ number: true });
   });
 });
 

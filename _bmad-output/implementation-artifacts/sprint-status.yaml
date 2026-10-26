@@ -79,7 +79,7 @@ development_status:
   2-2-browse-my-resumes: done # [FE] merged 2026-10-21 (PR #96, bb8e78f)
   2-3-view-edit-a-resume: done # [FE] merged 2026-10-21 (PR #99, d6d13ea)
   2-4-soft-delete-a-resume: done # [FE] merged 2026-10-21 (PR #101, 0b50e46)
-  2-5-clear-optional-resume-fields: ready-for-dev # [BE]+[FE] PATCH clears (clearSalary flag) + land on /resumes after create + create accepts omitted optional fields (B1/B2); from Epic 2 retro 2026-10-26
+  2-5-clear-optional-resume-fields: review # [BE]+[FE] PATCH clears (clearSalary flag) + land on /resumes after create + create accepts omitted optional fields (B1/B2); from Epic 2 retro 2026-10-26
   epic-2-retrospective: done # epic-2-retro-2026-10-26.md (archive with the epic when 2.5 merges)
 
   # --- Epic 3: Vacancy Discovery (FR23-FR26) ---
@@ -101,7 +101,7 @@ development_status:
   epic-4-retrospective: optional
 
   # --- Epic 5: Compose, Templates & Cover-Letter Library (FR19-FR22, FR31, FR33-FR36) ---
-  epic-5: backlog
+  epic-5: backlog # pre-req: confirm-dialog fixes RV-1/RV-5/RV-7 (deferred-work, RV of PR #101)
   5-1-create-a-cover-letter-template: backlog # [FE]
   5-2-browse-search-manage-templates: backlog # [FE]
   5-3-insert-a-template-compose-without-ai: backlog # [FE]

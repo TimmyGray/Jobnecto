@@ -33,10 +33,6 @@ public class UpdateResumeCommandValidator : AbstractValidator<UpdateResumeComman
             .When(x => x.Title != null)
             .WithMessage("title must be at most 500 characters long.");
 
-        RuleFor(x => x.Skills)
-            .Must(skills => skills == null || skills.Length > 0)
-            .WithMessage("skills must contain at least one value when provided.");
-
         When(x => x.Skills != null && x.Skills.Length > 0, () =>
         {
             RuleForEach(x => x.Skills)
@@ -44,28 +40,41 @@ public class UpdateResumeCommandValidator : AbstractValidator<UpdateResumeComman
                 .MaximumLength(30).WithMessage("each skill must be at most 30 characters long.");
         });
 
+        // Null leaves the field unchanged and an empty (or whitespace-only) string clears it,
+        // matching ResumeMappers.ApplyUpdates; only a non-blank value must name an enum member.
         RuleFor(x => x.WorkLocationType)
-            .Must(value => value == null || Enum.TryParse<WorkLocationType>(value, true, out _))
-            .WithMessage("workLocationType must be a valid WorkLocationType enum value (remote, office, hybrid).");
+            .Must(IsBlankOrEnumValue<WorkLocationType>)
+            .WithMessage("workLocationType must be a valid WorkLocationType enum value (OnSite, Remote, Hybrid).");
 
         RuleFor(x => x.Currency)
-            .Must(value => value == null || Enum.TryParse<Currency>(value, true, out _))
+            .Must(IsBlankOrEnumValue<Currency>)
             .WithMessage("currency must be a valid Currency enum value (e.g. USD, EUR, UAH).");
 
         RuleFor(x => x.Experience)
-            .Must(value => value == null || Enum.TryParse<Experience>(value, true, out _))
+            .Must(IsBlankOrEnumValue<Experience>)
             .WithMessage("experience must be a valid Experience enum value.");
 
         RuleFor(x => x.Salary)
             .GreaterThanOrEqualTo(0)
             .When(x => x.Salary.HasValue)
             .WithMessage("salary cannot be negative.");
+
+        RuleFor(x => x.Salary)
+            .Null()
+            .When(x => x.ClearSalary)
+            .WithMessage("salary cannot be provided together with clearSalary.");
+    }
+
+    private static bool IsBlankOrEnumValue<TEnum>(string? value) where TEnum : struct, Enum
+    {
+        return string.IsNullOrWhiteSpace(value) || Enum.TryParse<TEnum>(value, true, out _);
     }
 
     private static bool HasAtLeastOneUpdatableField(UpdateResumeCommand command)
     {
         return command.Title != null
                || command.Salary.HasValue
+               || command.ClearSalary
                || command.Currency != null
                || command.Skills != null
                || command.WorkLocationType != null

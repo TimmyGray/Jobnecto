@@ -1,15 +1,59 @@
 # Deferred Work
 
+## Deferred from: code review of 2-5-clear-optional-resume-fields (2026-10-27)
+
+- **Enum validation accepts numeric and comma-joined strings.** `Enum.TryParse` (both résumé
+  validators and `ResumeMappers`) accepts `"7"`, `"-1"` or `"Remote, Hybrid"` (flags), so
+  `PATCH {"workLocationType":"7"}` returns 200 and stores an undefined member; GET returns `"7"` and
+  the edit form then marks the field invalid. Pre-existing (not introduced by 2.5, whose AC3 keeps
+  invalid-enum behaviour unchanged). Fix: `Enum.TryParse(...) && Enum.IsDefined(parsed)` and reject
+  digit-only strings, for currency, experience and work-location on create and update, plus tests.
+- **An abandoned create can leave the list cache stale.** `ResumeCreatePage` cancels the POST
+  client-side on teardown (`takeUntilDestroyed`), but the server may already have created the row and
+  `ResumeService.create()` invalidates only on success. Create-side twin of RV-4; no visible effect
+  today because the list always refetches. Fix alongside RV-4.
+- **The create form stays editable while the post-201 navigation is pending.** Only Submit is
+  disabled; edits typed while the lazy `/resumes` chunk loads are discarded on landing, or reset if
+  the navigation is refused. Low; related to the "no unsaved-changes guard" deferral.
+
 ## Found in: Epic 2 browser pass (2026-10-26)
 
 Details in `epic-2-retro-2026-10-26.md` §10.
 
-- **B1 (High): `POST /resumes` rejects a résumé without `title`, `skills` or `workLocationType`.**
+- **[RESOLVED in Story 2.5 — kept for history]** **B1 (High): `POST /resumes` rejects a résumé without `title`, `skills` or `workLocationType`.**
   `CreateResumeCommand` declares them as non-nullable, so ASP.NET's implicit `[Required]` fires before FluentValidation. The PRD says all three are optional. The create form lets the user leave work-location unselected, then fails with a 400.
-- **B2:** the validator messages list "(remote, office, hybrid)"; the enum member is `OnSite`.
+- **[RESOLVED in Story 2.5 — kept for history]** **B2:** the validator messages list "(remote, office, hybrid)"; the enum member is `OnSite`.
 - **→ B1 and B2 scheduled: Story 2.5 AC6/AC7** (decided 2026-10-27). B3 and B4 stay deferred: B3 is mostly removed with the blocked-clear message, and B4 belongs to retro A6 (focus management).
 - **B3:** the salary input widens when a field error renders below it (layout shift).
 - **B4:** focus drops to `<body>` after create submit, because the submit button uses `disabled` rather than `aria-disabled`.
+
+## Found in: retroactive PR Review (RV) of PR #101 / Story 2.4 (2026-10-27)
+
+Full table in `archive/implementation-artifacts/2-4-soft-delete-a-resume.md` → `## PR Review (RV)`.
+
+**Epic 5 prerequisites.** Fix these in `shared/ui/dialog/confirm-dialog.ts` before Epic 5 reuses the dialog:
+
+- **RV-1 (medium): focus not returned after a native close.** `hide()` returns early when the dialog was already closed natively, so focus isn't restored and the opener isn't reset. The next cycle sends focus to a stale control. The fix:
+  - Call `close()` only if the dialog is still open, but always restore focus when the opener `isConnected`, and always null the opener.
+  - Make `onNativeClose()` ignore a stale event when `dialog.open`.
+  - Add specs for a native close followed by a host close, and for two cycles with different `returnFocusTo` targets.
+- **RV-5: settle the API while there is one consumer.**
+  - Rename the outputs to `confirmed` / `dismissed`; `cancel` collides with the DOM event.
+  - Add an `<ng-content>` body slot.
+  - Add `booleanAttribute` transforms.
+  - Use `role="alertdialog"` when `destructive`.
+  - Set `aria-disabled` on Cancel while busy.
+  - Add a `status-danger-hover` token.
+- **RV-7 (JSDoc):** document that hosts must close the dialog before raising a toast, because the top layer makes the toast inert.
+
+**Deferred:**
+
+- **RV-4: stale cache after an abandoned delete.** `ResumeService.delete()` invalidates only on success. Invalidate on any outcome where the row may be gone (`finalize`, or success + 404). Rename the "cancels it" specs to "stops listening".
+- **RV-6: make the `<dialog>` stub realistic** when it is extracted to a shared helper:
+  - dispatch `close` asynchronously;
+  - remove `open` before a native close;
+  - replace the vacuous "closed while already closed" test.
+- **RV-7: stale toast-host comment.** Update `shared/ui/feedback/toast.ts:4-9` to "hosted once by AppShellComponent (Story 2.4)".
 
 ## Deferred from: Story 2.4 soft-delete-a-resume (2026-10-21)
 
@@ -23,7 +67,7 @@ Details in `epic-2-retro-2026-10-26.md` §10.
 
 ## Deferred from: Story 2.3 view-edit-a-resume (2026-10-21)
 
-- **The API cannot clear skills, salary, currency, work-location or experience once set** (validator
+- **[RESOLVED in Story 2.5 — kept for history]** **The API cannot clear skills, salary, currency, work-location or experience once set** (validator
   rejects `[]` / `""`, `null` means "unchanged"; verified live). The edit form blocks those clears
   with an inline message. If users need to clear them: a small backend story (accept explicit
   clears, relax the skills rule) plus removing the blocked-clear handling in `resume-form.diff.ts`.
@@ -50,7 +94,7 @@ Details in `epic-2-retro-2026-10-26.md` §10.
   `widgets/recent-resumes/recent-resumes.ts` `metaOf()` for consistency.
 - **`recent-resumes.ts` still links an id-less résumé to `/resumes/undefined`.** Unchanged (the
   Story 1.6 deferral stands); the new list widget does not have this bug.
-- **`ResumeCreatePage` still stays on `/resumes/new` after a successful create.** Its Story 2.1
+- **[RESOLVED in Story 2.5 — kept for history]** **`ResumeCreatePage` still stays on `/resumes/new` after a successful create.** Its Story 2.1
   reason (`/resumes` was a stub) no longer holds now that `/resumes` is the list. Navigating to
   `/resumes` on success is a product call, not in either story's epics ACs.
   **→ Decided 2026-10-26: land on `/resumes`. Scheduled: Story 2.5 AC5.**

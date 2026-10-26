@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize } from 'rxjs';
+import { Router } from '@angular/router';
 import { ResumeService } from '@entities/resume';
 import type { CreateResumeCommand } from '@entities/resume';
 import type { ProblemDetails } from '@shared/api';
@@ -9,14 +9,18 @@ import { ToastService } from '@shared/ui';
 import { ResumeFormComponent } from '@widgets/resume-form';
 
 /**
- * `/resumes/new` — the résumé create form (Story 2.1 AC2, AC3).
+ * `/resumes/new` — the résumé create form.
  *
- * On a successful `201`, stays on this page (Decision Record: `/resumes`
- * still resolves to `ComingSoonStubPage` until Story 2.2 ships, so
- * auto-navigating there would dead-end a just-succeeded action) — shows a
- * success toast and resets {@link ResumeFormComponent} so another résumé can
- * be created immediately. On a `400`, forwards it to the form for inline
- * field errors; any other error shows an error toast.
+ * On a successful `201` the user lands on `/resumes`, where the new résumé
+ * shows up: `ResumeService.create()` has already invalidated the list cache, so
+ * the list fetches a fresh first page. The success toast is raised once the
+ * navigation settles; the toast host lives in the app shell, so it survives this
+ * page being torn down. History is not replaced, because going Back to a blank
+ * create form is harmless. If the navigation is refused or rejects, the user
+ * stays here with the toast and a reset form, ready to create another one.
+ *
+ * On a `400`, forwards it to the form for inline field errors; any other error
+ * shows an error toast.
  */
 @Component({
   selector: 'page-resume-create',
@@ -27,33 +31,53 @@ import { ResumeFormComponent } from '@widgets/resume-form';
 export class ResumeCreatePage {
   private readonly resumeService = inject(ResumeService);
   private readonly toastService = inject(ToastService);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
-  /** True while the POST /resumes request is in flight (disables the form's submit button). */
+  /**
+   * True from submit until the create has finished: on success that is when the
+   * navigation to the list settles, not when the response arrives, so the submit
+   * button cannot send a second POST while the list route loads.
+   */
   readonly submitting = signal(false);
 
   readonly resumeForm = viewChild.required(ResumeFormComponent);
 
-  /** Handles the form's `(create)` event: POSTs, then toasts/resets or forwards server errors. */
+  /** Handles the form's `(create)` event: POSTs, then goes to the list or forwards server errors. */
   onCreate(command: CreateResumeCommand): void {
+    if (this.submitting()) {
+      return;
+    }
     this.submitting.set(true);
     this.resumeService
       .create(command)
       .pipe(
-        finalize(() => this.submitting.set(false)),
-        // If the user navigates away before the response arrives, the
-        // subscription must not fire against a torn-down view — the toast
-        // host is only mounted locally on this page (Decision Record), so a
-        // toast queued after destroy would have nowhere to render anyway.
+        // If the user navigates away before the response arrives, the late
+        // response must neither toast nor navigate them somewhere else.
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: () => {
-          this.toastService.show('Résumé created', 'success');
-          this.resumeForm().resetForm();
+        next: () => this.afterCreated(),
+        error: (problem: ProblemDetails) => {
+          this.submitting.set(false);
+          this.handleError(problem);
         },
-        error: (problem: ProblemDetails) => this.handleError(problem),
       });
+  }
+
+  private afterCreated(): void {
+    this.router.navigate(['/resumes']).then(
+      (navigated) => this.afterCreateNavigation(navigated),
+      () => this.afterCreateNavigation(false),
+    );
+  }
+
+  private afterCreateNavigation(navigated: boolean): void {
+    this.toastService.show('Résumé created', 'success');
+    if (!navigated) {
+      this.submitting.set(false);
+      this.resumeForm().resetForm();
+    }
   }
 
   private handleError(problem: ProblemDetails): void {

@@ -91,6 +91,21 @@ describe('ResumeFormComponent', () => {
     });
   });
 
+  it('omits skills and workLocationType from the request body when only a title is filled in', () => {
+    let emitted: CreateResumeCommand | undefined;
+    component.create.subscribe((cmd: CreateResumeCommand) => (emitted = cmd));
+
+    component.form.controls.title.setValue('Only a title');
+    component.form.markAsDirty();
+    component.onSubmit();
+
+    // What the API receives: undefined members are dropped by JSON serialisation.
+    const body = JSON.parse(JSON.stringify(emitted));
+    expect(body).toEqual({ title: 'Only a title', locations: [], languages: [] });
+    expect(body).not.toHaveProperty('skills');
+    expect(body).not.toHaveProperty('workLocationType');
+  });
+
   it('rejects a locations value that is not a valid Location member', () => {
     component.form.controls.locations.setValue(['NotACountry'] as never);
     component.form.controls.locations.markAsDirty();
@@ -483,32 +498,37 @@ describe('ResumeFormComponent — edit mode', () => {
     expect(component.errorFor('title')).toContain('500');
   });
 
-  it('blocks clearing a field the API cannot clear: message shown, Save disabled, nothing emitted', () => {
-    edit(component.form.controls.skills, []);
-
-    expect(component.errorFor('skills')).toContain("can't be cleared");
-    expect(component.canSubmit).toBe(false);
-    component.onSubmit();
-    expect(updates).toEqual([]);
-  });
-
   it.each([
-    ['salary', 'salary', null],
-    ['currency', 'currency', ''],
-    ['workLocationType', 'worklocationtype', ''],
-    ['experience', 'experience', ''],
-  ] as const)('shows the cannot-clear message for %s', (control, key, empty) => {
-    edit(component.form.controls[control] as never, empty as never);
+    ['skills', 'skills', [], { skills: [] }],
+    ['salary', 'salary', null, { clearSalary: true }],
+    ['currency', 'currency', '', { currency: '' }],
+    ['workLocationType', 'worklocationtype', '', { workLocationType: '' }],
+    ['experience', 'experience', '', { experience: '' }],
+  ] as const)(
+    'clearing %s enables Save, shows no error, and emits the clear encoding',
+    (control, key, empty, expected) => {
+      edit(component.form.controls[control] as never, empty as never);
 
-    expect(component.errorFor(key)).toContain("can't be cleared");
-    expect(component.canSubmit).toBe(false);
-  });
+      expect(component.errorFor(key)).toBe('');
+      expect(component.canSubmit).toBe(true);
+      expect(submitButton().disabled).toBe(false);
+      component.onSubmit();
+      expect(updates).toEqual([expected]);
+    },
+  );
 
-  it('keeps Save disabled when a blocked clear is combined with a legitimate change', () => {
+  it('emits a clear together with a value change, and renders no field error', () => {
     edit(component.form.controls.title, 'New title');
     edit(component.form.controls.salary, null);
+    edit(component.form.controls.skills, []);
 
-    expect(component.canSubmit).toBe(false);
+    const shownErrors = Array.from<HTMLElement>(
+      fixture.nativeElement.querySelectorAll('[id$="-error"], [role="alert"]'),
+    ).filter((n) => n.textContent?.trim());
+    expect(shownErrors).toEqual([]);
+    component.onSubmit();
+
+    expect(updates).toEqual([{ title: 'New title', clearSalary: true, skills: [] }]);
   });
 
   it('allows clearing the title, locations and languages', () => {
@@ -585,40 +605,27 @@ describe('ResumeFormComponent — edit mode', () => {
     expect(value.languages).toEqual([]);
   });
 
-  it('does not emit a partial update when a legitimate change is combined with a blocked clear', () => {
-    edit(component.form.controls.title, 'New title');
-    edit(component.form.controls.salary, null);
+  it('treats unparseable salary input as an error, not as a clear', () => {
+    edit(component.form.controls.salary, NaN);
 
+    expect(component.errorFor('salary')).toBe('Must be a number.');
+    expect(component.canSubmit).toBe(false);
     component.onSubmit();
-
     expect(updates).toEqual([]);
   });
 
-  it('shows the cannot-clear message only on the cleared field, and only once it is touched or dirty', () => {
-    // Value changed programmatically without dirtying: nothing shown yet.
-    component.form.controls.skills.setValue([]);
-    fixture.detectChanges();
-    expect(component.errorFor('skills')).toBe('');
+  it('takes a saved résumé with cleared fields as the new baseline', () => {
+    edit(component.form.controls.skills, []);
+    edit(component.form.controls.salary, null);
+    component.onSubmit();
 
-    component.form.controls.skills.markAsDirty();
-    fixture.detectChanges();
-    expect(component.errorFor('skills')).toContain("can't be cleared");
-    expect(component.errorFor('salary')).toBe('');
-    expect(component.errorFor('currency')).toBe('');
-    expect(component.errorFor('title')).toBe('');
-  });
-
-  it.each([
-    ['skills', 'ui-tag-input'],
-    ['salary', 'ui-text-field[name="salary"]'],
-    ['currency', 'ui-select-field[name="currency"]'],
-  ] as const)('renders the cannot-clear message in the template for %s', (field, selector) => {
-    edit(component.form.controls[field] as never, (field === 'skills' ? [] : field === 'salary' ? null : '') as never);
+    fixture.componentRef.setInput('resume', { ...LOADED, skills: [], salary: null });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector(selector).textContent).toContain("can't be cleared");
-    const others = fixture.nativeElement.querySelectorAll('[id$="-error"], [role="alert"]');
-    expect(Array.from(others).filter((n) => (n as HTMLElement).textContent?.includes("can't be cleared")).length).toBe(1);
+    expect(component.form.controls.skills.value).toEqual([]);
+    expect(component.form.controls.salary.value).toBeNull();
+    expect(component.form.pristine).toBe(true);
+    expect(component.canSubmit).toBe(false);
   });
 
   it('keeps Save disabled for an invalid edit', () => {

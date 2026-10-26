@@ -1940,9 +1940,9 @@ export interface components {
             degree?: string;
         };
         CreateResumeCommand: {
-            title?: string;
-            skills?: string[];
-            workLocationType?: string;
+            title?: null | string;
+            skills?: null | string[];
+            workLocationType?: null | string;
             /** Format: double */
             salary?: null | number | string;
             currency?: null | string;
@@ -2189,6 +2189,7 @@ export interface components {
             title?: null | string;
             /** Format: double */
             salary?: null | number | string;
+            clearSalary?: boolean;
             currency?: null | string;
             skills?: null | string[];
             workLocationType?: null | string;

@@ -75,28 +75,25 @@ describe('resumeToFormValue', () => {
 
 describe('buildUpdateCommand', () => {
   it('returns an empty command for an unchanged form', () => {
-    expect(buildUpdateCommand(ORIGINAL, same())).toEqual({ command: {}, blockedClears: [] });
+    expect(buildUpdateCommand(ORIGINAL, same())).toEqual({});
   });
 
   it('includes exactly the one field that changed', () => {
-    expect(diff({ title: 'Principal Engineer' })).toEqual({
-      command: { title: 'Principal Engineer' },
-      blockedClears: [],
-    });
+    expect(diff({ title: 'Principal Engineer' })).toEqual({ title: 'Principal Engineer' });
   });
 
   it('includes several changed fields and nothing else', () => {
-    const { command } = diff({ currency: 'EUR', salary: 6000, experience: 'MoreThanFiveYears' });
+    const command = diff({ currency: 'EUR', salary: 6000, experience: 'MoreThanFiveYears' });
     expect(command).toEqual({ currency: 'EUR', salary: 6000, experience: 'MoreThanFiveYears' });
   });
 
   it('is empty again after editing and reverting a field', () => {
-    expect(diff({ title: 'Changed' }).command).toEqual({ title: 'Changed' });
-    expect(diff({ title: 'Staff Engineer' }).command).toEqual({});
+    expect(diff({ title: 'Changed' })).toEqual({ title: 'Changed' });
+    expect(diff({ title: 'Staff Engineer' })).toEqual({});
   });
 
   it('never emits projects, certifications or excludedWords', () => {
-    const { command } = diff({ title: 'X', skills: ['A'] });
+    const command = diff({ title: 'X', skills: ['A'] });
     expect(command).not.toHaveProperty('projects');
     expect(command).not.toHaveProperty('certifications');
     expect(command).not.toHaveProperty('excludedWords');
@@ -104,31 +101,31 @@ describe('buildUpdateCommand', () => {
 
   describe('arrays', () => {
     it('sends the whole skills array when it changes', () => {
-      expect(diff({ skills: ['TypeScript', 'Angular', 'RxJS'] }).command).toEqual({
+      expect(diff({ skills: ['TypeScript', 'Angular', 'RxJS'] })).toEqual({
         skills: ['TypeScript', 'Angular', 'RxJS'],
       });
     });
 
     it('treats a different skills order as a change', () => {
-      expect(diff({ skills: ['Angular', 'TypeScript'] }).command).toEqual({
+      expect(diff({ skills: ['Angular', 'TypeScript'] })).toEqual({
         skills: ['Angular', 'TypeScript'],
       });
     });
 
     it('does not report an identical-by-value skills array as a change', () => {
-      expect(diff({ skills: ['TypeScript', 'Angular'] }).command).toEqual({});
+      expect(diff({ skills: ['TypeScript', 'Angular'] })).toEqual({});
     });
 
     it('sends locations whole, including an empty array to clear them', () => {
-      expect(diff({ locations: ['Germany'] }).command).toEqual({ locations: ['Germany'] });
-      expect(diff({ locations: [] })).toEqual({ command: { locations: [] }, blockedClears: [] });
+      expect(diff({ locations: ['Germany'] })).toEqual({ locations: ['Germany'] });
+      expect(diff({ locations: [] })).toEqual({ locations: [] });
     });
 
     it('sends languages whole, including an empty array to clear them', () => {
-      expect(diff({ languages: [{ language: 'English', level: 'Native' }] }).command).toEqual({
+      expect(diff({ languages: [{ language: 'English', level: 'Native' }] })).toEqual({
         languages: [{ language: 'English', level: 'Native' }],
       });
-      expect(diff({ languages: [] })).toEqual({ command: { languages: [] }, blockedClears: [] });
+      expect(diff({ languages: [] })).toEqual({ languages: [] });
     });
 
     it('ignores half-filled and empty language rows when comparing and sending', () => {
@@ -137,13 +134,13 @@ describe('buildUpdateCommand', () => {
         { language: '', level: '' },
         { language: 'French', level: '' },
       ] as ResumeFormValue['languages'];
-      expect(diff({ languages: rows }).command).toEqual({});
+      expect(diff({ languages: rows })).toEqual({});
 
       const withNew = [
         ...rows,
         { language: 'German', level: 'Beginner' },
       ] as ResumeFormValue['languages'];
-      expect(diff({ languages: withNew }).command).toEqual({
+      expect(diff({ languages: withNew })).toEqual({
         languages: [
           { language: 'English', level: 'Advanced' },
           { language: 'German', level: 'Beginner' },
@@ -152,38 +149,42 @@ describe('buildUpdateCommand', () => {
     });
   });
 
-  describe('fields the API can clear', () => {
+  describe('clearing the title', () => {
     it('sends an empty string to clear the title', () => {
-      expect(diff({ title: '' })).toEqual({ command: { title: '' }, blockedClears: [] });
+      expect(diff({ title: '' })).toEqual({ title: '' });
     });
 
     it('does not report an already-empty title as a change', () => {
-      expect(buildUpdateCommand({ id: 'r' }, resumeToFormValue({ id: 'r' })).command).toEqual({});
+      expect(buildUpdateCommand({ id: 'r' }, resumeToFormValue({ id: 'r' }))).toEqual({});
     });
   });
 
-  describe('fields the API cannot clear', () => {
+  describe('clearing optional fields', () => {
     it.each([
-      ['skills', { skills: [] }],
-      ['salary', { salary: null }],
-      ['currency', { currency: '' }],
-      ['workLocationType', { workLocationType: '' }],
-      ['experience', { experience: '' }],
-    ] as const)('blocks clearing %s and leaves it out of the command', (field, change) => {
-      const result = diff(change as Partial<ResumeFormValue>);
-
-      expect(result.blockedClears).toEqual([field]);
-      expect(result.command).toEqual({});
+      ['skills', { skills: [] }, { skills: [] }],
+      ['salary', { salary: null }, { clearSalary: true }],
+      ['currency', { currency: '' }, { currency: '' }],
+      ['workLocationType', { workLocationType: '' }, { workLocationType: '' }],
+      ['experience', { experience: '' }, { experience: '' }],
+    ] as const)('sends the clear encoding for an emptied %s', (_field, change, expected) => {
+      expect(diff(change as Partial<ResumeFormValue>)).toEqual(expected);
     });
 
-    it('reports every blocked clear alongside the legitimate changes', () => {
-      const result = diff({ title: 'New', salary: null, currency: '' });
-
-      expect(result.command).toEqual({ title: 'New' });
-      expect(result.blockedClears).toEqual(['salary', 'currency']);
+    it('sends a clear together with a value change in one command', () => {
+      expect(diff({ title: 'New', salary: null, currency: '', skills: [] })).toEqual({
+        title: 'New',
+        clearSalary: true,
+        currency: '',
+        skills: [],
+      });
     });
 
-    it('does not block setting a field that was previously empty', () => {
+    it('sends nothing when an already-empty field is still empty', () => {
+      const empty: ResumeResult = { id: 'r-5' };
+      expect(buildUpdateCommand(empty, resumeToFormValue(empty))).toEqual({});
+    });
+
+    it('sets a field that was previously empty', () => {
       const empty: ResumeResult = { id: 'r-3' };
       const result = buildUpdateCommand(empty, {
         ...resumeToFormValue(empty),
@@ -191,15 +192,22 @@ describe('buildUpdateCommand', () => {
         currency: 'USD',
       });
 
-      expect(result).toEqual({ command: { salary: 100, currency: 'USD' }, blockedClears: [] });
+      expect(result).toEqual({ salary: 100, currency: 'USD' });
     });
 
     it('treats a salary of 0 as a value, not as cleared', () => {
-      expect(diff({ salary: 0 })).toEqual({ command: { salary: 0 }, blockedClears: [] });
+      expect(diff({ salary: 0 })).toEqual({ salary: 0 });
       const zero: ResumeResult = { id: 'r-4', salary: 0 };
-      expect(
-        buildUpdateCommand(zero, { ...resumeToFormValue(zero), salary: null }).blockedClears,
-      ).toEqual(['salary']);
+      expect(buildUpdateCommand(zero, { ...resumeToFormValue(zero), salary: null })).toEqual({
+        clearSalary: true,
+      });
+    });
+
+    it('never sends clearSalary together with salary', () => {
+      for (const salary of [null, 0, 6000]) {
+        const command = diff({ salary });
+        expect('clearSalary' in command && 'salary' in command).toBe(false);
+      }
     });
   });
 });

@@ -27,6 +27,49 @@ public class CreateResumeCommandValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    [Fact]
+    public void NullTitleSkillsAndWorkLocationType_PassesValidation()
+    {
+        var cmd = new CreateResumeCommand
+        {
+            UserId = Guid.NewGuid(),
+            Title = null,
+            Skills = null,
+            WorkLocationType = null,
+        };
+
+        var result = _validator.Validate(cmd);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void WhitespaceEnumValues_PassAsBlank()
+    {
+        var cmd = new CreateResumeCommand
+        {
+            UserId = Guid.NewGuid(),
+            WorkLocationType = "   ",
+            Currency = "   ",
+            Experience = "   ",
+        };
+
+        var result = _validator.Validate(cmd);
+
+        result.IsValid.Should().BeTrue(string.Join("; ", result.Errors.Select(e => e.ErrorMessage)));
+    }
+
+    [Fact]
+    public void InvalidWorkLocationType_MessageListsRealEnumValues()
+    {
+        var cmd = new CreateResumeCommand { UserId = Guid.NewGuid(), WorkLocationType = "office" };
+
+        var result = _validator.Validate(cmd);
+
+        result.Errors.Should().ContainSingle(e => e.PropertyName == "WorkLocationType")
+            .Which.ErrorMessage.Should().Contain("(OnSite, Remote, Hybrid)");
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

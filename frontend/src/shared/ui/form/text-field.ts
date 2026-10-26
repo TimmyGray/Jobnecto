@@ -132,7 +132,15 @@ export class TextFieldComponent implements ControlValueAccessor {
   }
 
   protected onInput(event: Event): void {
-    const next = (event.target as HTMLInputElement).value;
+    const target = event.target as HTMLInputElement;
+    if (this.type() === 'number' && target.validity?.badInput) {
+      // The browser reports text it cannot parse ("5000e", a lone "-") as an empty
+      // value. Emitting null would read as "the user emptied the field", so emit NaN
+      // for the control's validators to reject, and keep the typed text on screen.
+      this.onChange(NaN);
+      return;
+    }
+    const next = target.value;
     this.value = next;
     if (this.type() === 'number') {
       // The native input's own `.value` is always a string, even for

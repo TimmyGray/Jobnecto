@@ -94,6 +94,46 @@ public class ResumesControllerTests
         return created!;
     }
 
+    /// <summary>Sends an authenticated POST to /api/v1/resumes with an arbitrary JSON payload.</summary>
+    private static async Task<HttpResponseMessage> PostResumeAsync(HttpClient client, string authCookie, object payload)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/resumes")
+        {
+            Content = JsonContent.Create(payload)
+        };
+        request.Headers.TryAddWithoutValidation("Cookie", authCookie);
+
+        return await client.SendAsync(request);
+    }
+
+    /// <summary>Creates a résumé with skills, salary, currency, work-location and experience all set.</summary>
+    private static async Task<ResumeResult> CreateFullResumeAsync(HttpClient client, string authCookie)
+    {
+        var response = await PostResumeAsync(client, authCookie, new
+        {
+            title = "Full Resume",
+            skills = new[] { "C#", "SQL" },
+            salary = 5000m,
+            currency = "EUR",
+            workLocationType = "Hybrid",
+            experience = "OneToThreeYears"
+        });
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var created = await response.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+        created!.Salary.Should().Be(5000m);
+        created.Currency.Should().Be("EUR");
+        created.Experience.Should().Be("OneToThreeYears");
+        return created;
+    }
+
+    /// <summary>Reads the property names of the <c>errors</c> map in a validation ProblemDetails body.</summary>
+    private static async Task<string[]> ReadErrorKeysAsync(HttpResponseMessage response)
+    {
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return doc.RootElement.GetProperty("errors").EnumerateObject().Select(p => p.Name).ToArray();
+    }
+
     private static async Task<HttpResponseMessage> UpdateResumeAsync(
         HttpClient client,
         string authCookie,
@@ -380,6 +420,172 @@ public class ResumesControllerTests
     }
 
     // ──────────────────────────────────────────────────────────────────
+    //  POST /api/v1/resumes: optional fields may be omitted
+    //  (MVC treats non-nullable reference properties as implicitly
+    //  required, so only an HTTP-level test can catch that regression.)
+    // ──────────────────────────────────────────────────────────────────
+
+    private static async Task<ResumeResult> AssertCreatedAndReadBackAsync(
+        HttpClient client, string authCookie, HttpResponseMessage response)
+    {
+        response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
+        var created = await response.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+
+        var getResponse = await GetResumeByIdAsync(client, authCookie, created!.Id);
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        return (await getResponse.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts))!;
+    }
+
+    [Fact]
+    public async Task Create_EmptyPayload_Returns201WithEmptyFields()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var response = await PostResumeAsync(client, authCookie, new { });
+
+        var result = await AssertCreatedAndReadBackAsync(client, authCookie, response);
+        result.Title.Should().BeEmpty();
+        result.Skills.Should().BeEmpty();
+        result.WorkLocationType.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Create_ExplicitNullOptionalFields_Returns201WithEmptyFields()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var response = await PostResumeAsync(client, authCookie, new
+        {
+            title = (string?)null,
+            skills = (string[]?)null,
+            workLocationType = (string?)null
+        });
+
+        var result = await AssertCreatedAndReadBackAsync(client, authCookie, response);
+        result.Title.Should().BeEmpty();
+        result.Skills.Should().BeEmpty();
+        result.WorkLocationType.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Create_TitleOnly_Returns201()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var response = await PostResumeAsync(client, authCookie, new { title = "Only a title" });
+
+        var result = await AssertCreatedAndReadBackAsync(client, authCookie, response);
+        result.Title.Should().Be("Only a title");
+        result.Skills.Should().BeEmpty();
+        result.WorkLocationType.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Create_WithoutWorkLocationType_Returns201()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var response = await PostResumeAsync(client, authCookie, new
+        {
+            title = "No location",
+            skills = new[] { "C#" }
+        });
+
+        var result = await AssertCreatedAndReadBackAsync(client, authCookie, response);
+        result.Skills.Should().BeEquivalentTo(["C#"]);
+        result.WorkLocationType.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Create_WithoutSkills_Returns201()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var response = await PostResumeAsync(client, authCookie, new
+        {
+            title = "No skills",
+            workLocationType = "Remote"
+        });
+
+        var result = await AssertCreatedAndReadBackAsync(client, authCookie, response);
+        result.Skills.Should().BeEmpty();
+        result.WorkLocationType.Should().Be("Remote");
+    }
+
+    [Fact]
+    public async Task Create_InvalidWorkLocationType_Returns400WithAccurateMessage()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        var response = await PostResumeAsync(client, authCookie, new { workLocationType = "office" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ReadErrorKeysAsync(response)).Should().Contain("WorkLocationType");
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("OnSite, Remote, Hybrid");
+    }
+
+    [Theory]
+    [InlineData("emptySkill", "Skills[0]")]
+    [InlineData("longSkill", "Skills[0]")]
+    [InlineData("longTitle", "Title")]
+    [InlineData("negativeSalary", "Salary")]
+    public async Task Create_InvalidOptionalValue_Returns400WithFieldError(string scenario, string expectedField)
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+
+        // Each payload names only the invalid field, so a 400 cannot come from a missing sibling.
+        object payload = scenario switch
+        {
+            "emptySkill" => new { skills = new[] { "" } },
+            "longSkill" => new { skills = new[] { new string('s', 31) } },
+            "longTitle" => new { title = new string('t', 501) },
+            "negativeSalary" => new { salary = -1m },
+            _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, null),
+        };
+
+        var response = await PostResumeAsync(client, authCookie, payload);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ReadErrorKeysAsync(response)).Should().Contain(expectedField);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
     //  Story 2.3: GET /api/v1/resumes/{id}
     // ──────────────────────────────────────────────────────────────────
 
@@ -644,7 +850,116 @@ public class ResumesControllerTests
     }
 
     [Fact]
-    public async Task Update_EmptySkills_Returns400WithValidationErrors()
+    public async Task Update_EmptySkills_ClearsSkills_Returns200()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var created = await CreateResumeAsync(client, authCookie, "Original");
+        created.Skills.Should().NotBeEmpty();
+
+        var response = await UpdateResumeAsync(client, authCookie, created.Id, new
+        {
+            skills = Array.Empty<string>()
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+        result!.Skills.Should().BeEmpty();
+        result.Title.Should().Be("Original");
+        result.WorkLocationType.Should().Be("Remote");
+    }
+
+    [Fact]
+    public async Task Update_ClearAllOptionalFields_Returns200AndReadsBackEmpty()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var created = await CreateFullResumeAsync(client, authCookie);
+
+        var response = await UpdateResumeAsync(client, authCookie, created.Id, new
+        {
+            skills = Array.Empty<string>(),
+            currency = "",
+            workLocationType = "",
+            experience = "",
+            clearSalary = true
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var getResponse = await GetResumeByIdAsync(client, authCookie, created.Id);
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await getResponse.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+
+        result!.Skills.Should().BeEmpty();
+        result.Salary.Should().BeNull();
+        result.Currency.Should().BeEmpty();
+        result.WorkLocationType.Should().BeEmpty();
+        result.Experience.Should().BeEmpty();
+        result.Title.Should().Be("Full Resume");
+    }
+
+    [Fact]
+    public async Task Update_ClearSalaryOnly_Returns200()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var created = await CreateFullResumeAsync(client, authCookie);
+
+        var response = await UpdateResumeAsync(client, authCookie, created.Id, new { clearSalary = true });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+        result!.Salary.Should().BeNull();
+        result.Currency.Should().Be("EUR");
+        result.Skills.Should().BeEquivalentTo(["C#", "SQL"]);
+        result.WorkLocationType.Should().Be("Hybrid");
+        result.Experience.Should().Be("OneToThreeYears");
+    }
+
+    [Fact]
+    public async Task Update_ClearSalaryWithSalary_Returns400()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var created = await CreateFullResumeAsync(client, authCookie);
+
+        var response = await UpdateResumeAsync(client, authCookie, created.Id, new
+        {
+            clearSalary = true,
+            salary = 0
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ReadErrorKeysAsync(response)).Should().Contain("Salary");
+
+        var getResponse = await GetResumeByIdAsync(client, authCookie, created.Id);
+        var unchanged = await getResponse.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+        unchanged!.Salary.Should().Be(5000m);
+    }
+
+    [Fact]
+    public async Task Update_InvalidWorkLocationType_Returns400WithAccurateMessage()
     {
         await using var factory = new JobNectoApiFactory();
         var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
@@ -655,14 +970,11 @@ public class ResumesControllerTests
         var authCookie = await CreateUserAndGetCookieAsync(client);
         var created = await CreateResumeAsync(client, authCookie, "Original");
 
-        var response = await UpdateResumeAsync(client, authCookie, created.Id, new
-        {
-            skills = Array.Empty<string>()
-        });
+        var response = await UpdateResumeAsync(client, authCookie, created.Id, new { workLocationType = "office" });
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var body = await response.Content.ReadAsStringAsync();
-        body.Should().Contain("Skills");
+        body.Should().Contain("OnSite, Remote, Hybrid");
     }
 
     [Fact]

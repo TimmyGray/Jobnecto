@@ -90,6 +90,27 @@ describe('TextFieldComponent', () => {
       expect(captured).toBeNull();
     });
 
+    it('emits NaN, not null, for text the browser cannot parse ("5000e"), and leaves the typed text on screen', () => {
+      // Chrome reports such input as value === '' with validity.badInput; null would read as "cleared".
+      let captured: unknown = 'unset';
+      numberFixture.componentInstance.registerOnChange((v) => (captured = v));
+      numberFixture.componentInstance.writeValue(5000);
+      numberFixture.detectChanges();
+      const writes: string[] = [];
+      Object.defineProperty(numberInput, 'validity', { value: { badInput: true } });
+      Object.defineProperty(numberInput, 'value', {
+        get: () => '',
+        set: (v: string) => writes.push(v),
+        configurable: true,
+      });
+
+      numberInput.dispatchEvent(new Event('input'));
+      numberFixture.detectChanges();
+
+      expect(captured).toBeNaN();
+      expect(writes).toEqual([]);
+    });
+
     it('a syntactically out-of-range value ("1e400") is sanitized to empty by the native input itself, not this component', () => {
       // Verified: HTML5 number-input value-sanitization (matched by jsdom)
       // resets .value to '' for non-finite-parsing input before any (input)

@@ -9,7 +9,7 @@ namespace JobNecto.Application.Resumes.Validators;
 /// </summary>
 public class CreateResumeCommandValidator : AbstractValidator<CreateResumeCommand>
 {
-    private bool IsExistingEnumValue<TEnum>(string value) where TEnum : struct, Enum
+    private bool IsExistingEnumValue<TEnum>(string? value) where TEnum : struct, Enum
     {
         return Enum.TryParse<TEnum>(value, true, out _);
     }
@@ -28,21 +28,21 @@ public class CreateResumeCommandValidator : AbstractValidator<CreateResumeComman
                 .MaximumLength(30).WithMessage("each skill must be at most 30 characters long.");
         });
 
-        When(x => !string.IsNullOrEmpty(x.WorkLocationType), () =>
+        When(x => !string.IsNullOrWhiteSpace(x.WorkLocationType), () =>
         {
             RuleFor(x => x.WorkLocationType)
                 .Must(type => IsExistingEnumValue<WorkLocationType>(type))
-                .WithMessage("workLocationType must be a valid WorkLocationType enum value (remote, office, hybrid).");
+                .WithMessage("workLocationType must be a valid WorkLocationType enum value (OnSite, Remote, Hybrid).");
         });
 
-        When(x => !string.IsNullOrEmpty(x.Currency), () =>
+        When(x => !string.IsNullOrWhiteSpace(x.Currency), () =>
         {
             RuleFor(x => x.Currency!)
                 .Must(currency => IsExistingEnumValue<Currency>(currency))
                 .WithMessage("currency must be a valid Currency enum value (e.g. USD, EUR, UAH).");
         });
 
-        When(x => !string.IsNullOrEmpty(x.Experience), () =>
+        When(x => !string.IsNullOrWhiteSpace(x.Experience), () =>
         {
             RuleFor(x => x.Experience!)
                 .Must(experience => IsExistingEnumValue<Experience>(experience))
