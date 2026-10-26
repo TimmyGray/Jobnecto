@@ -1,5 +1,16 @@
 # Deferred Work
 
+## Found in: Epic 2 browser pass (2026-10-26)
+
+Details in `epic-2-retro-2026-10-26.md` §10.
+
+- **B1 (High): `POST /resumes` rejects a résumé without `title`, `skills` or `workLocationType`.**
+  `CreateResumeCommand` declares them as non-nullable, so ASP.NET's implicit `[Required]` fires before FluentValidation. The PRD says all three are optional. The create form lets the user leave work-location unselected, then fails with a 400.
+- **B2:** the validator messages list "(remote, office, hybrid)"; the enum member is `OnSite`.
+- **→ B1 and B2 scheduled: Story 2.5 AC6/AC7** (decided 2026-10-27). B3 and B4 stay deferred: B3 is mostly removed with the blocked-clear message, and B4 belongs to retro A6 (focus management).
+- **B3:** the salary input widens when a field error renders below it (layout shift).
+- **B4:** focus drops to `<body>` after create submit, because the submit button uses `disabled` rather than `aria-disabled`.
+
 ## Deferred from: Story 2.4 soft-delete-a-resume (2026-10-21)
 
 - **Delete from the list and undo** are not built (no card menu; the API exposes no restore). Product call.
@@ -16,6 +27,7 @@
   rejects `[]` / `""`, `null` means "unchanged"; verified live). The edit form blocks those clears
   with an inline message. If users need to clear them: a small backend story (accept explicit
   clears, relax the skills rule) plus removing the blocked-clear handling in `resume-form.diff.ts`.
+  **→ Scheduled: Story 2.5** (`2-5-clear-optional-resume-fields.md`, ready-for-dev 2026-10-26).
 - **No unsaved-changes guard** when navigating away from `/resumes/:id` with edits.
 - **Duplicate skills** render with a duplicate `@for` track key in `TagInputComponent` (NG0955) and
   can be sent as typed or returned by the server.
@@ -41,6 +53,7 @@
 - **`ResumeCreatePage` still stays on `/resumes/new` after a successful create.** Its Story 2.1
   reason (`/resumes` was a stub) no longer holds now that `/resumes` is the list. Navigating to
   `/resumes` on success is a product call, not in either story's epics ACs.
+  **→ Decided 2026-10-26: land on `/resumes`. Scheduled: Story 2.5 AC5.**
 - **A `200` response with a malformed body leaves `/resumes` stuck.** `null`, `{}` or `items: null`
   (e.g. a proxy returning an HTML or empty 200) throws inside the `next:` callback, which RxJS
   reports as an unhandled error rather than routing to `error:` — the first load shows the

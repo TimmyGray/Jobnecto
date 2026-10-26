@@ -33,7 +33,8 @@ so that {benefit}.
   - [ ] Frontend tests (FE): `{path}.spec.ts` — {scenarios}
   - [ ] `dotnet test backend/JobNecto.slnx`
   - [ ] `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror`
-  - [ ] Coverage gate ≥80% per file (backend script / `cd frontend && npx ng test --no-watch`)
+  - [ ] Coverage gate ≥80% per file: backend `python scripts/check_coverage.py ./coverage/backend --threshold 80` (use `python`, not `python3`, which hits the Microsoft Store stub in Git Bash) and frontend `cd frontend && npx ng test --no-watch`
+- [ ] Task N+1: PR Review (RV) recorded before merge (AGENTS.md completion checklist item 5)
 
 ## Dev Notes
 
@@ -71,6 +72,10 @@ so that {benefit}.
 ### Completion Notes List
 
 ### File List
+
+## PR Review (RV)
+
+<!-- Filled by jobnecto-qa / bmad-code-review before merge (AGENTS.md completion checklist item 5). Not a self-review. -->
 
 ## Change Log
 

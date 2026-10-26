@@ -11,6 +11,36 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 <!-- Entries are appended here. Newest at the top. -->
 
+### 2026-10-26 - Never skip a CI-enforced gate locally because of a missing tool
+
+**Trigger:** User correction (Demo MVP Epic 2 retrospective, `_bmad-output/implementation-artifacts/epic-2-retro-2026-10-26.md`)
+**Context:** Stories 2.2, 2.3 and 2.4 Debug Logs say "backend coverage gate not re-run — python not on PATH".
+**Wrong action:** I recorded the backend coverage gate as skipped and moved the story to review, three stories in a row. The claim was also false: `python` resolves to `C:\Python314\python.exe` in both Git Bash and PowerShell. Only `python3` fails, and only in Git Bash, where it hits the Microsoft Store stub.
+**Root cause:** I treated a local tooling error as a reason to skip the gate instead of diagnosing it, and didn't try the obvious alternative command.
+**Correct behavior:** Diagnose the tool before skipping. On this machine, run `python scripts/check_coverage.py ...`, not `python3`. Run every gate the story's verification task lists and record its output. If a gate truly cannot run, the story is not ready for review: say so and stop.
+**Pattern / trigger:** Any verification step in a story's final task that fails for an environmental reason ("not found", "not on PATH", exit 49).
+**Generalize?** Yes. Covered by AGENTS.md *Mandatory story completion checklist*, item 3.
+
+### 2026-10-26 - A component-state assertion is not proof the DOM shows it
+
+**Trigger:** User correction (Story 2.1 PR review, 2026-09-28)
+**Context:** `ResumeFormComponent` language-row server errors (`frontend/src/widgets/resume-form/resume-form.ts`).
+**Wrong action:** I asserted that `setErrors()` had put the error on the dynamically added `FormArray` control. The test passed while the real UI showed nothing, because the next render wiped the error and the fallback banner needed `markForCheck()`.
+**Root cause:** I tested the model, not the rendered output, for a behaviour the user only experiences through the DOM.
+**Correct behavior:** For every user-visible error or state, assert on the rendered DOM after `fixture.detectChanges()`: the text is present and `aria-describedby` is wired. Then mutation-check the test: remove the production line and confirm the test fails.
+**Pattern / trigger:** Tests for server-error mapping, dynamic `FormArray` rows, and OnPush components updated outside an input change.
+**Generalize?** Yes
+
+### 2026-10-26 - Hold the busy flag until a post-success navigation settles
+
+**Trigger:** User correction (Story 2.4 self-review, 2026-10-21)
+**Context:** `ResumeDetailPage` delete flow (`frontend/src/pages/resume-detail/resume-detail.page.ts`). The same shape recurs in Story 2.5's create flow.
+**Wrong action:** I reset `deleting` in the HTTP subscription (`finalize` / `next`) and then called `router.navigate`. While the lazy route loaded, Save and Delete were re-enabled for a résumé that no longer existed.
+**Root cause:** I treated "request finished" as "action finished". When the success path navigates away, the action finishes only when the navigation settles.
+**Correct behavior:** When success navigates away, keep the busy signal true until `router.navigate(...)` resolves. Show the toast in `.then(...)`. Reset busy only on error or when the navigation is rejected.
+**Pattern / trigger:** Any Angular page whose success handler calls `router.navigate` after a mutating request.
+**Generalize?** Yes
+
 ### 2026-05-23 - Verify file existence before using Add File patches
 
 **Trigger:** Test failure
