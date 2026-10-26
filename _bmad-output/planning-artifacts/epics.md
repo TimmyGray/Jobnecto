@@ -232,7 +232,7 @@ A visitor can register or sign back in, is kept signed in across refresh, is bou
 **FRs covered:** FR1, FR2, FR3, FR4, FR5, FR6, FR37 *(+ cross-cutting FR40, FR41 foundation)*
 
 ### Epic 2: Résumé Management
-A user can create, browse (paginated), view, edit, and soft-delete their résumés — the fuel for generation and the first step of the magic spine. Reuses the branded form components (`ResumeForm`, `TagInput`, typed selects from generated enums) and cursor pagination over the shipped `/resumes` endpoints.
+A user can create, browse (paginated), view, edit, and soft-delete their résumés — the fuel for generation and the first step of the magic spine. Reuses the branded form components (`ResumeForm`, `TagInput`, typed selects from generated enums) and cursor pagination over the shipped `/resumes` endpoints. Story 2.5 (added after the Epic 2 retro) lets PATCH clear optional fields and sends the user to the list after create.
 **FRs covered:** FR11, FR12, FR13, FR14, FR15
 
 ### Epic 3: Vacancy Discovery
@@ -496,6 +496,32 @@ So that **I can remove outdated material**.
 **Given** I attempt to delete a résumé I do not own
 **When** the server responds
 **Then** it returns `403` and I see an explain + safe-recovery state (FR41, AR15)
+
+### Story 2.5: Clear optional résumé fields & land on the list after create
+
+*Added 2026-10-26 from the Epic 2 retrospective (follow-up to Stories 2.2/2.3; user decisions recorded in the story file).*
+
+As a **user**,
+I want **to remove a skills list, salary, currency, work-location or experience value I no longer want, and to see my new résumé in my list right after creating it**,
+So that **my résumé says only what I mean it to say, and I can tell the create worked**.
+
+**Acceptance Criteria:**
+
+**Given** I own a résumé with skills, salary, currency, work-location and/or experience set
+**When** I empty those fields and save
+**Then** the client sends `skills: []`, `""` for the emptied enum fields, and `clearSalary: true` for salary; the server clears them to empty and returns `200` (FR14)
+
+**Given** a PATCH that sends both `clearSalary: true` and a `salary` value
+**When** the server validates it
+**Then** it returns `400` with a field error (no silent precedence)
+
+**Given** I successfully create a résumé
+**When** the `201` returns
+**Then** I land on `/resumes` with a success toast and the new résumé is in my list (FR11, FR12)
+
+**Given** I create a résumé with `title`, `skills` and/or `workLocationType` omitted (or an empty payload)
+**When** the server responds
+**Then** it returns `201`, as the PRD allows; today MVC's implicit `[Required]` on non-nullable properties wrongly returns `400` (found in the Epic 2 browser pass, 2026-10-26) (FR11)
 
 ---
 

@@ -118,8 +118,9 @@ Before moving any story to `Status: review` or `Status: done`, the dev agent **m
 2. **File List** — Replace the stub `### File List` with every file actually created or modified, annotated `(CREATED)` or `(UPDATED — reason)`.
 3. **Debug Log References** — Record the build command output (last few lines including `Build succeeded`, `0 Warning(s)`, `0 Error(s)`) and the test count (`Passed: N, Failed: 0`).
 4. **Review Findings** — If a code review was run, record findings in a `### Review Findings` section using severity tags `[Patch]`, `[Defer]`, `[Dismiss]`.
+5. **PR Review (RV) before merge** — A story may not move past `review`, and its PR may not be merged (including self-merge), until a `## PR Review (RV)` section exists in the story file. That section must record the independent adversarial review required by *Mandatory comprehensive PR review workflow* below (`bmad-code-review`, or `jobnecto-qa` when BMad is not installed), with its findings and how each was resolved. A dev self-review (`### Review Findings`) does **not** satisfy this item. If a verification gate (build, tests, coverage scripts, browser smoke) could not run, the RV section must say so explicitly; "skipped" is never silent.
 
-Skipping any of these steps is the root cause of story artifact drift (observed in Epics 3, 4, and 5). This gate was introduced after the Epic 5 retrospective (2026-05-25).
+Skipping any of these steps is the root cause of story artifact drift (observed in Epics 3, 4, and 5). This gate was introduced after the Epic 5 retrospective (2026-05-25). Item 5 was added after the Demo MVP Epic 2 retrospective (2026-10-26): Stories 2.3 and 2.4 were merged two minutes after their feature commits with no RV recorded.
 
 ## Mandatory artifact archive lifecycle
 

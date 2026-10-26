@@ -9,7 +9,7 @@
 # ============================================================================
 
 # generated: 2026-08-20T00:00:00Z
-# last_updated: 2026-10-21T23:59:00Z
+# last_updated: 2026-10-27T12:00:00Z
 # project: Jobnecto
 # project_key: NOKEY
 # tracking_system: file-system
@@ -55,7 +55,7 @@
 #   [SEED] Data/seed track - mocked vacancies behind the JobSource seam
 
 generated: 2026-08-20T00:00:00Z
-last_updated: 2026-10-21T20:00:00Z
+last_updated: 2026-10-27T12:00:00Z
 project: Jobnecto
 project_key: NOKEY
 tracking_system: file-system
@@ -74,12 +74,13 @@ development_status:
   epic-1-retrospective: optional
 
   # --- Epic 2: Résumé Management (FR11-FR15) ---
-  epic-2: done # all four stories merged 2026-10-21; retrospective optional
+  epic-2: in-progress # 2.1-2.4 merged 2026-10-21; reopened 2026-10-26 for follow-up 2.5 (Epic 2 retro A1/A2)
   2-1-create-a-resume: done # [FE] + small BE OpenAPI enum-schema fix; merged 2026-09-28 (PR #95, f05a5f6)
   2-2-browse-my-resumes: done # [FE] merged 2026-10-21 (PR #96, bb8e78f)
   2-3-view-edit-a-resume: done # [FE] merged 2026-10-21 (PR #99, d6d13ea)
   2-4-soft-delete-a-resume: done # [FE] merged 2026-10-21 (PR #101, 0b50e46)
-  epic-2-retrospective: optional
+  2-5-clear-optional-resume-fields: ready-for-dev # [BE]+[FE] PATCH clears (clearSalary flag) + land on /resumes after create + create accepts omitted optional fields (B1/B2); from Epic 2 retro 2026-10-26
+  epic-2-retrospective: done # epic-2-retro-2026-10-26.md (archive with the epic when 2.5 merges)
 
   # --- Epic 3: Vacancy Discovery (FR23-FR26) ---
   epic-3: backlog
