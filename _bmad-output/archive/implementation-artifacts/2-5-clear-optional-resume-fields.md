@@ -1,6 +1,8 @@
 # Story 2.5: Clear optional résumé fields & land on the list after create
 
-Status: review
+Status: done
+
+<!-- Merged 2026-10-27 via PR #104 (30a871d). Archived per AGENTS.md lifecycle. -->
 
 ## Story
 
@@ -277,7 +279,7 @@ The implicit `[Required]` comes from MVC model validation on the controller's `[
 - [Source: `_bmad-output/implementation-artifacts/deferred-work.md` - Deferred from: Story 2.3 (cannot clear), Story 2.2 (stays on /resumes/new)]
 - [Source: `_bmad-output/archive/implementation-artifacts/2-3-view-edit-a-resume.md` - Decision Record, PATCH semantics]
 - [Source: `_bmad-output/archive/implementation-artifacts/2-4-soft-delete-a-resume.md` - Completion Notes, navigate-then-toast]
-- [Source: `_bmad-output/implementation-artifacts/epic-2-retro-2026-10-26.md` - Action items A1, A2; §10 Browser Pass findings B1, B2]
+- [Source: `_bmad-output/archive/implementation-artifacts/epic-2-retro-2026-10-26.md` - Action items A1, A2; §10 Browser Pass findings B1, B2]
 - [Source: `_bmad-output/planning-artifacts/prd.md` - Feature: Create Resume (title, skills, workLocationType optional; empty payload valid)]
 
 ## Dev Agent Record
@@ -408,7 +410,7 @@ Self-review (`jobnecto-dev` → `references/review.md`). Four lenses ran in para
 - `frontend/src/pages/resume-detail/resume-detail.page.ts` (UPDATED: RV-101 #2 `openDelete` guard and `confirmingDelete` reset; RV-101 #3 rejection handler)
 - `frontend/src/pages/resume-detail/resume-detail.page.html` (UPDATED: Delete `aria-disabled` is `saving() || deleting()`)
 - `frontend/src/pages/resume-detail/resume-detail.page.spec.ts` (UPDATED: end-to-end clear spec; RV-101 #2 and #3 specs)
-- `_bmad-output/implementation-artifacts/2-5-clear-optional-resume-fields.md` (UPDATED: Task 6b, AC5 rejected-navigation clause, Dev Agent Record, Status: review)
+- `_bmad-output/archive/implementation-artifacts/2-5-clear-optional-resume-fields.md` (UPDATED: Task 6b, AC5 rejected-navigation clause, Dev Agent Record, Status: review)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (UPDATED: `2-5…: review`; `epic-5` pre-req comment)
 - `_bmad-output/implementation-artifacts/deferred-work.md` (UPDATED: B1, B2, 2.3 "cannot clear" and 2.2 "stays on /resumes/new" marked RESOLVED; RV-101 BLOCK B; code-review-of-2-5 deferrals)
 - `_bmad-output/archive/implementation-artifacts/2-4-soft-delete-a-resume.md` (UPDATED: `## PR Review (RV)` BLOCK A from the retroactive PR #101 review)

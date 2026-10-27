@@ -425,6 +425,7 @@ A job seeker can:
 
 - Update any resume field
 - Partial updates allowed
+- **Clearing (Demo MVP Story 2.5, 2026-10-27):** an absent or `null` field means unchanged. An empty value clears an optional field: `""` for `currency`, `workLocationType` and `experience`, and `[]` for `skills`. `salary` is cleared with `clearSalary: true`; sending `clearSalary: true` together with a non-null `salary` returns `400`. Cleared fields read back as `""`, `[]` or `null`.
 - Re-validate all fields same as POST
 - Return `200 OK` with updated object
 - Update `updatedAt` timestamp
