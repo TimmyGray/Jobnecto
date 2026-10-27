@@ -3,6 +3,7 @@ using FluentAssertions;
 using JobNecto.API;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace JobNecto.Tests.API;
@@ -26,6 +27,11 @@ public class CorsFactory : WebApplicationFactory<ApiAssemblyMarker>
         builder.UseSetting("JwtSettings:Audience", "JobNecto-API");
         // These tests target /openapi/v1.json, which is only mapped in Development.
         builder.UseEnvironment("Development");
+        // Development turns demo seeding on, and the startup backfill would write to whatever database the
+        // final configuration names (appsettings.Local.json is loaded last and can replace the dummy
+        // connection string above). App-configuration overrides apply after Program.cs's own sources.
+        builder.ConfigureAppConfiguration((_, config) =>
+            config.AddInMemoryCollection(new Dictionary<string, string?> { ["Seed:Vacancies:Enabled"] = "false" }));
     }
 }
 

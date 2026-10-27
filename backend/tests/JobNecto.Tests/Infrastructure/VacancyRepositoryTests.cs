@@ -630,6 +630,52 @@ public class VacancyRepositoryTests
         }
     }
 
+    private static Vacancy UrlVacancy(Guid userId, string? url, bool isDeleted = false) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Title = "Seeded",
+            JobSource = new JobSource { Name = "Jobnecto Demo Catalogue", Url = url },
+            IsDeleted = isDeleted,
+            CreatedAt = VacancyTestData.AnchorUtc,
+            UpdatedAt = VacancyTestData.AnchorUtc,
+        };
+
+    [Fact]
+    public async Task GetJobSourceUrlsAsync_ReturnsOnlyThatUsersUrls_IncludingSoftDeleted_SkippingNulls()
+    {
+        await using var context = CreateContext();
+        var owner = VacancyTestData.CreateOwnerUser();
+        var other = VacancyTestData.CreateOwnerUser(id: Guid.NewGuid());
+        other.Login = "vacancy-repo-tester-other";
+        other.Email = "vacancy.tests.other@example.com";
+        context.Users.AddRange(owner, other);
+        context.Vacancies.AddRange(
+            UrlVacancy(owner.Id, "https://jobs.example.test/demo/a"),
+            UrlVacancy(owner.Id, "https://jobs.example.test/demo/b", isDeleted: true),
+            UrlVacancy(owner.Id, null),
+            UrlVacancy(other.Id, "https://jobs.example.test/demo/c"));
+        await context.SaveChangesAsync();
+        var repo = new VacancyRepository(context);
+
+        var urls = await repo.GetJobSourceUrlsAsync(owner.Id, CancellationToken.None);
+
+        urls.Should().BeEquivalentTo(
+            "https://jobs.example.test/demo/a", "https://jobs.example.test/demo/b");
+    }
+
+    [Fact]
+    public async Task GetJobSourceUrlsAsync_UserWithoutVacancies_ReturnsEmpty()
+    {
+        await using var context = CreateContext();
+        var repo = new VacancyRepository(context);
+
+        var urls = await repo.GetJobSourceUrlsAsync(Guid.NewGuid(), CancellationToken.None);
+
+        urls.Should().BeEmpty();
+    }
+
     [Fact]
     public async Task UpdateMatchScoreAsync_throws_NotImplementedException()
     {

@@ -212,6 +212,24 @@ public class VacancyRepository : BaseRepository<Vacancy>, IVacancyRepository
         throw new NotImplementedException();
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyCollection<string>> GetJobSourceUrlsAsync(Guid userId, CancellationToken ct)
+    {
+        // JobSource is a JSON column behind a value converter, so its Url cannot be queried in SQL;
+        // project the whole value and read Url in memory.
+        var sources = await _dbSet
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(v => v.UserId == userId)
+            .Select(v => v.JobSource)
+            .ToListAsync(ct);
+
+        return sources
+            .Select(s => s.Url)
+            .OfType<string>()
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
     private static string NormalizeSortBy(string? sortBy)
     {
         if (string.IsNullOrWhiteSpace(sortBy))
