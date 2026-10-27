@@ -473,6 +473,40 @@ Self-review (`jobnecto-dev` → `references/review.md`). Four lenses ran in para
 - a superseded navigation during the pending window;
 - an `authGuard` redirect during navigation.
 
+### Delta re-review (c056df2), 2026-10-27
+
+*Reviewer: `jobnecto-qa`. Scope: `git diff d11b58f..c056df2`, the RV patch round only.*
+
+**Verdict: approve.** Every [Patch] item is resolved as recommended. Nothing in the delta blocks the merge.
+
+**Scope of the change:** the only production-code edits are two doc comments, on `ResumeMappers.ToEntity` and `ResumeFormComponent.resetForm`. Behaviour is unchanged. The RV section above is unchanged; the delta's story-file hunks touch only the Decision Record, the Debug Log and the Change Log.
+
+**Patch items:**
+- **#2: resolved.**
+  - The create spec now asserts `submitting()` is true and the title is kept after `finish(true)`.
+  - The dev's mutation check (`if (true)`) fails the spec.
+- **#3: resolved.**
+  - `confirmingDelete.set(true)` now runs after the 204 flush and before the rejection settles. The flush runs `afterDeleted()` synchronously; the rejection handler runs later, as a microtask.
+  - So only the rejection path can reset `confirmingDelete`.
+- **#4: resolved.**
+  - New `Update_InvalidOptionalValue_Returns400WithFieldError` theory: `skills:[""]` and a 31-character skill → `Skills[0]`, `salary:-1` → `Salary`, and `{clearSalary:false}` → the empty-update error. That error is attached to `Title` by the validator's `Custom` rule. Each case also asserts the résumé is unchanged.
+  - New `Update_ClearSalaryWithExplicitNullSalary_Returns200AndClearsSalary`.
+  - The AC2 test now also sends `title`, and asserts that title, currency, skills, work-location and experience are unchanged.
+  - `CreateFullResumeAsync` now asserts its Skills and WorkLocationType preconditions.
+- **#6: resolved.** Both doc comments now describe the real behaviour.
+- **Deferred items:** #1, #5 and #7 are logged in `deferred-work.md` under "Deferred from: Story 2.5 PR Review (RV)".
+- **#8:** a Decision Record line was added, as suggested.
+
+**Judgement: `{clearSalary:true, salary:null}` → 200, which clears the salary.** This is consistent with AC2 and the Decision Record.
+- AC2 rejects only a *non-null* salary.
+- The Decision Record states that System.Text.Json cannot tell an explicit `null` from an absent property, and that `null` means "unchanged/not provided" for every field. An explicit null salary is therefore the same request as `{clearSalary:true}`, with no ambiguity to reject.
+- The frontend never sends this combination, and the test name pins the behaviour.
+
+**Tests (rerun by the reviewer at `c056df2`):**
+- `dotnet test backend/JobNecto.slnx` → `Passed: 670, Failed: 0, Skipped: 0`. That is 665 + 5: the 4-case theory plus the explicit-null test.
+- `cd frontend && npx ng test --no-watch` → exit 0. Test Files 40 passed (40), Tests 616 passed (616). Lines 98.27%; the per-file gate is clean.
+- Not rerun, because the delta does not touch them: the Release `--warnaserror` build, the backend coverage gate and the production build. The delta adds only tests and doc comments; the dev's record shows the Release build at 0 warnings and coverage at 96.3% PASS.
+
 ## Change Log
 
 - 2026-10-26: Story created (ready-for-dev) from the Epic 2 retrospective. User decisions: Story 2.5 inside Epic 2; `clearSalary` flag; land on `/resumes` after create.
