@@ -13,7 +13,7 @@ See `.github/instructions/self-improvement.instructions.md` for the protocol.
 
 ### 2026-10-26 - Never skip a CI-enforced gate locally because of a missing tool
 
-**Trigger:** User correction (Demo MVP Epic 2 retrospective, `_bmad-output/implementation-artifacts/epic-2-retro-2026-10-26.md`)
+**Trigger:** User correction (Demo MVP Epic 2 retrospective, `_bmad-output/archive/implementation-artifacts/epic-2-retro-2026-10-26.md`)
 **Context:** Stories 2.2, 2.3 and 2.4 Debug Logs say "backend coverage gate not re-run — python not on PATH".
 **Wrong action:** I recorded the backend coverage gate as skipped and moved the story to review, three stories in a row. The claim was also false: `python` resolves to `C:\Python314\python.exe` in both Git Bash and PowerShell. Only `python3` fails, and only in Git Bash, where it hits the Microsoft Store stub.
 **Root cause:** I treated a local tooling error as a reason to skip the gate instead of diagnosing it, and didn't try the obvious alternative command.
