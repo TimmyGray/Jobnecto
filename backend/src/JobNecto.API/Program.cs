@@ -2,6 +2,7 @@ using JobNecto.API.Infrastructure;
 using JobNecto.API.Infrastructure.Cors;
 using JobNecto.API.Infrastructure.ExceptionHandling;
 using JobNecto.Application;
+using JobNecto.Infrastructure.JobSources;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +12,7 @@ builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, relo
 builder.Services.AddApiOpenApi();
 builder.Services.AddMemoryCache();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddJobSources(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddControllers()

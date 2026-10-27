@@ -119,6 +119,7 @@ curl -i http://localhost:5000/
 
 - **`GET /openapi/v1.json`** — should return **200** in Development.
 - **`GET /`** — **404** is expected until public routes exist.
+- **Demo vacancies** — in Development (`Seed:Vacancies:Enabled = true`), every user gets the 40-vacancy synthetic demo catalogue on sign-up, and existing users get it at startup (idempotent). It is off by default in other environments.
 
 ### Current API surface
 

@@ -51,4 +51,33 @@ public class UserRepositoryTests : EditableRepositoryTestsBase<User, UserReposit
         uniqueIndexPropertySets.Should().Contain(set =>
             set.Length == 1 && set[0] == nameof(User.Login));
     }
+
+    [Fact]
+    public async Task GetAllIdsAsync_ReturnsNonDeletedUsersOnly()
+    {
+        await using var context = CreateContext();
+        var active = CreateEntity();
+        var deleted = CreateEntity();
+        deleted.Login = "deleteduser";
+        deleted.Email = "deleted@example.com";
+        deleted.IsDeleted = true;
+        context.Users.AddRange(active, deleted);
+        await context.SaveChangesAsync();
+        var repo = CreateRepository(context);
+
+        var ids = await repo.GetAllIdsAsync(CancellationToken.None);
+
+        ids.Should().Equal(active.Id);
+    }
+
+    [Fact]
+    public async Task GetAllIdsAsync_NoUsers_ReturnsEmpty()
+    {
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+
+        var ids = await repo.GetAllIdsAsync(CancellationToken.None);
+
+        ids.Should().BeEmpty();
+    }
 }
