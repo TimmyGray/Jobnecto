@@ -40,7 +40,7 @@
         type="button"
         #deleteButton
         data-testid="delete-resume"
-        [attr.aria-disabled]="saving()"
+        [attr.aria-disabled]="saving() || deleting()"
         class="mt-4 inline-flex items-center rounded-md border border-status-danger bg-surface px-4 py-2 text-md font-medium text-status-danger transition-colors duration-standard hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-focus aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
         (click)="openDelete()"
       >

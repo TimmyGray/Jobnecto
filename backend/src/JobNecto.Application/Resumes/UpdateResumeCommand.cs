@@ -33,6 +33,15 @@ public class UpdateResumeCommand : IRequest<ResumeResult>
     public decimal? Salary { get; set; }
 
     /// <summary>
+    /// When true, clears the stored salary. Must not be combined with <see cref="Salary"/>.
+    /// </summary>
+    /// <remarks>
+    /// Salary is a number, so unlike the string and array fields it has no empty value that
+    /// could mean "clear"; a <c>null</c> salary means "unchanged".
+    /// </remarks>
+    public bool ClearSalary { get; set; }
+
+    /// <summary>
     /// Updated salary currency.
     /// </summary>
     public string? Currency { get; set; }

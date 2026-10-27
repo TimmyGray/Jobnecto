@@ -246,6 +246,26 @@ describe('ResumeDetailPage', () => {
       req.flush({ ...LOADED, title: 'Principal Engineer', currency: 'EUR' });
     });
 
+    it('clears skills and salary end to end: PATCHes the clear encoding, then shows them empty as the new baseline', () => {
+      edit(form().form.controls.skills, []);
+      edit(form().form.controls.salary, null);
+      const save = (): HTMLButtonElement =>
+        el().querySelector<HTMLButtonElement>('button[type="submit"]')!;
+      expect(save().disabled).toBe(false);
+
+      form().onSubmit();
+
+      const req = expectPatch('r-1');
+      expect(req.request.body).toEqual({ skills: [], clearSalary: true });
+      req.flush({ ...LOADED, skills: [], salary: null });
+      detect();
+
+      expect(form().form.controls.skills.value).toEqual([]);
+      expect(form().form.controls.salary.value).toBeNull();
+      expect(form().form.pristine).toBe(true);
+      expect(save().disabled).toBe(true);
+    });
+
     it('invalidates the cached list after a successful save', () => {
       const service = TestBed.inject(ResumeService);
       service.list(5).subscribe();
@@ -745,6 +765,64 @@ describe('ResumeDetailPage', () => {
 
         expect(el().querySelector('ui-not-found-state')).not.toBeNull();
         expect(page().deleting()).toBe(false);
+        expect(document.activeElement).toBe(el().querySelector('ui-not-found-state'));
+      });
+
+      it('keeps the Delete button inert after the 204 while navigation is pending: no dialog, no second DELETE', async () => {
+        let finish!: (ok: boolean) => void;
+        vi.spyOn(router, 'navigate').mockReturnValue(new Promise<boolean>((r) => (finish = r)));
+        confirmBtn().click();
+        detect();
+        expectDelete().flush(null, noContent);
+        detect();
+
+        expect(deleteButton()!.getAttribute('aria-disabled')).toBe('true');
+        deleteButton()!.click();
+        detect();
+
+        expect(page().confirmingDelete()).toBe(false);
+        expect(dialogOpen()).toBe(false);
+        page().onConfirmDelete();
+        httpMock.expectNone((req) => req.method === 'DELETE');
+
+        finish(true);
+        await Promise.resolve();
+      });
+
+      it('if navigation is refused, closes the dialog as well as showing not-found', async () => {
+        let finish!: (ok: boolean) => void;
+        vi.spyOn(router, 'navigate').mockReturnValue(new Promise<boolean>((r) => (finish = r)));
+        confirmBtn().click();
+        detect();
+        expectDelete().flush(null, noContent);
+        // Reopened by a path other than the guarded button (defence in depth).
+        page().confirmingDelete.set(true);
+
+        finish(false);
+        await harness.fixture.whenStable();
+        detect();
+
+        expect(page().confirmingDelete()).toBe(false);
+        expect(el().querySelector('ui-not-found-state')).not.toBeNull();
+      });
+
+      it('if navigation rejects (e.g. a chunk fails to load), ends in the same honest state as a refused one', async () => {
+        vi.spyOn(router, 'navigate').mockRejectedValue(new Error('ChunkLoadError'));
+        confirmBtn().click();
+        detect();
+
+        expectDelete().flush(null, noContent);
+        // Reopened before the rejection settles, so only the rejection path can close it.
+        page().confirmingDelete.set(true);
+        await harness.fixture.whenStable();
+        detect();
+        detect();
+
+        expect(toasts.toasts().map((t) => t.message)).toEqual(['Résumé deleted']);
+        expect(page().deleting()).toBe(false);
+        expect(page().confirmingDelete()).toBe(false);
+        expect(dialogOpen()).toBe(false);
+        expect(el().querySelector('ui-not-found-state')).not.toBeNull();
         expect(document.activeElement).toBe(el().querySelector('ui-not-found-state'));
       });
 

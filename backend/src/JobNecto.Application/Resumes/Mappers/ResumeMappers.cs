@@ -11,7 +11,10 @@ public static class ResumeMappers
 {
     /// <summary>
     /// Maps a CreateResumeCommand to a Resume domain entity.
-    /// Performs necessary enum parsing.
+    /// Performs necessary enum parsing. An empty skills array and blank or unparseable
+    /// currency, work-location type and experience values are stored as <c>null</c>, the
+    /// same representation <see cref="ApplyUpdates"/> uses for a cleared field. The title
+    /// is stored as given, so an empty title stays <c>""</c>.
     /// </summary>
     public static Resume ToEntity(this CreateResumeCommand command)
     {
@@ -28,7 +31,7 @@ public static class ResumeMappers
                 : Enum.TryParse<Currency>(command.Currency, true, out var parsedCurrency)
                     ? parsedCurrency
                     : null,
-            Skills = command.Skills,
+            Skills = command.Skills is { Length: > 0 } ? command.Skills : null,
             WorkLocationType = Enum.TryParse<WorkLocationType>(command.WorkLocationType, true, out var parsedWlt)
                 ? parsedWlt
                 : null,
@@ -75,7 +78,10 @@ public static class ResumeMappers
 
     /// <summary>
     /// Applies provided update fields to an existing <see cref="Resume"/> entity.
-    /// Omitted fields are left unchanged.
+    /// A <c>null</c> (omitted) field is left unchanged. An empty value clears the field and is
+    /// stored as <c>null</c>: <c>""</c> (or whitespace) for currency, work-location type and
+    /// experience, and an empty array for skills. Salary is cleared by
+    /// <see cref="UpdateResumeCommand.ClearSalary"/>.
     /// </summary>
     /// <param name="resume">Target entity to update.</param>
     /// <param name="command">Update payload.</param>
@@ -86,7 +92,11 @@ public static class ResumeMappers
             resume.Title = command.Title;
         }
 
-        if (command.Salary.HasValue)
+        if (command.ClearSalary)
+        {
+            resume.Salary = null;
+        }
+        else if (command.Salary.HasValue)
         {
             resume.Salary = command.Salary.Value;
         }
@@ -102,7 +112,7 @@ public static class ResumeMappers
 
         if (command.Skills != null)
         {
-            resume.Skills = command.Skills;
+            resume.Skills = command.Skills.Length == 0 ? null : command.Skills;
         }
 
         if (command.WorkLocationType != null)

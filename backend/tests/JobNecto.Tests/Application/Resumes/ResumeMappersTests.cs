@@ -196,6 +196,101 @@ public class ResumeMappersTests
     }
 
     [Fact]
+    public void ApplyUpdates_ClearSalary_NullsSalaryAndLeavesOtherFieldsUnchanged()
+    {
+        var resume = NewFilledResume();
+
+        resume.ApplyUpdates(new UpdateResumeCommand { ClearSalary = true });
+
+        resume.Salary.Should().BeNull();
+        resume.Title.Should().Be("keep");
+        resume.Currency.Should().Be(Currency.USD);
+        resume.Skills.Should().BeEquivalentTo(["s"]);
+        resume.WorkLocationType.Should().Be(WorkLocationType.Remote);
+        resume.Experience.Should().Be(Experience.LessThanOneYear);
+    }
+
+    [Fact]
+    public void ApplyUpdates_ClearSalaryFalseAndNullSalary_LeavesSalaryUntouched()
+    {
+        var resume = NewFilledResume();
+
+        resume.ApplyUpdates(new UpdateResumeCommand { ClearSalary = false, Title = "changed" });
+
+        resume.Salary.Should().Be(10m);
+        resume.Title.Should().Be("changed");
+    }
+
+    [Fact]
+    public void ApplyUpdates_EmptySkills_StoresNull()
+    {
+        var resume = NewFilledResume();
+
+        resume.ApplyUpdates(new UpdateResumeCommand { Skills = [] });
+
+        resume.Skills.Should().BeNull();
+        resume.Salary.Should().Be(10m);
+    }
+
+    [Fact]
+    public void ApplyUpdates_EmptyStringEnums_StoreNull()
+    {
+        var resume = NewFilledResume();
+
+        resume.ApplyUpdates(new UpdateResumeCommand
+        {
+            Currency = "",
+            WorkLocationType = "",
+            Experience = "",
+        });
+
+        resume.Currency.Should().BeNull();
+        resume.WorkLocationType.Should().BeNull();
+        resume.Experience.Should().BeNull();
+        resume.Skills.Should().BeEquivalentTo(["s"]);
+        resume.Salary.Should().Be(10m);
+    }
+
+    [Fact]
+    public void ApplyUpdates_ClearSalaryWithSalary_ClearWins()
+    {
+        var resume = NewFilledResume();
+
+        resume.ApplyUpdates(new UpdateResumeCommand { ClearSalary = true, Salary = 99m });
+
+        resume.Salary.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToEntity_EmptySkills_StoresNull()
+    {
+        var entity = new CreateResumeCommand { UserId = Guid.NewGuid(), Skills = [] }.ToEntity();
+
+        entity.Skills.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToEntity_NullOptionalFields_StoreNull()
+    {
+        var entity = new CreateResumeCommand { UserId = Guid.NewGuid() }.ToEntity();
+
+        entity.Title.Should().BeNull();
+        entity.Skills.Should().BeNull();
+        entity.WorkLocationType.Should().BeNull();
+    }
+
+    private static Resume NewFilledResume() => new()
+    {
+        Title = "keep",
+        Salary = 10m,
+        Currency = Currency.USD,
+        Skills = ["s"],
+        WorkLocationType = WorkLocationType.Remote,
+        Experience = Experience.LessThanOneYear,
+        UserId = Guid.NewGuid(),
+    };
+
+    [Fact]
     public void ApplyUpdates_WithNoFieldsSet_LeavesEntityUnchanged()
     {
         var resume = new Resume

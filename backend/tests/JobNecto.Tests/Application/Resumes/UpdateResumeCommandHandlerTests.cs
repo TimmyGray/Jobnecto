@@ -75,6 +75,53 @@ public class UpdateResumeCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ClearPayload_ClearsNamedFieldsAndKeepsTheRest()
+    {
+        var userId = Guid.NewGuid();
+        var resume = new Resume
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Title = "Keep title",
+            Salary = 1000,
+            Currency = Currency.USD,
+            Skills = ["C#"],
+            WorkLocationType = WorkLocationType.Remote,
+            Experience = Experience.OneToThreeYears,
+        };
+
+        var command = new UpdateResumeCommand
+        {
+            ResumeId = resume.Id,
+            UserId = userId,
+            Skills = [],
+            WorkLocationType = "",
+            ClearSalary = true,
+        };
+
+        _resumeRepoMock
+            .Setup(x => x.GetByIdAsync(resume.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resume);
+
+        _resumeRepoMock
+            .Setup(x => x.UpdateAsync(It.IsAny<Resume>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Resume entity, CancellationToken _) => entity);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        resume.Skills.Should().BeNull();
+        resume.Salary.Should().BeNull();
+        resume.WorkLocationType.Should().BeNull();
+        result.Skills.Should().BeEmpty();
+        result.Salary.Should().BeNull();
+        result.WorkLocationType.Should().BeEmpty();
+        result.Title.Should().Be("Keep title");
+        result.Currency.Should().Be("USD");
+        result.Experience.Should().Be("OneToThreeYears");
+        _uowMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_UpdatedAt_IsRefreshedWithUtcNow()
     {
         var userId = Guid.NewGuid();

@@ -183,6 +183,26 @@ Three parallel lenses (adversarial + edge-case, verification-gap with mutation t
 - [x] [Dismiss] `navigate` with `void` — now handled via `.then`. Redundant defensive resets in `handleDeleteError`/`load()` — harmless.
 - [ ] [Defer] Scroll lock behind the modal; list-page focus after a successful delete (the shell has no post-navigation focus management); the `backdrop:` colour uses an arbitrary Tailwind value over the `--color-text-primary` token (no overlay token exists); two copies of the `<dialog>` jsdom stub in specs. Logged to `deferred-work.md`.
 
+## PR Review (RV)
+
+*Retroactive independent review of merged PR #101 (feat `497b11f`, merge `0b50e46`), 2026-10-27, by `jobnecto-qa`. Run because the story merged without an RV; see AGENTS.md completion-checklist item 5 and `epic-2-retro-2026-10-26.md`.*
+
+**Verdict:** safe as merged. No critical or high findings. One medium finding in the shared dialog must be fixed before Epic 5 reuses it.
+
+**Tests:** 5 changed specs, 138 passed. `confirm-dialog.ts` has 98.59% line coverage; `resume-detail` has 100%.
+
+| # | Sev | Risk | Finding | Resolution |
+|---|---|---|---|---|
+| 1 | medium | 5 | When the dialog is closed natively (Chrome's second Escape, or any close the host didn't start), `hide()` returns early before restoring focus and resetting the opener. That leaves a stale opener, so focus returns to the wrong control on the next cycle. A stale `close` after a quick close and reopen is also treated as a cancel. `confirm-dialog.ts:158-167, 188, 195-206` | [Defer] Epic 5 pre-req |
+| 2 | low | 3 | Between the 204 and the end of navigation, the Delete button is live again (`openDelete` checks only `saving()`), so the dialog can reopen stuck in busy. If the navigation is rejected, it can also send a second DELETE. `resume-detail.page.ts:157-161, 202-213` | [Patch] Story 2.5 |
+| 3 | low | 3 | A rejected post-delete `router.navigate` promise (e.g. a `ChunkLoadError`) is unhandled. `deleting` stays stuck and no toast shows, although the résumé is gone. `resume-detail.page.ts:204-213` | [Patch] Story 2.5 |
+| 4 | low | 3 | A delete abandoned on a route change or teardown is cancelled on the client only, so `invalidate()` never runs, and a 404 on delete also leaves the cache stale. There's no visible effect today because the list always refetches. The spec names overstate "cancels". `resume.service.ts:106-110` | [Defer] deferred-work |
+| 5 | low | 2 | Dialog API polish to settle while there is one consumer: the `cancel` output is named like a DOM event, there's no `<ng-content>` slot, no `booleanAttribute` inputs, no `alertdialog` role for destructive dialogs, Cancel lacks `aria-disabled` while busy, and the hover uses `hover:opacity-90` instead of a token. `confirm-dialog.ts:33-117` | [Defer] Epic 5 pre-req |
+| 6 | low | 2 | The jsdom `<dialog>` stub fires `close` synchronously and with `open` still set; one test is nearly vacuous (`confirm-dialog.spec.ts:317`). Missing negative paths: a second open/close cycle, and the dialog being destroyed while open. | [Defer] deferred-work. The detail-page specs for findings 2 and 3 go with Story 2.5. |
+| 7 | low | 2 | The toast host's doc comment still says "mounted locally". A toast raised while a modal is open sits under the top layer and is inert, so hosts must close the dialog before toasting. `toast.ts:4-9` | [Defer] deferred-work. The JSDoc note is an Epic 5 pre-req. |
+
+Checked and fine: save/delete mutual exclusion, 403/404 handling and focus, `load()` resets on a route-id change, `replaceUrl`, Chrome's double-Escape while busy, drag-release, `returnFocusTo` precedence, and the percent-encoded id.
+
 ## Change Log
 
 - 2026-10-21: Story created (ready-for-dev). Baseline: merge of PR #100.

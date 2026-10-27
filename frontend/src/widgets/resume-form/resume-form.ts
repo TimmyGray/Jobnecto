@@ -29,7 +29,6 @@ import type { CreateResumeCommand, ResumeResult, UpdateResumeCommand } from '@en
 import type { ProblemDetails } from '@shared/api';
 import { SelectFieldComponent, TagInputComponent, TextFieldComponent } from '@shared/ui';
 import { buildUpdateCommand, resumeToFormValue } from './resume-form.diff';
-import type { UpdateDiff } from './resume-form.diff';
 import {
   enumArrayMemberValidator,
   enumMemberValidator,
@@ -86,19 +85,6 @@ function buildLanguageRow(): FormGroup<LanguageRowForm> {
     { validators: [languageRowValidator()] },
   );
 }
-
-/** Message shown under a field the user emptied but the API cannot clear. */
-const BLOCKED_CLEAR_MESSAGE =
-  "This can't be cleared yet — choose a new value or leave it as it was.";
-
-/** Maps the lowercase keys `errorFor` takes to the control names the diff reports as un-clearable. */
-const BLOCKED_CLEAR_FIELD: Partial<Record<SimpleFieldKey, string>> = {
-  skills: 'skills',
-  worklocationtype: 'workLocationType',
-  experience: 'experience',
-  currency: 'currency',
-  salary: 'salary',
-};
 
 /**
  * Résumé create/edit form (Story 2.1 AC1, AC3; Story 2.3). Owns its typed
@@ -204,7 +190,7 @@ export class ResumeFormComponent {
   /**
    * Create mode: enabled when the form is dirty, valid, and not submitting.
    * Edit mode: enabled when it is valid, not submitting, differs from the loaded
-   * résumé (so edit-then-revert disables it again) and has no blocked clears.
+   * résumé (so edit-then-revert disables it again). Emptying a field is a change.
    */
   get canSubmit(): boolean {
     if (this.submitting() || !this.form.valid) {
@@ -214,7 +200,7 @@ export class ResumeFormComponent {
     if (diff === null) {
       return this.form.dirty;
     }
-    return this.form.dirty && Object.keys(diff.command).length > 0 && diff.blockedClears.length === 0;
+    return this.form.dirty && Object.keys(diff).length > 0;
   }
 
   /** Appends an empty language-proficiency row. */
@@ -241,12 +227,8 @@ export class ResumeFormComponent {
    */
   errorFor(field: SimpleFieldKey): string {
     const control = this.simpleControl(field);
-    if (!(control.touched || control.dirty)) {
+    if (!control.errors || !(control.touched || control.dirty)) {
       return '';
-    }
-    if (!control.errors) {
-      const blocked = BLOCKED_CLEAR_FIELD[field];
-      return blocked && this.currentDiff()?.blockedClears.includes(blocked) ? BLOCKED_CLEAR_MESSAGE : '';
     }
     return this.messageForErrors(control.errors);
   }
@@ -285,12 +267,12 @@ export class ResumeFormComponent {
       this.create.emit(this.buildCommand());
       return;
     }
-    if (Object.keys(diff.command).length === 0 || diff.blockedClears.length > 0) {
+    if (Object.keys(diff).length === 0) {
       this.form.markAllAsTouched();
       return;
     }
     this.submittedSnapshot = JSON.stringify(this.form.getRawValue());
-    this.update.emit(diff.command);
+    this.update.emit(diff);
   }
 
   /**
@@ -341,7 +323,10 @@ export class ResumeFormComponent {
     }
   }
 
-  /** Resets the form to a pristine, empty state (Story 2.1 Decision Record: stay on page after success). */
+  /**
+   * Resets the form to a pristine, empty state. The create page calls it when a
+   * successful create could not navigate to the list, so the user can start another.
+   */
   resetForm(): void {
     this.form.controls.languages.clear();
     this.languageRowServerErrors = {};
@@ -359,7 +344,7 @@ export class ResumeFormComponent {
   }
 
   /** The diff against the loaded résumé, or null in create mode. */
-  private currentDiff(): UpdateDiff | null {
+  private currentDiff(): UpdateResumeCommand | null {
     const resume = this.resume();
     return resume ? buildUpdateCommand(resume, this.form.getRawValue()) : null;
   }
@@ -514,6 +499,9 @@ export class ResumeFormComponent {
     }
     if (errors['min']) {
       return 'Must not be negative.';
+    }
+    if (errors['number']) {
+      return 'Must be a number.';
     }
     if (errors['enum']) {
       return 'Please choose a valid option.';

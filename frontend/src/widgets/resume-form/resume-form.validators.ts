@@ -16,11 +16,9 @@ export function resumeTitleValidator(): ValidatorFn {
 
 /**
  * Salary: optional, but must be a finite number >= 0 when present.
- * `TextFieldComponent` can never actually produce `NaN`/`Infinity` from a
- * real `type="number"` input (the browser's own value-sanitization resets
- * unparseable/non-finite text to `''` before this validator ever sees it —
- * verified in `text-field.spec.ts`) — the finiteness check here is
- * defense-in-depth against a non-DOM caller setting the value directly.
+ * `TextFieldComponent` emits `NaN` for text the browser cannot parse as a
+ * number, so that input is reported as `{ number: true }` instead of being
+ * mistaken for an emptied (cleared) field. Negative values are `{ min: true }`.
  */
 export function nonNegativeValidator(): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -29,7 +27,10 @@ export function nonNegativeValidator(): ValidatorFn {
       return null;
     }
     const numeric = Number(value);
-    return !Number.isFinite(numeric) || numeric < 0 ? { min: true } : null;
+    if (!Number.isFinite(numeric)) {
+      return { number: true };
+    }
+    return numeric < 0 ? { min: true } : null;
   };
 }
 

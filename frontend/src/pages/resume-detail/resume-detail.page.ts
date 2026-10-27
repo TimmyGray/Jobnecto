@@ -153,9 +153,13 @@ export class ResumeDetailPage {
       });
   }
 
-  /** Opens the delete confirmation. Nothing is sent until the user confirms; ignored while a save is in flight. */
+  /**
+   * Opens the delete confirmation. Nothing is sent until the user confirms. Ignored
+   * while a save is in flight, and while a delete is in flight or has succeeded and
+   * the page is waiting for the navigation away.
+   */
   openDelete(): void {
-    if (!this.saving()) {
+    if (!this.saving() && !this.deleting()) {
       this.confirmingDelete.set(true);
     }
   }
@@ -198,19 +202,27 @@ export class ResumeDetailPage {
    * exists while the (lazy) list route loads. The URL is replaced so Back does not
    * return to this now-dead address, and the toast is raised only once the list
    * is showing, so its auto-dismiss timer does not run while the route loads.
+   * A navigation that is refused or rejects (e.g. the list chunk fails to load)
+   * leaves the user here, so the page shows the honest not-found state instead.
    */
   private afterDeleted(): void {
     this.confirmingDelete.set(false);
-    void this.router.navigate(['/resumes'], { replaceUrl: true }).then((navigated) => {
-      this.toastService.show('Résumé deleted', 'success');
-      if (!navigated) {
-        // Still here although the résumé is gone: show the honest state.
-        this.deleting.set(false);
-        this.resume.set(null);
-        this.status.set('not-found');
-        this.focusRecoveryRegion();
-      }
-    });
+    this.router.navigate(['/resumes'], { replaceUrl: true }).then(
+      (navigated) => this.afterDeleteNavigation(navigated),
+      () => this.afterDeleteNavigation(false),
+    );
+  }
+
+  private afterDeleteNavigation(navigated: boolean): void {
+    this.toastService.show('Résumé deleted', 'success');
+    if (!navigated) {
+      // Still here although the résumé is gone: show the honest state.
+      this.deleting.set(false);
+      this.confirmingDelete.set(false);
+      this.resume.set(null);
+      this.status.set('not-found');
+      this.focusRecoveryRegion();
+    }
   }
 
   /**
