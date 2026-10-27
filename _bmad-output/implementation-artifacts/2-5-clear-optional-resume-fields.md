@@ -182,8 +182,8 @@ so that **my résumé says only what I mean it to say, and I can tell the create
     - Create a résumé and land on the list with the toast.
     - Create a résumé with **only a title** (AC6) and land on the list.
 
-- [ ] Task 9: PR Review (RV) recorded before merge (AGENTS.md completion checklist item 5)
-  - [ ] `jobnecto-qa` (or `bmad-code-review`) runs the adversarial review on the PR and fills `## PR Review (RV)` below. No merge before it is recorded; a self-review does not count.
+- [x] Task 9: PR Review (RV) recorded before merge (AGENTS.md completion checklist item 5)
+  - [x] `jobnecto-qa` (or `bmad-code-review`) runs the adversarial review on the PR and fills `## PR Review (RV)` below. No merge before it is recorded; a self-review does not count.
 
 ## Dev Notes
 
@@ -406,6 +406,62 @@ Self-review (`jobnecto-dev` → `references/review.md`). Four lenses ran in para
 ## PR Review (RV)
 
 <!-- Filled by jobnecto-qa / bmad-code-review before merge (AGENTS.md completion checklist item 5). Not a self-review. -->
+
+*Independent review of PR #104, 2026-10-27, by `jobnecto-qa` (RV). Head `d1c688d`, base `0d1cf58`. The reviewer did not write any of this PR.*
+
+**Verdict: approve with follow-ups.** There are no critical, high or medium findings, and nothing has to change before merge. All 7 ACs and the Task 6b RV-101 fixes are implemented, and each has at least one test that fails when its behaviour is removed. Every finding below is low or a nit. The `[Patch]` items are cheap test or doc hardening that is recommended but does not block the merge. The `[Defer]` items still need to be copied into `deferred-work.md`; this review edited only this section.
+
+**Lenses run:**
+- correctness + edge cases (subagent, completed);
+- test coverage / vacuity (subagent, completed);
+- regression + architecture. The subagent for this lens was killed by an API rate limit before it reported anything. It left no artifacts, and the working tree stayed clean. The reviewer ran this lens by hand instead: every consumer of `CreateResumeCommand`, `TextFieldComponent`, `nonNegativeValidator`, `UpdateDiff` and `blockedClears`; the `schema.ts` diff; boundaries, namespaces and docs.
+
+**Commands run (all executed by the reviewer on `d1c688d`):**
+
+| Command | Result |
+|---|---|
+| `dotnet test backend/JobNecto.slnx` | Passed: 665, Failed: 0, Skipped: 0 (Total 665) |
+| `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` | Build succeeded, 0 Warning(s), 0 Error(s) |
+| `dotnet test backend/JobNecto.slnx --configuration Release --no-build` | Passed: 665, Failed: 0 |
+| `dotnet test … --collect:"XPlat Code Coverage" --settings backend/coverlet.runsettings --results-directory ./coverage/backend` + `python scripts/check_coverage.py ./coverage/backend --threshold 80` | `Coverage: 1882/1954 lines = 96.3% across 97 files`, `PASS: all files meet the threshold.` |
+| `cd frontend && npm ci && npx ng test --no-watch` | exit 0. Test Files 40 passed (40), Tests 616 passed (616). Lines 98.27%, and the per-file gate is clean (`text-field.ts` 96.55%, `resume-form.ts` 97.4%, `resume-form.diff.ts` 100%) |
+| `npx ng build --configuration production` | `Application bundle generation complete.`, exit 0 |
+| Secrets: `git diff 0d1cf58 --stat`, and a grep of the added lines for `Password=`, `Host=`, `ApiKey`, `Secret` | No matches. The stat lists only the expected source, test, story, tracker and deferred-work files, plus the archived 2.4 story (BLOCK A) |
+
+**Not run:**
+- `npm run gen:api` regeneration. It needs a live API and database, and the reviewer started no database or server. Instead, the reviewer checked by hand that the `schema.ts` diff is limited to `CreateResumeCommand` (`title`, `skills` and `workLocationType` become `null | …`) and `UpdateResumeCommand` (`+clearSalary?: boolean`), and that both match the C# changes.
+- Browser smoke and the live curl run. These were not repeated; the dev's records stand.
+
+**Verified, not just read:**
+- **B1:** `CreateResumeCommand`'s only consumers are `ResumesController.CreateAsync` (binding), `CreateResumeCommandValidator` and `ResumeMappers.ToEntity`, and all three handle `null`. The HTTP tests really do omit the property (`new { }`, `new { title }`), so they reproduce MVC's implicit `[Required]`. Nothing was suppressed globally.
+- **`text-field.ts` NaN change:** the only `type="number"` `TextFieldComponent` in the app is the résumé salary field (`resume-form.html:41`). The auth pages use text, email and password fields, which the `type() === 'number'` guard skips. `nonNegativeValidator` is used only by the salary control. No other form regresses.
+- **`clearSalary` validation:** `.Null().When(ClearSalary)` uses presence, not truthiness (`salary: 0` → 400). `{clearSalary:false}` alone still returns 400. `ApplyUpdates` lets the clear win as defence in depth.
+- **Create:** `submitting` stays held until the navigation settles, and a re-entry guard backs it up. Both a refused and a rejected navigation fall back to toast, reset and `submitting=false`, with no unhandled rejection.
+- **Delete:** `openDelete` guards on `deleting()`, the button has `aria-disabled`, and the rejection handler shares `afterDeleteNavigation(false)`.
+- **No leftovers:** `UpdateDiff`, `blockedClears`, `BLOCKED_CLEAR_*` and "can't be cleared" are gone repo-wide.
+- **Declared deviation, whitespace enum on POST:** `"   "` now means "not set" (201) instead of 400. This is consistent with PATCH (Task 1) and with the "one stored representation" Decision Record. Accepted; see #8.
+
+| # | Severity | risk_score | Finding (evidence) | Recommended fix | Tag |
+|---|---|---|---|---|---|
+| 1 | low | 3 | **The number input can keep showing text the control no longer holds.** The `badInput` branch emits `NaN` but deliberately leaves `this.value` stale (`frontend/src/shared/ui/form/text-field.ts:135-142`). `writeValue` repaints only through the `[value]` binding diff (`text-field.ts:53, 116-119`), so a later `writeValue` with the same stale value never repaints the input. Example: clear the salary and Save; type `e` while the PATCH is in flight; on the 200, `adopt()`/`populate()` writes `null` → `''`, which is unchanged, so `e` stays on screen while the control is `null`, valid and pristine. A related cause: `JSON.stringify(NaN) === "null"`, so the in-flight-edit snapshot (`resume-form.ts:274, 358-359`) cannot see a NaN edit. The same applies after the create page's fallback `resetForm()`. The window is narrow, and the next keystroke resyncs it. | In `writeValue`, write the native element directly (a `viewChild` ElementRef plus `Renderer2.setProperty(el,'value',v ?? '')`). Make the snapshot NaN-aware with a replacer. Add a spec: `writeValue(null)`, bad input, `writeValue(null)`, then the DOM is repainted. | [Defer] |
+| 2 | low | 2 | **The create page's success path is never asserted to "not reset, keep `submitting` held".** `resume-create.page.spec.ts:149-150`: `finish(true); await settle();` is followed by no assertions. Dropping the `if (!navigated)` guard in `resume-create.page.ts:77` keeps every spec green. Production impact is nil today, because the page is destroyed on success. | After `settle()`, `expect(page.submitting()).toBe(true)` and `expect(form().form.controls.title.value).toBe('Staff Engineer')`. | [Patch] (non-blocking) |
+| 3 | low | 2 | **The RV-101 #3 rejected-navigation spec cannot fail on `confirmingDelete`.** `resume-detail.page.spec.ts:809-825`: `afterDeleted()` already sets `confirmingDelete(false)` before `navigate` (`resume-detail.page.ts:209`), so `confirmingDelete()===false` and `dialogOpen()===false` hold even if the rejection handler omitted the reset. The refused-path spec does cover the shared `afterDeleteNavigation`. | Before the rejection settles, set `page().confirmingDelete.set(true)`, as the refused spec does. | [Patch] (non-blocking) |
+| 4 | low | 2 | **HTTP-level PATCH gaps.** After the inversion of `Update_EmptySkills_Returns400…`, no `Update_*` HTTP test sends `skills:[""]`, a 31-character skill, `salary:-1`, `{clearSalary:false}` alone, or `{clearSalary:true, salary:null}` (which should be 200). These are covered only at the validator level (`UpdateResumeCommandValidatorTests`). AC2's "résumé unchanged" check reads back only `Salary` (`ResumesControllerTests.cs:~936`). `CreateFullResumeAsync` does not assert its own Skills and WorkLocationType preconditions. | Add an `Update_InvalidOptionalValue_Returns400WithFieldError` theory that mirrors the create theory, plus `Update_ClearSalaryWithNullSalary_Returns200`. Add `title="changed"` to the AC2 body and assert that the title, currency and skills are unchanged. Assert Skills and WorkLocationType in `CreateFullResumeAsync`. | [Patch] (non-blocking) |
+| 5 | low | 2 | **`{"clearSalary": null}` returns a 400 binding error (`$.clearSalary`).** Every other field treats `null` as "unchanged" (`UpdateResumeCommand.cs`, `public bool ClearSalary`). The frontend never sends it; only hand-written clients are affected. | Either declare `bool? ClearSalary` and test `== true`, or document the 400 in the contract. | [Defer] |
+| 6 | low | 1 | **Stale or overclaiming docs.** The `resetForm()` doc still cites "Story 2.1 Decision Record: stay on page after success" (`resume-form.ts:326`), but reset now runs only on the refused or rejected navigation fallback. The `ToEntity` doc says "Empty values are stored as null" (`ResumeMappers.cs:14-15`), but `title: ""` is stored as `""`; the sentence holds only for skills and the enums. | Reword both doc comments. | [Patch] (non-blocking) |
+| 7 | low | 1 | **Test-strength nits.** Mapper and handler "unchanged" fixtures use enum ordinal-0 values (`Currency.USD`, `Experience.LessThanOneYear` in `ResumeMappersTests.NewFilledResume`), so a `default(T)` mutation would survive there; the HTTP tests, which use EUR and OneToThreeYears, do catch it. "The new résumé is in the freshly fetched list" (AC5) is proven only at the cache level (`resumeService.page()` is null). | Use non-zero enum members in `NewFilledResume`. Optionally, register the real list page in the create spec and `expectOne` the list GET. | [Defer] |
+| 8 | low | 2 | **Declared contract deviation:** `POST` with a whitespace-only `workLocationType`, `currency` or `experience` now returns 201 and is stored as not set; before, it returned 400 (`CreateResumeCommandValidator.cs:30, 38, 46` `IsNullOrWhiteSpace`). AC3/AC6 do not name it, but the dev disclosed it and it matches PATCH and the Decision Record. | None in code. Record it as a Decision Record line when the story closes. | [Dismiss] |
+
+**Pre-existing, not counted:** `Enum.TryParse` accepts `"7"` and `"Remote, Hybrid"`; this is already in `deferred-work.md` under "code review of 2-5". PATCH has no concurrency token; this predates the story and is unchanged by it.
+
+**Checked and fine:**
+- the status codes per `authorization-contract-matrix.md` row 2 (no controller changes; the validator runs before the handler);
+- Clean Architecture boundaries and namespaces;
+- XML docs on the changed public members;
+- no N+1 queries or new allocations of note (`errorFor` no longer computes the diff, which is a small win);
+- `salary` `0` versus `null` encoding, and `-0`;
+- a superseded navigation during the pending window;
+- an `authGuard` redirect during navigation.
 
 ## Change Log
 
