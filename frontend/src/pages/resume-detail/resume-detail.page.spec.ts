@@ -812,6 +812,8 @@ describe('ResumeDetailPage', () => {
         detect();
 
         expectDelete().flush(null, noContent);
+        // Reopened before the rejection settles, so only the rejection path can close it.
+        page().confirmingDelete.set(true);
         await harness.fixture.whenStable();
         detect();
         detect();

@@ -148,6 +148,10 @@ describe('ResumeCreatePage', () => {
 
     finish(true);
     await settle();
+
+    // Landed: the page is leaving, so it stays busy and the form is not reset.
+    expect(page.submitting()).toBe(true);
+    expect(form().form.controls.title.value).toBe('Staff Engineer');
   });
 
   it.each([

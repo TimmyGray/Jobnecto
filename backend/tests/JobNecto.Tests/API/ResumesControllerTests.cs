@@ -124,6 +124,8 @@ public class ResumesControllerTests
         created!.Salary.Should().Be(5000m);
         created.Currency.Should().Be("EUR");
         created.Experience.Should().Be("OneToThreeYears");
+        created.Skills.Should().BeEquivalentTo(["C#", "SQL"]);
+        created.WorkLocationType.Should().Be("Hybrid");
         return created;
     }
 
@@ -946,6 +948,7 @@ public class ResumesControllerTests
 
         var response = await UpdateResumeAsync(client, authCookie, created.Id, new
         {
+            title = "Changed title",
             clearSalary = true,
             salary = 0
         });
@@ -953,9 +956,77 @@ public class ResumesControllerTests
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await ReadErrorKeysAsync(response)).Should().Contain("Salary");
 
+        // The whole request is rejected: no field, not even the valid title, is applied.
         var getResponse = await GetResumeByIdAsync(client, authCookie, created.Id);
         var unchanged = await getResponse.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
         unchanged!.Salary.Should().Be(5000m);
+        unchanged.Title.Should().Be("Full Resume");
+        unchanged.Currency.Should().Be("EUR");
+        unchanged.Skills.Should().BeEquivalentTo(["C#", "SQL"]);
+        unchanged.WorkLocationType.Should().Be("Hybrid");
+        unchanged.Experience.Should().Be("OneToThreeYears");
+    }
+
+    [Fact]
+    public async Task Update_ClearSalaryWithExplicitNullSalary_Returns200AndClearsSalary()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var created = await CreateFullResumeAsync(client, authCookie);
+
+        // A null salary means "not provided", so it does not conflict with clearSalary.
+        var response = await UpdateResumeAsync(client, authCookie, created.Id, new
+        {
+            clearSalary = true,
+            salary = (decimal?)null
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+        result!.Salary.Should().BeNull();
+        result.Currency.Should().Be("EUR");
+    }
+
+    [Theory]
+    [InlineData("emptySkill", "Skills[0]")]
+    [InlineData("longSkill", "Skills[0]")]
+    [InlineData("negativeSalary", "Salary")]
+    [InlineData("clearSalaryFalseOnly", "Title")]
+    public async Task Update_InvalidOptionalValue_Returns400WithFieldError(string scenario, string expectedField)
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = false
+        });
+
+        var authCookie = await CreateUserAndGetCookieAsync(client);
+        var created = await CreateFullResumeAsync(client, authCookie);
+
+        // clearSalary:false alone names no field, so it is an empty update (reported on Title).
+        object payload = scenario switch
+        {
+            "emptySkill" => new { skills = new[] { "" } },
+            "longSkill" => new { skills = new[] { new string('s', 31) } },
+            "negativeSalary" => new { salary = -1m },
+            "clearSalaryFalseOnly" => new { clearSalary = false },
+            _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, null),
+        };
+
+        var response = await UpdateResumeAsync(client, authCookie, created.Id, payload);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ReadErrorKeysAsync(response)).Should().Contain(expectedField);
+
+        var getResponse = await GetResumeByIdAsync(client, authCookie, created.Id);
+        var unchanged = await getResponse.Content.ReadFromJsonAsync<ResumeResult>(JsonOpts);
+        unchanged!.Skills.Should().BeEquivalentTo(["C#", "SQL"]);
+        unchanged.Salary.Should().Be(5000m);
     }
 
     [Fact]

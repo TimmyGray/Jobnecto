@@ -11,8 +11,10 @@ public static class ResumeMappers
 {
     /// <summary>
     /// Maps a CreateResumeCommand to a Resume domain entity.
-    /// Performs necessary enum parsing. Empty values are stored as <c>null</c>, the same
-    /// representation <see cref="ApplyUpdates"/> uses for a cleared field.
+    /// Performs necessary enum parsing. An empty skills array and blank or unparseable
+    /// currency, work-location type and experience values are stored as <c>null</c>, the
+    /// same representation <see cref="ApplyUpdates"/> uses for a cleared field. The title
+    /// is stored as given, so an empty title stays <c>""</c>.
     /// </summary>
     public static Resume ToEntity(this CreateResumeCommand command)
     {

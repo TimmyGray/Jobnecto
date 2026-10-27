@@ -1,5 +1,28 @@
 # Deferred Work
 
+## Deferred from: Story 2.5 PR Review (RV) (2026-10-27)
+
+Full table in `2-5-clear-optional-resume-fields.md` → `## PR Review (RV)`.
+
+- **RV #1: the salary input can show text the control no longer holds.** On bad input,
+  `TextFieldComponent` emits `NaN` but leaves `this.value` stale (`shared/ui/form/text-field.ts`
+  `onInput`), and `writeValue` repaints only through the `[value]` binding diff. So a later
+  `writeValue(null)` with an unchanged bound value never repaints. Example: type `e` while a save is
+  in flight; the 200 resets the control to `null`, but `e` stays on screen. Also
+  `JSON.stringify(NaN) === "null"`, so the in-flight-edit snapshot in `resume-form.ts` cannot see a
+  NaN edit. Narrow window; the next keystroke resyncs. Fix: write the native element in
+  `writeValue` (`Renderer2.setProperty`), use a NaN-aware snapshot replacer, and add a spec
+  (`writeValue(null)` → bad input → `writeValue(null)` repaints).
+- **RV #5: `{"clearSalary": null}` returns a 400 binding error** (`$.clearSalary`) instead of meaning
+  "unchanged" like every other null field (`UpdateResumeCommand.ClearSalary` is `bool`). The frontend
+  never sends it. Fix: `bool? ClearSalary` checked with `== true`, or document the 400.
+- **RV #7: test-strength nits.**
+  - `ResumeMappersTests.NewFilledResume` uses ordinal-0 enum members (`Currency.USD`,
+    `Experience.LessThanOneYear`), so a `default(T)` mutation would survive there. The HTTP tests,
+    which use EUR and OneToThreeYears, catch it. Use non-zero members.
+  - AC5's "new résumé is in the freshly fetched list" is proven only at the cache level in
+    `resume-create.page.spec.ts`. Optionally register the real list page and `expectOne` the list GET.
+
 ## Deferred from: code review of 2-5-clear-optional-resume-fields (2026-10-27)
 
 - **Enum validation accepts numeric and comma-joined strings.** `Enum.TryParse` (both résumé

@@ -323,7 +323,10 @@ export class ResumeFormComponent {
     }
   }
 
-  /** Resets the form to a pristine, empty state (Story 2.1 Decision Record: stay on page after success). */
+  /**
+   * Resets the form to a pristine, empty state. The create page calls it when a
+   * successful create could not navigate to the list, so the user can start another.
+   */
   resetForm(): void {
     this.form.controls.languages.clear();
     this.languageRowServerErrors = {};
