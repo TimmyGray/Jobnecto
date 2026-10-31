@@ -76,6 +76,12 @@ public class VacancyListItemResult
     public Guid Id { get; set; }
     public string? Title { get; set; }
     public string? Company { get; set; }
+
+    /// <summary>
+    /// Skills listed on the vacancy, or null when it has none.
+    /// </summary>
+    public string[]? Skills { get; set; }
+
     public string? WorkLocationType { get; set; }
     public string? Location { get; set; }
     public VacancySalaryResult? Salary { get; set; }

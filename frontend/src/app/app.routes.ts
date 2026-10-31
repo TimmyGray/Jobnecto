@@ -80,9 +80,7 @@ export const routes: Routes = [
       {
         path: 'vacancies',
         loadComponent: () =>
-          import('@pages/coming-soon-stub/coming-soon-stub.page').then(
-            (m) => m.ComingSoonStubPage,
-          ),
+          import('@pages/vacancy-board/vacancy-board.page').then((m) => m.VacancyBoardPage),
         data: { title: 'Vacancies' },
       },
       {

@@ -217,6 +217,7 @@ public class FilterVacanciesQueryHandlerTests
         // Assert
         result.Items.Should().HaveCount(1);
         result.Items[0].Salary.Should().BeNull();
+        result.Items[0].Skills.Should().BeNull();
     }
 
     [Fact]
@@ -229,6 +230,7 @@ public class FilterVacanciesQueryHandlerTests
             UserId = Guid.NewGuid(),
             Title = "Senior Backend Engineer",
             Company = "MedStack",
+            Skills = ["C#", ".NET", "PostgreSQL"],
             Location = Location.Poland,
             WorkLocationType = WorkLocationType.Remote,
             SalaryMin = 95_000m,
@@ -270,6 +272,7 @@ public class FilterVacanciesQueryHandlerTests
         item.Id.Should().Be(vacancy.Id);
         item.Title.Should().Be(vacancy.Title);
         item.Company.Should().Be(vacancy.Company);
+        item.Skills.Should().Equal("C#", ".NET", "PostgreSQL");
         item.Location.Should().Be(Location.Poland.ToString());
         item.WorkLocationType.Should().Be(WorkLocationType.Remote.ToString());
         item.Currency.Should().Be(Currency.EUR.ToString());

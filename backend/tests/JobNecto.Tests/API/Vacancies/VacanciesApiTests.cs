@@ -487,6 +487,40 @@ public class VacanciesApiTests
     }
 
     [Fact]
+    public async Task Filter_ListItems_IncludeSkills_NullWhenVacancyHasNone()
+    {
+        await using var factory = new JobNectoApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, userId) = await CreateUserAndGetCookieAsync(client);
+
+        var anchor = VacancyTestData.AnchorUtc;
+        var withSkills = VacancyTestData.SeniorDotNetRemotePoland(
+            userId,
+            createdAt: anchor.AddDays(-1),
+            updatedAt: anchor.AddDays(-1));
+        var withoutSkills = VacancyTestData.BareMinimumScrapedListing(
+            userId,
+            createdAt: anchor.AddDays(-2),
+            updatedAt: anchor.AddDays(-2));
+
+        await SeedSingleVacancyAsync(factory, userId, withSkills);
+        await SeedSingleVacancyAsync(factory, userId, withoutSkills);
+
+        var response = await PostFilterAsync(client, authCookie, new { pageSize = 20 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var items = json.RootElement.GetProperty("items").EnumerateArray().ToList();
+        items.Should().HaveCount(2);
+
+        // Newest first: the vacancy with skills, then the bare listing.
+        items[0].GetProperty("skills").EnumerateArray().Select(s => s.GetString())
+            .Should().Equal(withSkills.Skills!);
+        items[1].GetProperty("skills").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
     public async Task GetDetail_WithoutToken_Returns401()
     {
         await using var factory = new JobNectoApiFactory();
