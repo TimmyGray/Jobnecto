@@ -562,6 +562,25 @@ Not run: no live API or DB check (instructed not to start containers or servers)
 
 **Must fix before merge:** nothing. **Still to add to `deferred-work.md`** (this RV did not edit it): findings 1, 3, 4, 5, 6 and 7, plus the finding-2 note correcting "needs a migration" and the Story 3.2/3.3 trigger.
 
+### Delta re-review (e240bab), 2026-10-31
+
+**Scope:** `git diff 3c03a05..e240bab`, the RV patch round only. **Verdict: APPROVE.** All RV items are resolved or logged. Nothing blocks merge.
+
+- **The only production change is build-only:** `JobNecto.Infrastructure.JobSources.csproj` adds `Microsoft.Extensions.Options.ConfigurationExtensions` 10.0.3. Every other code change is under `backend/tests`. The only doc changes are `deferred-work.md` and this story's Dev Notes, Debug Log, File List and Change Log. The RV section above is unaltered.
+- **RV #1, resolved.**
+  - A shared `TestHostConfigurationExtensions.DisableVacancySeeding()` pins `Seed:Vacancies:Enabled=false` as an app-configuration source. It is now applied in `JobNectoApiFactory`, `ExceptionHandlingFactory`, `AuthenticationTestFactory` (after its source-clearing callback, so the pin survives), the three Postgres factories, and `CorsFactory`/`OpenApiSchemaFactory`.
+  - `SeedingEnabledApiFactory` calls `SetVacancySeeding(true)` after `base.ConfigureWebHost`, so its source comes later and wins. `SeedingEnabledApiFactory_OverridesTheDefaultPin` asserts `Enabled == true`, and the seeding tests still see 40.
+  - **Spot-checked the mutation claim:** I deleted the `DisableVacancySeeding()` line from `JobNectoApiFactory` in a scratch copy of `backend/` (working tree untouched; copy deleted afterwards). `VacancySeedingApiTests` then gave `Failed: 1, Passed: 18`, and the one failure was `DefaultFactory_KeepsSeedingOff_EvenWhenEnabledEarlierInTheConfigChain` (`Expected … Enabled to be False, but found True`). The claim holds.
+  - Note (informational, not a finding): the per-host `*_KeepsSeedingOff` checks for the Test and Production hosts would also pass without their pin in CI, because the default is `false`. They only bite when a local config enables seeding. The early-chain test is the real regression guard, and it covers `JobNectoApiFactory`. For the other hosts the pin is the same one-line helper call, so this is acceptable.
+- **RV #3, resolved** with an explicit package reference, plus a Dev Notes correction that `Microsoft.Extensions.Http` is now truly unused.
+- **RV #7a, resolved:** `page.Items.Should().HaveCount(CatalogueSize)` before the loop. **RV #7b, resolved:** `FailingJobSource` counts calls (`Interlocked`), and the test asserts `Calls == 1`. A singleton instance is registered, so the count is the one the host used.
+- **RV #2 (amended), #4, #5, #6, #7c and #7d** are logged in `deferred-work.md`. They match the RV findings, including the "migration probably not needed (unverified)" correction and the Story 3.2/3.3 trigger.
+
+**Gates (reviewer-run at `e240bab`):**
+- `dotnet test backend/JobNecto.slnx`: `Passed! - Failed: 0, Passed: 746, Skipped: 0, Total: 746` (739 + 7).
+- `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror`: `Build succeeded. 0 Warning(s) 0 Error(s)`.
+- I did not re-run coverage, because the delta adds no production code. The dev reports 96.5% PASS.
+
 ## Change Log
 
 - 2026-10-27: Story created (ready-for-dev). User decision: ingest on registration + startup backfill, gated by `Seed:Vacancies:Enabled`.
