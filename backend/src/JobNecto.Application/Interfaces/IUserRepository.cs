@@ -42,4 +42,9 @@ public interface IUserRepository : IEditableRepository<User>, ISoftDeleteReposit
     /// Returns <c>true</c> when a non-deleted user with the given phone exists.
     /// </summary>
     Task<bool> ExistsByPhoneAsync(string phone, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the ids of all non-deleted users.
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetAllIdsAsync(CancellationToken ct);
 }

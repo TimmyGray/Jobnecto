@@ -45,4 +45,13 @@ public class UserRepository : SoftDeletableRepository<User>, IUserRepository
         return await _dbSet
             .AnyAsync(u => u.Phone == phone, ct);
     }
+
+    public async Task<IReadOnlyList<Guid>> GetAllIdsAsync(CancellationToken ct)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .OrderBy(u => u.CreatedAt)
+            .Select(u => u.Id)
+            .ToListAsync(ct);
+    }
 }

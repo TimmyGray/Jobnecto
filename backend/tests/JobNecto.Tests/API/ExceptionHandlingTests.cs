@@ -83,6 +83,7 @@ public class ExceptionHandlingFactory : WebApplicationFactory<ApiAssemblyMarker>
         builder.UseSetting("JwtSettings:Issuer", "JobNecto");
         builder.UseSetting("JwtSettings:Audience", "JobNecto-API");
         builder.UseEnvironment("Production");
+        builder.DisableVacancySeeding();
     }
 }
 

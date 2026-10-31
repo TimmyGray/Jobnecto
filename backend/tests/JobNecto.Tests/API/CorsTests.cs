@@ -26,6 +26,9 @@ public class CorsFactory : WebApplicationFactory<ApiAssemblyMarker>
         builder.UseSetting("JwtSettings:Audience", "JobNecto-API");
         // These tests target /openapi/v1.json, which is only mapped in Development.
         builder.UseEnvironment("Development");
+        // Development turns demo seeding on; the backfill must never reach the database that
+        // appsettings.Local.json (loaded last) may substitute for the dummy connection string above.
+        builder.DisableVacancySeeding();
     }
 }
 

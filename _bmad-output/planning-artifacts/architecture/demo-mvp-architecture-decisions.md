@@ -212,6 +212,7 @@ Config (server-side, no secrets in client/repo — NFR6/NFR13):
 
 - Persistence: existing `POST /api/v1/cover-letters` (`CreateCoverLetterCommand { VacancyId, Content }`, 201/400/401/404/**409**). No change.
 - Vacancies: mocked behind the swappable `JobSource` seam (Data/seed track); `/generate` reads vacancy content through the same domain path, so swapping mock→real ingestion later does not touch this contract.
+- **The seam as built (Story 3.1).** Application owns `IJobSource` (returns `JobPosting` records, no EF or `Vacancy` types) and `IVacancyIngestionService.IngestForUserAsync`, which maps postings to the user's own `Vacancy` rows, skips postings whose `JobSource.Url` the user already has (soft-deleted included, compared in memory because `JobSource` is a JSON column), and saves once. Vacancies stay **per-user**, so the ownership contract (cross-user `404`) holds for seeded rows. `Infrastructure.JobSources` provides `StaticJobSource` (a 40-posting synthetic catalogue embedded as JSON, URLs under the reserved `jobs.example.test`) and the wiring (`AddJobSources`). Two triggers, both gated by `Seed:Vacancies:Enabled` (off in `appsettings.json`, on in `appsettings.Development.json`, unset in `Test`): a MediatR `UserRegisteredNotification` published after sign-up is saved, whose handler never fails sign-up, and an idempotent startup backfill (`IHostedService`) for existing users. Swapping the mock for real ingestion = **one DI registration** (`IJobSource`); the `/vacancies` read path, `/generate` and the frontend are untouched.
 
 ---
 

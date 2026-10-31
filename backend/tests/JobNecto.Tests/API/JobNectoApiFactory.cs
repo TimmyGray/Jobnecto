@@ -21,6 +21,7 @@ public class JobNectoApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
+        builder.DisableVacancySeeding();
 
         // ConfigureTestServices (from TestHost) runs after Program.cs, so our override wins over AddInfrastructure()
         builder.ConfigureTestServices(services =>

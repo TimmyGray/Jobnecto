@@ -84,7 +84,7 @@ development_status:
 
   # --- Epic 3: Vacancy Discovery (FR23-FR26) ---
   epic-3: in-progress # first story created 2026-10-27
-  3-1-seed-mock-vacancies-behind-the-jobsource-seam: ready-for-dev # [SEED] own slice, unblocks 3.2; per-user ingestion on registration + startup backfill (Seed:Vacancies:Enabled)
+  3-1-seed-mock-vacancies-behind-the-jobsource-seam: review # [SEED] own slice, unblocks 3.2; per-user ingestion on registration + startup backfill (Seed:Vacancies:Enabled)
   3-2-browse-the-vacancy-board: backlog # [FE]
   3-3-filter-vacancies: backlog # [FE] POST /api/v1/vacancies/filter
   3-4-view-vacancy-detail: backlog # [FE]

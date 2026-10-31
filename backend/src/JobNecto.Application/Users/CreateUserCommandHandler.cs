@@ -12,14 +12,16 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Creat
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IPublisher _publisher;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CreateUserCommandHandler"/> class.
     /// </summary>
-    public CreateUserCommandHandler(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
+    public CreateUserCommandHandler(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher, IPublisher publisher)
     {
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
+        _publisher = publisher;
     }
 
     /// <summary>
@@ -64,6 +66,9 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Creat
         // Add and save
         await _unitOfWork.UserRepository.CreateAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Published only after the account is committed, so subscribers can rely on the user row existing.
+        await _publisher.Publish(new UserRegisteredNotification(user.Id), cancellationToken);
 
         // Return result
         return user.ToCreateUserResult();
