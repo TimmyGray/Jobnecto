@@ -212,8 +212,8 @@ so that **the vacancy board has data now and can be swapped for real ingestion l
     - Record the results in Completion Notes.
   - [x] Frontend untouched: `git diff --stat` shows no `frontend/` changes, so the frontend gates aren't needed. Say so explicitly.
 
-- [ ] Task 8: PR Review (RV) recorded before merge (AGENTS.md completion checklist item 5)
-  - [ ] `jobnecto-qa` (or `bmad-code-review`) runs the adversarial review on the PR and fills in `## PR Review (RV)` below. Nothing merges before that's recorded; a self-review doesn't count.
+- [x] Task 8: PR Review (RV) recorded before merge (AGENTS.md completion checklist item 5)
+  - [x] `jobnecto-qa` (or `bmad-code-review`) runs the adversarial review on the PR and fills in `## PR Review (RV)` below. Nothing merges before that's recorded; a self-review doesn't count.
 
 ## Dev Notes
 
@@ -464,6 +464,89 @@ Self-review: four parallel lenses (adversarial, edge-case hunter, verification g
 ## PR Review (RV)
 
 <!-- Filled by jobnecto-qa / bmad-code-review before merge (AGENTS.md completion checklist item 5). Not a self-review. -->
+
+**Reviewer:** `jobnecto-qa` (RV), an independent agent that did not write the PR. Reviewed 2026-10-31.
+**Target:** PR #107, `story/3-1-seed-mock-vacancies` at `c5debb0` (on top of `8d0bbcb`), diffed against master `50c33bc`. `git fetch` found no newer commits.
+
+**Verdict: APPROVE WITH FOLLOW-UPS.** No critical, high or medium finding. All 7 ACs are met and verified against the code and tests. Traps 1–6 are handled. The Decision Record is implemented as written. The two declared deviations (the cancellation filter and the two added packages) are sound. The 7 low findings below are all non-blocking `[Defer]` items.
+
+**Lenses run:** all five ran as parallel subagents and returned reports: correctness, regression, architecture & quality, edge cases & optimization, test coverage. I re-verified every finding at the cited code before triage; the severities below are mine.
+
+### Gates (run by the reviewer)
+
+| Gate | Command | Result |
+|---|---|---|
+| Debug tests | `dotnet test backend/JobNecto.slnx` | `Passed! - Failed: 0, Passed: 739, Skipped: 0, Total: 739` |
+| Release build | `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` | `Build succeeded. 0 Warning(s) 0 Error(s)` |
+| Release tests | `dotnet test backend/JobNecto.slnx --configuration Release --no-build` | `Passed! - Failed: 0, Passed: 739, Skipped: 0, Total: 739` |
+| Backend coverage | `dotnet test … --collect:"XPlat Code Coverage" --settings backend/coverlet.runsettings --results-directory ./coverage/backend` then `python scripts/check_coverage.py ./coverage/backend --threshold 80` | `Coverage: 1980/2052 lines = 96.5% across 102 files (threshold 80%)` / `PASS: all files meet the threshold.` `./coverage` deleted afterwards. |
+| Migrations | `dotnet ef migrations has-pending-model-changes --project backend/src/JobNecto.Infrastructure --startup-project backend/src/JobNecto.API` | `No changes have been made to the model since the last migration.` No DB needed. The `JobCategories`/`Skills` value-comparer warnings already existed. |
+| Frontend | `git diff 50c33bc --stat -- frontend` | Empty, so the frontend gates were skipped (not needed). |
+| Secrets | grep of the added lines for `Password=`, `Host=`, `Secret`, `ApiKey`, `Bearer` | No hits in code or config. The only matches are placeholders in story prose (`JwtSettings__SecretKey=<random>`). The `Password=test` dummy connection strings in `CorsTests`/`OpenApiSchemaTests` already existed and are not part of this diff. |
+
+Not run: no live API or DB check (instructed not to start containers or servers). I reviewed the dev's recorded live check (14/14) but did not reproduce it.
+
+### Focus-area verification
+
+- **Clean Architecture holds.**
+  - `JobNecto.Application` gains no EF types. Its only new package is `Microsoft.Extensions.Options` 10.0.3, needed for `IOptions<>` in the handler.
+  - `JobNecto.Infrastructure.JobSources` references only Application. `StaticJobSource` emits only `JobPosting`; `Vacancy` is built only in `VacancyIngestionService.ToVacancy`.
+  - `Microsoft.Extensions.Hosting.Abstractions` 10.0.3 is justified, for `IHostedService`.
+  - Namespaces match folders.
+- **Seeding cannot run unintentionally.**
+  - `appsettings.json` sets `false`, `appsettings.Development.json` sets `true`, and `appsettings.Test.json` has no key.
+  - The Development test hosts `CorsFactory` and `OpenApiSchemaFactory` force the flag off through `ConfigureAppConfiguration`. That applies after Program.cs's sources, including `appsettings.Local.json`, and two guard tests pin it.
+  - `AuthenticationTestFactory` (also Development) is off only because it clears every config source.
+  - The claim "`appsettings.Local.json` can't flip it in tests" holds **only for those Development hosts**; see finding 1.
+- **MediatR notification.**
+  - `Publish` runs after `SaveChangesAsync` (`CreateUserCommandHandler.cs:71`). It never runs on 409, and never on 400 because `ValidationBehavior` short-circuits first.
+  - The catch is inside the handler, as Trap 2 requires.
+  - The filter `ex is not OperationCanceledException || !ct.IsCancellationRequested` is correct. Only a cancellation the caller asked for propagates. A source's own timeout is logged and swallowed. Unit tests exercise both branches.
+- **Hosted backfill.**
+  - Disabled returns before resolving anything.
+  - It uses a fresh async scope to list users and a fresh scope per user, so a failed save cannot leak tracked entities into the next user.
+  - Failures are caught per user and for the whole run, with the same cancellation filter. It cannot crash startup unless startup itself is aborted.
+  - The deferred "blocks Kestrel" item is acceptable for a demo: 40 rows per user, one `SaveChanges` per user. If Postgres is down, startup stalls about one connect timeout, logs, and continues.
+- **Idempotency.**
+  - Dedupe is per user, keyed on `JobSource.Url` with Ordinal comparison.
+  - `GetJobSourceUrlsAsync` uses `IgnoreQueryFilters()`; the only `Vacancy` filter is soft-delete (`AppDbContext.cs:52`), so deleted rows are never re-added.
+  - URLs listed twice in the source are absorbed by `HashSet.Add`.
+  - The concurrent-instance race (no unique index) is correctly declared and deferred. On a single instance it cannot happen, because hosted services finish before the server accepts requests.
+- **AC7, read path unchanged.** The diff has no changes to controllers, `Application/Vacancies`, DTOs, migrations or the model snapshot, and `GetFilteredAsync` is untouched. The has-pending-model-changes check is clean.
+- **AC6 catalogue.** I script-checked it:
+  - 40 rows from 18 invented companies (e.g. Ashvelt Cloudworks, Brindlemoor Bank, Nimbalo Payments). No real brands, Contoso or Northwind.
+  - All websites are on `*.example.test`. No `@`, phone-like digit runs or `http(s)://` in any description. No person names; the capitalised word pairs are company or tech names such as "Spring Boot" and "Entity Framework".
+  - Variety: 3/3 work-location types, 5 work-time types, 14 locations, 7 currencies, 5 rows without salary. Every threshold is met.
+- **Test quality.**
+  - The HTTP tests really go through `POST /api/v1/users` (201 and the `auth-token` cookie are asserted), then `POST /vacancies/filter` and `GET /vacancies/{id}` with that cookie.
+  - The seeding factory enables the flag explicitly through `AddInMemoryCollection`.
+  - The idempotency tests run with seeding on, so they are not vacuous. The no-duplicate case includes a soft-deleted row.
+  - `CreateUserCommandHandlerTests` asserts a real `save → publish` order.
+  - Weak spots are in finding 7.
+- **`UpdatedAt` stagger deferral and its impact on Story 3.2.** It is harmless for Story 3.2; see finding 2.
+
+### Findings
+
+| # | Severity | risk_score | Finding (evidence) | recommended_fix | Tag |
+|---|---|---|---|---|---|
+| 1 | low | 3 | **Seeding-off is pinned only in the two Development test hosts.** `Program.cs:10` loads `appsettings.Local.json` last, so it overrides `appsettings.json`/`.Test.json` and `UseSetting` values. These hosts do not pin `Seed:Vacancies:Enabled=false`: `JobNectoApiFactory` (Test, InMemory DB, so only test counts break), `ExceptionHandlingFactory` (Production; `ExceptionHandlingTests.cs:81-85`, where Local.json also overrides the dummy connection string, so the startup backfill would write to the developer's DB), and the three Postgres factories. `AuthenticationTestFactory` (Development) is off only because it clears all sources (`AuthenticationTests.cs:56-74`), not by intent. Precondition: a developer adds `Seed` to Local.json. Trap 3 forbids that, and there is no reason to, since Development already enables it. CI is unaffected. | Pin `["Seed:Vacancies:Enabled"]="false"` through `ConfigureAppConfiguration` in `JobNectoApiFactory` (subclasses that add later still win), `ExceptionHandlingFactory` and `AuthenticationTestFactory`. Alternatively, load `appsettings.Local.json` only when `IsDevelopment()`. | [Defer] |
+| 2 | low | 3 | **The staggered `UpdatedAt` is ignored on Postgres** (`VacancyConfiguration.cs:92-94` `ValueGeneratedOnAddOrUpdate` → BeforeSave = Ignore), so all 40 seeded rows share one `UpdatedAt`. **Impact on Story 3.2: harmless.** Story 3.2's ACs browse with the default `createdAt desc` (FR24), and `CreatedAt` is staggered (40 distinct values in the dev's live check). For `sortBy=updatedAt|relevance` (`VacancyRepository.cs:36-46`, `relevance` → `updatedAt` at `:246`), the keyset `(UpdatedAt desc, Id desc)` with the strict `UpdatedAt == x && Id < id` tie-break neither skips nor repeats rows; only the visible order among seeded rows degrades to `Id` order. That would only show if 3.2/3.3 offers a "relevance"/"recently updated" sort toggle. Correction to the deferred note's "fix needs a migration" (unverified): `Property(v => v.UpdatedAt).Metadata.SetBeforeSaveBehavior(PropertySaveBehavior.Save)` is probably snapshot-neutral. | Keep it deferred. If Story 3.2/3.3 exposes the `updatedAt`/`relevance` sort, apply `SetBeforeSaveBehavior(Save)` and confirm with `has-pending-model-changes`, plus a Postgres-backed ordering test. | [Defer] |
+| 3 | low | 2 | **A hidden transitive dependency.** `DependencyInjection.cs:24` uses `Configure<T>(IConfiguration)` from `Microsoft.Extensions.Options.ConfigurationExtensions`. That package reaches `JobNecto.Infrastructure.JobSources` only through the "unused" `Microsoft.Extensions.Http` → `Microsoft.Extensions.Diagnostics` (`obj/project.assets.json`). `Hosting.Abstractions` does not bring it. Removing the "unused" Http reference, as Dev Notes invite, would break the build. | Add `<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.3" />` to `JobNecto.Infrastructure.JobSources.csproj`. It is a one-line change and can be folded in now. | [Defer] |
+| 4 | low | 2 | **Ingestion trusts the adapter output (future adapters only).** `VacancyIngestionService.cs:45` adds `posting.SourceUrl` unchecked, and `VacancyRepository.GetJobSourceUrlsAsync` drops null URLs (`.OfType<string>()`). So a null-URL posting is re-added on every run, and blank URLs collapse into one. `ToVacancy` (`:75-76`, `[.. posting.JobCategories]`) throws an NRE on null collections, which fails that user's whole ingestion. `StaticJobSource` cannot trigger either (`required` + `RespectNullableAnnotations` + `?? []`). | In the loop, skip and log `string.IsNullOrWhiteSpace(posting.SourceUrl)`. Use `?? []` for `JobCategories`/`Skills`. Add unit tests. Do it before the first real `IJobSource`. | [Defer] |
+| 5 | low | 2 | **The backfill fetches the source once per user.** `IngestForUserAsync` calls `FetchAsync` (`VacancyIngestionService.cs:33`) inside the per-user loop (`VacancySeedBackfillService.cs` `IngestInOwnScopeAsync`). This is free with the `Lazy`-cached static source. With a real HTTP source it means N external calls per startup, and a broken source logs N identical stack traces. | Fetch once before the loop and pass the postings in (an overload `IngestForUserAsync(userId, postings, ct)`). If the fetch fails, log once and return. | [Defer] |
+| 6 | low | 2 | **Composition coupling.** `AddApplication` registers `IVacancyIngestionService`, and MediatR auto-registers the handler, but `IJobSource` comes only from `AddJobSources`. MediatR resolves handlers before `Handle`, so a host that calls `AddApplication` without `AddJobSources` would fail `Publish` after the user commits, even with seeding disabled. Today there is a single composition root (`Program.cs`), covered by `Container_WiresSeedingHandler_DemoSource_AndBackfill` and Development `ValidateOnBuild`. | Document in `AddApplication`'s XML doc that `AddJobSources` is required, or add a null-object `TryAddSingleton<IJobSource, EmptyJobSource>()`. | [Defer] |
+| 7 | low | 2 | **Test-quality gaps (no vacuous blocker).** (a) `EverySeededVacancy_IsReadableByItsOwner_WithDistinctCreatedAt` (`VacancySeedingApiTests.cs:142-156`) would pass on an empty page; other tests assert 40, so this is a self-containment gap. (b) `Register_WhenJobSourceThrows_…` (`:130-139`) does not prove the failing source was called. It still fails on a missing catch (the dev's mutation check: 500), so it is weak, not vacuous. (c) AC5's "DB unavailable mid-ingest" registration path has no HTTP test; ingestion shares the request `DbContext` (already deferred). (d) The end-to-end backfill covers one user and no soft-deleted user; unit and repository tests cover those parts. | (a) Add `page.Items.Should().HaveCount(40)` before the loop. (b) Count calls in `FailingJobSource` and assert 1. (c) Add a `SaveChangesInterceptor` that throws on added `Vacancy` entries, then assert 201 + cookie, `GET /users/me` 200 and 0 vacancies. (d) A three-user backfill test: no catalogue → 40, soft-deleted → 0, already seeded → 40. | [Defer] |
+
+**Dismissed:**
+- `IgnoreQueryFilters()` also bypasses future non-soft-delete filters. Only one filter exists today. Revisit with EF 10 named filters if a second one is added.
+- `GetAllIdsAsync(CancellationToken ct)` lacks `= default`. Requiring the token is arguably better.
+- `IJobSource.Name` is unused. It is harmless contract surface.
+- Mixed `Microsoft.*` 10.0.0/10.0.3 patch versions. This already existed, and NuGet resolves to the highest.
+- A client abort during seeding leaves the user unseeded until the next backfill. This is already deferred, and the story specified passing the request token.
+
+**Re-verified existing deferrals as accurate:** the check-then-insert race across instances, the backfill blocking Kestrel, the shared request `DbContext`, request-token cancellation, and the coverage gate's `async`-body blind spot.
+
+**Must fix before merge:** nothing. **Still to add to `deferred-work.md`** (this RV did not edit it): findings 1, 3, 4, 5, 6 and 7, plus the finding-2 note correcting "needs a migration" and the Story 3.2/3.3 trigger.
 
 ## Change Log
 
