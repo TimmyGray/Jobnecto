@@ -1,6 +1,8 @@
 # Story 3.1: Seed mock vacancies behind the JobSource seam
 
-Status: review
+Status: done
+
+<!-- Merged 2026-10-31 via PR #107 (88cfc49). Archived per AGENTS.md lifecycle. -->
 
 ## Story
 
@@ -473,7 +475,7 @@ Self-review: four parallel lenses (adversarial, edge-case hunter, verification g
 - `README.md` (UPDATED — Development demo-catalogue note)
 - `_bmad-output/implementation-artifacts/deferred-work.md` (UPDATED — Story 3.1 deferred review items)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (UPDATED — 3-1 → review)
-- `_bmad-output/implementation-artifacts/3-1-seed-mock-vacancies-behind-the-jobsource-seam.md` (UPDATED — status, tasks, Dev Agent Record)
+- `_bmad-output/archive/implementation-artifacts/3-1-seed-mock-vacancies-behind-the-jobsource-seam.md` (UPDATED — status, tasks, Dev Agent Record)
 
 ## PR Review (RV)
 
