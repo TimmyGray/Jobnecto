@@ -9,7 +9,7 @@
 # ============================================================================
 
 # generated: 2026-08-20T00:00:00Z
-# last_updated: 2026-10-27T23:30:00Z
+# last_updated: 2026-10-31T23:00:00Z
 # project: Jobnecto
 # project_key: NOKEY
 # tracking_system: file-system
@@ -55,7 +55,7 @@
 #   [SEED] Data/seed track - mocked vacancies behind the JobSource seam
 
 generated: 2026-08-20T00:00:00Z
-last_updated: 2026-10-27T23:30:00Z
+last_updated: 2026-10-31T23:00:00Z
 project: Jobnecto
 project_key: NOKEY
 tracking_system: file-system
@@ -84,8 +84,8 @@ development_status:
 
   # --- Epic 3: Vacancy Discovery (FR23-FR26) ---
   epic-3: in-progress # first story created 2026-10-27
-  3-1-seed-mock-vacancies-behind-the-jobsource-seam: review # [SEED] own slice, unblocks 3.2; per-user ingestion on registration + startup backfill (Seed:Vacancies:Enabled)
-  3-2-browse-the-vacancy-board: backlog # [FE]
+  3-1-seed-mock-vacancies-behind-the-jobsource-seam: done # [SEED] merged 2026-10-31 (PR #107, 88cfc49); unblocks 3.2; per-user ingestion on registration + startup backfill (Seed:Vacancies:Enabled)
+  3-2-browse-the-vacancy-board: ready-for-dev # [FE] + small additive BE (skills on list DTO); story created 2026-10-31
   3-3-filter-vacancies: backlog # [FE] POST /api/v1/vacancies/filter
   3-4-view-vacancy-detail: backlog # [FE]
   epic-3-retrospective: optional
