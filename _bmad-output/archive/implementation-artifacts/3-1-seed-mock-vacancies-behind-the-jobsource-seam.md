@@ -1,6 +1,6 @@
 # Story 3.1: Seed mock vacancies behind the JobSource seam
 
-Status: review
+Status: done
 
 ## Story
 
@@ -473,7 +473,7 @@ Self-review: four parallel lenses (adversarial, edge-case hunter, verification g
 - `README.md` (UPDATED — Development demo-catalogue note)
 - `_bmad-output/implementation-artifacts/deferred-work.md` (UPDATED — Story 3.1 deferred review items)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (UPDATED — 3-1 → review)
-- `_bmad-output/implementation-artifacts/3-1-seed-mock-vacancies-behind-the-jobsource-seam.md` (UPDATED — status, tasks, Dev Agent Record)
+- `_bmad-output/archive/implementation-artifacts/3-1-seed-mock-vacancies-behind-the-jobsource-seam.md` (UPDATED — status, tasks, Dev Agent Record)
 
 ## PR Review (RV)
 
@@ -591,3 +591,4 @@ Not run: no live API or DB check (instructed not to start containers or servers)
   - RV #7a/#7b: tighter seeding API tests.
   - RV #2 (amended), #4, #5, #6, #7c and #7d are logged in `deferred-work.md`.
   - Tests 739 → 746; Release build 0 warnings; coverage gate PASS (96.5%). Status unchanged (review).
+- 2026-10-31: Merged to master via PR #107 (`88cfc49`). Status → done; story file archived to `_bmad-output/archive/implementation-artifacts/`.

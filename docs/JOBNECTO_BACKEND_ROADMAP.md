@@ -44,7 +44,7 @@ Dependencies flow **inward**: API → Application → Domain ← Infrastructure.
 | Domain | `JobNecto.Domain` | Entities, enums, value objects. No separate “vacancy analysis” aggregate today; **`Vacancy.MatchScore`** supports filtering/sorting. Domain events not wired. |
 | Infrastructure | `JobNecto.Infrastructure` | EF Core + Npgsql wired through DI; repositories + `UnitOfWork` transaction API implemented; committed migrations include password hash length hardening. |
 | LLM | `JobNecto.Infrastructure.LLM` | Stub. |
-| Job sources | `JobNecto.Infrastructure.JobSources` | Stub (external API clients not implemented). |
+| Job sources | `JobNecto.Infrastructure.JobSources` | `IJobSource` seam (Application) with a static synthetic catalogue (`StaticJobSource`, 40 demo postings) and a startup backfill, gated by `Seed:Vacancies:Enabled` (Demo MVP Story 3.1). External API clients not implemented; swapping in a real source is one DI registration. |
 
 ## Domain model
 
