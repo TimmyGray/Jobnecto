@@ -2236,6 +2236,7 @@ export interface components {
             id?: string;
             title?: null | string;
             company?: null | string;
+            skills?: null | string[];
             workLocationType?: null | string;
             location?: null | string;
             salary?: null | components["schemas"]["VacancySalaryResult"];

@@ -9,20 +9,9 @@ import {
   WORK_LOCATION_TYPE_OPTIONS,
 } from './resume-enums';
 
-describe('humanizeEnumMember', () => {
-  it('inserts a space before a capital that follows a lowercase letter', () => {
+describe('humanizeEnumMember re-export', () => {
+  it('stays importable from the resume entity for existing callers', () => {
     expect(humanizeEnumMember('OnSite')).toBe('On Site');
-    expect(humanizeEnumMember('LessThanOneYear')).toBe('Less Than One Year');
-    expect(humanizeEnumMember('CzechRepublic')).toBe('Czech Republic');
-    expect(humanizeEnumMember('HongKong')).toBe('Hong Kong');
-  });
-
-  it('leaves consecutive capitals (acronyms) untouched', () => {
-    expect(humanizeEnumMember('USD')).toBe('USD');
-  });
-
-  it('leaves a single word untouched', () => {
-    expect(humanizeEnumMember('Remote')).toBe('Remote');
   });
 });
 

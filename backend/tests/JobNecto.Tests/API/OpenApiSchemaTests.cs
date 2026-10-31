@@ -103,6 +103,17 @@ public class OpenApiSchemaTests : IClassFixture<OpenApiSchemaFactory>
         schemas.TryGetProperty("Experience", out _).Should().BeFalse();
     }
 
+    [Fact]
+    public async Task VacancyListItemResult_Schema_HasNullableStringArraySkills()
+    {
+        var schema = await GetSchemaAsync("VacancyListItemResult");
+
+        schema.GetProperty("properties").TryGetProperty("skills", out var skills)
+            .Should().BeTrue("the board renders skill chips from the list endpoint");
+        skills.GetRawText().Should().Contain("\"array\"").And.Contain("\"null\"");
+        skills.GetProperty("items").GetProperty("type").GetString().Should().Be("string");
+    }
+
     private async Task<JsonElement> GetSchemaAsync(string schemaName)
     {
         var document = await FetchDocumentAsync();

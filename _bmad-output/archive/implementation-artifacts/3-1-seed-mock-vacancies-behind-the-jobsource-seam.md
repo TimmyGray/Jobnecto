@@ -593,3 +593,4 @@ Not run: no live API or DB check (instructed not to start containers or servers)
   - RV #7a/#7b: tighter seeding API tests.
   - RV #2 (amended), #4, #5, #6, #7c and #7d are logged in `deferred-work.md`.
   - Tests 739 → 746; Release build 0 warnings; coverage gate PASS (96.5%). Status unchanged (review).
+- 2026-10-31: Merged to master via PR #107 (`88cfc49`). Status → done; story file archived to `_bmad-output/archive/implementation-artifacts/`.

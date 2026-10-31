@@ -1,4 +1,5 @@
 import { components } from '@shared/api/generated/schema';
+import { humanizeEnumMember } from '@shared/lib';
 
 /**
  * Résumé enum option lists, hand-declared but type-tethered to the generated
@@ -20,16 +21,8 @@ export interface EnumOption<T extends string> {
   label: string;
 }
 
-/**
- * Turns a PascalCase enum member into a spaced display label, e.g.
- * `OnSite` -> `On Site`, `LessThanOneYear` -> `Less Than One Year`.
- * Consecutive capitals (acronyms like `USD`) are left untouched.
- * @param value The raw PascalCase enum member name.
- * @returns The humanized label.
- */
-export function humanizeEnumMember(value: string): string {
-  return value.replace(/([a-z])([A-Z])/g, '$1 $2');
-}
+// Lives in shared/lib so other entities can use it; re-exported for existing callers.
+export { humanizeEnumMember };
 
 function toOptions<T extends string>(members: readonly T[]): EnumOption<T>[] {
   return members.map((value) => ({ value, label: humanizeEnumMember(value) }));

@@ -11,3 +11,4 @@ export * from './form/tag-input';
 export * from './feedback/toast.service';
 export * from './feedback/toast';
 export * from './dialog/confirm-dialog';
+export * from './placeholder/match-score-stub';

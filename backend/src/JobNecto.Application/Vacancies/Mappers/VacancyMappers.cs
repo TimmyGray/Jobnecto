@@ -21,6 +21,7 @@ public static class VacancyMappers
             Id = vacancy.Id,
             Title = vacancy.Title,
             Company = vacancy.Company,
+            Skills = vacancy.Skills,
             WorkLocationType = vacancy.WorkLocationType?.ToString(),
             Location = vacancy.Location?.ToString(),
             Salary = vacancy.SalaryMin.HasValue || vacancy.SalaryMax.HasValue

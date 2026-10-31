@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { Route } from '@angular/router';
+import { ComingSoonStubPage } from '@pages/coming-soon-stub/coming-soon-stub.page';
 import { ResumeDetailPage } from '@pages/resume-detail/resume-detail.page';
 import { ResumeListPage } from '@pages/resume-list/resume-list.page';
+import { VacancyBoardPage } from '@pages/vacancy-board/vacancy-board.page';
 import { routes } from './app.routes';
 import { authGuard } from './auth.guard';
 
@@ -77,6 +79,21 @@ describe('routes', () => {
     const component = await (child?.loadComponent as () => Promise<unknown>)();
 
     expect(component).toBe(ResumeDetailPage);
+  });
+
+  it('serves /vacancies with the real board page, not the coming-soon stub', async () => {
+    const child = findShellRoute().children?.find((c) => c.path === 'vacancies');
+    const component = await (child?.loadComponent as () => Promise<unknown>)();
+
+    expect(component).toBe(VacancyBoardPage);
+    expect(child?.data?.['title']).toBe('Vacancies');
+  });
+
+  it('keeps /vacancies/:id on the coming-soon stub until the detail page lands', async () => {
+    const child = findShellRoute().children?.find((c) => c.path === 'vacancies/:id');
+    const component = await (child?.loadComponent as () => Promise<unknown>)();
+
+    expect(component).toBe(ComingSoonStubPage);
   });
 
   it('titles the résumé detail route', () => {
