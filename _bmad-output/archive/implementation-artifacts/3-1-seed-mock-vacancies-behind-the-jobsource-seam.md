@@ -2,6 +2,8 @@
 
 Status: done
 
+<!-- Merged 2026-10-31 via PR #107 (88cfc49). Archived per AGENTS.md lifecycle. -->
+
 ## Story
 
 As a **product team**,

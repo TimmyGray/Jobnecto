@@ -4,7 +4,7 @@
 
 ## Vision
 
-- Aggregate and store **vacancies** from multiple **job sources** (`JobSource` value object: `Name`, optional `Url`; stored as **jsonb** on vacancies).
+- Aggregate and store **vacancies** from multiple **job sources** (`JobSource` value object: `Name`, optional `Url`; stored as **jsonb** on vacancies). *Demo MVP Story 3.1 (PR #107, 2026-10-31) built the seam: Application `IJobSource` → `JobPosting` + `IVacancyIngestionService` (per-user, idempotent by `JobSource.Url`); `StaticJobSource` serves a 40-posting synthetic catalogue. A real feed replaces it with one DI registration.*
 - Users maintain **profiles** (`User`), **education** (`Education`), **resume templates** (`Resume`), and **cover letters** (`CoverLetter`).
 - **Filter and paginate** vacancies (`VacancyFilter`, `PagedQuery`, `PagedResult`); support **matching** via `Vacancy.MatchScore` (and optional future persisted analysis if the team adds it).
 - **LLM** integration via `JobNecto.Infrastructure.LLM`, `LlmProvider` enum, and `LlmProviderConfig`.

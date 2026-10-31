@@ -83,9 +83,9 @@ development_status:
   epic-2-retrospective: done # archive/implementation-artifacts/epic-2-retro-2026-10-26.md
 
   # --- Epic 3: Vacancy Discovery (FR23-FR26) ---
-  epic-3: in-progress # first story created 2026-10-27
-  3-1-seed-mock-vacancies-behind-the-jobsource-seam: done # [SEED] merged 2026-10-31 (PR #107, 88cfc49); unblocks 3.2; per-user ingestion on registration + startup backfill (Seed:Vacancies:Enabled)
-  3-2-browse-the-vacancy-board: review # [FE] + small additive BE (skills on list DTO); implemented 2026-10-31, awaiting RV
+  epic-3: in-progress # 3.1 merged 2026-10-31; 3.2 (board) in review
+  3-1-seed-mock-vacancies-behind-the-jobsource-seam: done # merged 2026-10-31 (PR #107, 88cfc49); [SEED] own slice, unblocks 3.2; per-user ingestion on registration + startup backfill (Seed:Vacancies:Enabled)
+  3-2-browse-the-vacancy-board: review # [FE] + small additive BE (skills on list DTO); PR #109, RV approve-with-follow-ups 2026-10-31
   3-3-filter-vacancies: backlog # [FE] POST /api/v1/vacancies/filter
   3-4-view-vacancy-detail: backlog # [FE]
   epic-3-retrospective: optional
