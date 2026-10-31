@@ -1,6 +1,8 @@
 # Story 3.2: Browse the vacancy board
 
-Status: review
+Status: done
+
+<!-- Merged 2026-10-31 via PR #109 (64c995e). Archived per AGENTS.md lifecycle. -->
 
 ## Story
 
@@ -266,7 +268,7 @@ Claude Opus 5.5 (`claude-opus-5-5`), `jobnecto-dev` skill, story mode.
 - `frontend/src/app/app.routes.spec.ts` (UPDATED — route assertions)
 - `_bmad-output/implementation-artifacts/deferred-work.md` (UPDATED — 3 deferred review items)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (UPDATED — 3-2 → review)
-- `_bmad-output/implementation-artifacts/3-2-browse-the-vacancy-board.md` (UPDATED — this record)
+- `_bmad-output/archive/implementation-artifacts/3-2-browse-the-vacancy-board.md` (UPDATED — this record)
 
 ### Review Findings
 
@@ -356,3 +358,4 @@ This was a dev self-review, not the RV. Four lenses ran in parallel over the dif
 - 2026-10-31: Story created (ready-for-dev). User decisions: add `skills` to the list DTO; card "Generate" links to vacancy detail until 3.4/4.3. AC wording sharpened: browse request shape (AC1), cursor-in-body and focus rules (AC2), action targets (AC3), stub a11y (AC4), empty-state copy and its distinctness from 3.3's no-results (AC5), breakpoints (AC6); AC7 added for the contract change.
 - 2026-10-31: Implemented (dev, `jobnecto-dev`). Tasks 1–7 done test-first; self-review run with 4 lenses (7 patches, 3 deferred, 8 dismissed). All gates green; live browser check done except the wide breakpoints. Status → review.
 - 2026-10-31: Independent PR Review (RV) by `jobnecto-qa`: APPROVE WITH FOLLOW-UPS. No blocking findings; 2 low findings deferred (RV #1, RV #2). All gates re-run green. Task 8 ticked. Status left at review for the merge step.
+- 2026-10-31: Merged to master via PR #109 (`64c995e`). Status → done; story file archived to `_bmad-output/archive/implementation-artifacts/`.
