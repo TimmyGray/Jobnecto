@@ -102,7 +102,7 @@ so that **I can find a role to apply to**.
   - [x] Coverage gate ≥80% per file: backend `dotnet test ... --collect:"XPlat Code Coverage" --settings backend/coverlet.runsettings --results-directory ./coverage/backend` then `python scripts/check_coverage.py ./coverage/backend --threshold 80` (use `python`, not `python3`), and frontend `cd frontend && npx ng test --no-watch`. Never skip a gate for a missing tool (agent-learnings 2026-10-26).
   - [x] `cd frontend && npx ng build` passes.
   - [x] Live browser check: Development API (seeding on) + `ng serve`. Sign up a fresh user → `/vacancies` shows 20 cards, Load more → 40, button gone; View/Generate → `/vacancies/:id` stub; narrow viewport → one column. Record the result in the Debug Log.
-- [ ] Task 8: PR Review (RV) recorded before merge (AGENTS.md completion checklist item 5).
+- [x] Task 8: PR Review (RV) recorded before merge (AGENTS.md completion checklist item 5).
 
 ## Dev Notes
 
@@ -298,7 +298,61 @@ This was a dev self-review, not the RV. Four lenses ran in parallel over the dif
 
 <!-- Filled by jobnecto-qa / bmad-code-review before merge (AGENTS.md completion checklist item 5). Not a self-review. -->
 
+**Reviewer:** `jobnecto-qa` (RV), an independent agent that did not write the PR. Reviewed 2026-10-31.
+**Target:** PR #109, `story/3-2-browse-the-vacancy-board` at `565694e`. Code diff reviewed: `git diff cb01d9e..HEAD` (31 files). The planning commits `204e00f` and `cb01d9e` were checked lightly. `git fetch` found no newer commits on the branch.
+
+**Verdict: APPROVE WITH FOLLOW-UPS.** No critical, high or medium finding, and every gate is green. All 7 ACs are met and verified against the code and DOM-level tests. Traps 1–4 are handled: the card is an `<article>` with two sibling anchors and no wrapping link; the cursor is echoed opaquely in the body (`{ pageSize, ...cursor }`, asserted with `params.keys()` empty); seeding is not relied on by any test; and the regenerated `schema.ts` diff is exactly the one `skills` line. Both Decision Record entries are implemented as written. The declared deviations (the route-spec wording, the chip order, the sr-only stub text, the stronger Retry focus handling) are sound. The 2 low findings below are non-blocking `[Defer]` items, so there was no patch round.
+
+**Lenses run:** correctness, regression, architecture & quality, edge cases, and test coverage, all run inline by the reviewer (no subagents) over the 31-file diff. Each was checked at the cited code.
+
+- **Correctness:** `loadMore` dedupes against loaded ids and keeps id-less rows; final-page focus targets the first new card, or the last card when nothing new arrived; `focusWhenFree` only moves focus when it has fallen to `<body>`; `retry()` is guarded while loading; `nextCursor` returns null for a partial cursor, so a 400 can't be provoked from the client.
+- **Regression:** the backend change is additive (one DTO property + one mapper line); the existing vacancy, OpenAPI and authorization tests stay green unchanged. The `humanizeEnumMember` move keeps the old import path through a re-export, and the résumé specs pass. `/vacancies/:id` still resolves to `ComingSoonStubPage`, and the `/dashboard` CTA target exists.
+- **Architecture & FSD:** the backend touches only Application, with no controller, repository or migration change. On the frontend, `shared ← entities ← widgets ← pages` is respected: `entities/vacancy` imports only `@shared/*`, and the humanizer moved to `shared/lib` so no entity imports a sibling. Types come only from the generated schema. No user id or secret is sent or logged.
+- **a11y:** no nested interactives. The link names "Generate cover letter for {title}" and "View {title}" begin with the visible text (WCAG 2.5.3). Actions are `min-h-[44px]` with `focus-visible` outlines. The stub has no tabindex, no handler and no interactive child, uses neutral tokens, and is honest (no number even when `matchScore: 87`). See RV #1 for a redundancy.
+- **Tests:** the page, card, board and stub specs assert on the DOM (rendered cards, `href`s, `document.activeElement`, request bodies and params), not on component signals.
+
+### Gates (run by the reviewer)
+
+| Gate | Command | Result |
+|---|---|---|
+| Release build | `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror` | `Build succeeded. 0 Warning(s) 0 Error(s)` |
+| Backend tests (with coverage) | `dotnet test backend/JobNecto.slnx --collect:"XPlat Code Coverage" --settings backend/coverlet.runsettings --results-directory ./coverage/backend` | `Passed! - Failed: 0, Passed: 748, Skipped: 0, Total: 748` |
+| Backend coverage gate | `python scripts/check_coverage.py ./coverage/backend --threshold 80` | `Coverage: 1981/2053 lines = 96.5% across 102 files` · `PASS: all files meet the threshold.` |
+| Frontend tests + per-file coverage | `cd frontend && npx ng test --no-watch` | `Test Files 46 passed (46)` · `Tests 688 passed (688)`, exit 0 |
+| Frontend build | `cd frontend && npx ng build` | `Application bundle generation complete.` |
+| PR CI | `gh pr checks 109` | `build` pass · `frontend` pass · `llm-review` pass |
+| Live browser check | — | **Not run by the reviewer** (no Docker or containers started, per instructions). The dev's live check is recorded in the Debug Log; the 2- and 3-column breakpoints were not verified live (RV #2). |
+
+### Findings
+
+#### RV #1: the match-score stub may be announced twice
+- **severity:** low
+- **risk_score:** 2
+- **impact:** Screen-reader users may hear "AI match score — not yet available" twice per card: once from the `aria-label` on `role="note"`, and once from the identical sr-only text inside it. Over a 20–40 card board that is noticeable verbosity. It is not a WCAG failure, and the stub is still honest and non-interactive. Unverified with a real screen reader: whether the label is spoken depends on the reader and mode (this is why the dev added the sr-only text).
+- **evidence:** `frontend/src/shared/ui/placeholder/match-score-stub.ts:37-49`. The `aria-label` and the `<span class="sr-only">` carry the same string.
+- **recommended_fix:** Give the sr-only span an `id` and replace the `aria-label` with `aria-labelledby` pointing to it. Keep the stub spec's assertions on the accessible name. Better still, confirm the behavior with NVDA and VoiceOver and pick the single source that both read.
+- **resolution:** [Defer] → `deferred-work.md`.
+
+#### RV #2: the `md`/`xl` grid columns are proven only by class names
+- **severity:** low
+- **risk_score:** 2
+- **impact:** AC6's two-column (`md`) and three-column (`xl`) layouts are asserted only through `md:grid-cols-2 xl:grid-cols-3` class strings, and the dev's live check could only exercise the one-column viewport. A Tailwind breakpoint misconfiguration would ship unnoticed. The compiled CSS does contain both media rules (Debug Log), so the risk is low.
+- **evidence:** `frontend/src/widgets/vacancy-board/vacancy-board.ts:17`, `vacancy-board.spec.ts`; Debug Log "Not verified live: the 2- and 3-column layouts".
+- **recommended_fix:** Spend one minute in a real browser at ≥768px and ≥1440px before the epic demo, or cover it with a Playwright viewport test once E2E exists.
+- **resolution:** [Defer] → `deferred-work.md`.
+
+#### Dismissed during verification
+- **`Skills = vacancy.Skills` shares the entity's array with the DTO.** It is a read-only query projection and nothing mutates either side. Dismissed.
+- **The final-page focus lands on the card's Generate link, not the `<article>`.** AC2 asks for focus on the first new card. Its first action is inside it and is the more useful target, and the board spec asserts the article fallback for id-less cards. Dismissed.
+- **The skeleton grid carries `role="status"` around large placeholder content.** Its only text is the sr-only "Loading vacancies…", so nothing extra is announced. Dismissed.
+
+### Review Findings (RV)
+
+- [x] [Review][Defer] RV #1: the match-score stub's accessible text is duplicated (`aria-label` + identical sr-only text) — `deferred-work.md`.
+- [x] [Review][Defer] RV #2: the `md`/`xl` columns are unverified live and asserted by class names only — `deferred-work.md`.
+
 ## Change Log
 
 - 2026-10-31: Story created (ready-for-dev). User decisions: add `skills` to the list DTO; card "Generate" links to vacancy detail until 3.4/4.3. AC wording sharpened: browse request shape (AC1), cursor-in-body and focus rules (AC2), action targets (AC3), stub a11y (AC4), empty-state copy and its distinctness from 3.3's no-results (AC5), breakpoints (AC6); AC7 added for the contract change.
 - 2026-10-31: Implemented (dev, `jobnecto-dev`). Tasks 1–7 done test-first; self-review run with 4 lenses (7 patches, 3 deferred, 8 dismissed). All gates green; live browser check done except the wide breakpoints. Status → review.
+- 2026-10-31: Independent PR Review (RV) by `jobnecto-qa`: APPROVE WITH FOLLOW-UPS. No blocking findings; 2 low findings deferred (RV #1, RV #2). All gates re-run green. Task 8 ticked. Status left at review for the merge step.
