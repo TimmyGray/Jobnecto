@@ -4,7 +4,6 @@ using FluentAssertions;
 using JobNecto.API;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace JobNecto.Tests.API;
@@ -24,9 +23,8 @@ public class OpenApiSchemaFactory : WebApplicationFactory<ApiAssemblyMarker>
         builder.UseSetting("JwtSettings:Issuer", "JobNecto");
         builder.UseSetting("JwtSettings:Audience", "JobNecto-API");
         builder.UseEnvironment("Development");
-        // Keep the Development-only demo seeding off; see CorsFactory for why it must be an app-configuration override.
-        builder.ConfigureAppConfiguration((_, config) =>
-            config.AddInMemoryCollection(new Dictionary<string, string?> { ["Seed:Vacancies:Enabled"] = "false" }));
+        // Keep the Development-only demo seeding off (see CorsFactory).
+        builder.DisableVacancySeeding();
     }
 }
 

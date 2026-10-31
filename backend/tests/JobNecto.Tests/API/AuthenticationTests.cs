@@ -74,6 +74,9 @@ public class AuthenticationTestFactory : WebApplicationFactory<ApiAssemblyMarker
             });
         });
 
+        // Registered after the source-clearing callback above, so it survives it.
+        builder.DisableVacancySeeding();
+
         builder.ConfigureServices(services =>
         {
             // Remove the existing JWT bearer options and replace with test-configured ones

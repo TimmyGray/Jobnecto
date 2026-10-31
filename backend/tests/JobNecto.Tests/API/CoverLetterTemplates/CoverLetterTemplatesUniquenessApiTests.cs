@@ -299,6 +299,7 @@ public sealed class CoverLetterTemplatesPostgresFactory : WebApplicationFactory<
         builder.UseSetting(
             "ConnectionStrings:Postgres",
             _scopedConnectionString ?? _baseConnectionString);
+        builder.DisableVacancySeeding();
     }
 
     public override async ValueTask DisposeAsync()

@@ -5,6 +5,8 @@ using FluentAssertions;
 using JobNecto.Application.JobSources;
 using JobNecto.Application.Users;
 using JobNecto.Infrastructure.JobSources.Seeding;
+using JobNecto.Tests.API.CoverLetters;
+using JobNecto.Tests.API.CoverLetterTemplates;
 using JobNecto.Infrastructure.Persistance;
 using Microsoft.EntityFrameworkCore;
 using JobNecto.Infrastructure.JobSources.Static;
@@ -12,7 +14,6 @@ using MediatR;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -135,6 +136,7 @@ public class VacancySeedingApiTests
         var (authCookie, _) = await RegisterAsync(client);
         var page = await BrowseAsync(client, authCookie, new { });
 
+        factory.FailingSource.Calls.Should().Be(1, "registration must have attempted to seed exactly once");
         page.TotalCount.Should().Be(0);
     }
 
@@ -147,6 +149,7 @@ public class VacancySeedingApiTests
         var (authCookie, _) = await RegisterAsync(client);
         var page = await BrowseAsync(client, authCookie, new { pageSize = 100 });
 
+        page.Items.Should().HaveCount(CatalogueSize);
         page.Items.Select(i => i.CreatedAt).Should().OnlyHaveUniqueItems();
         foreach (var item in page.Items)
         {
@@ -201,19 +204,62 @@ public class VacancySeedingApiTests
     }
 
     [Fact]
-    public async Task CorsFactory_DevelopmentHost_KeepsSeedingOff()
-    {
-        await using var factory = new CorsFactory();
+    public async Task CorsFactory_DevelopmentHost_KeepsSeedingOff() =>
+        await AssertSeedingOffAsync(new CorsFactory());
 
-        factory.Services.GetRequiredService<IOptions<VacancySeedOptions>>().Value.Enabled.Should().BeFalse();
+    [Fact]
+    public async Task OpenApiSchemaFactory_DevelopmentHost_KeepsSeedingOff() =>
+        await AssertSeedingOffAsync(new OpenApiSchemaFactory());
+
+    [Fact]
+    public async Task AuthenticationTestFactory_DevelopmentHost_KeepsSeedingOff() =>
+        await AssertSeedingOffAsync(new AuthenticationTestFactory());
+
+    [Fact]
+    public async Task ExceptionHandlingFactory_ProductionHost_KeepsSeedingOff() =>
+        await AssertSeedingOffAsync(new ExceptionHandlingFactory());
+
+    // The Postgres-backed hosts build a real web host; building it touches no database while seeding is off.
+    [Fact]
+    public async Task UsersControllerConcurrencyFactory_KeepsSeedingOff() =>
+        await AssertSeedingOffAsync(new UsersControllerConcurrencyFactory());
+
+    [Fact]
+    public async Task CoverLettersPostgresFactory_KeepsSeedingOff() =>
+        await AssertSeedingOffAsync(new CoverLettersPostgresFactory());
+
+    [Fact]
+    public async Task CoverLetterTemplatesPostgresFactory_KeepsSeedingOff() =>
+        await AssertSeedingOffAsync(new CoverLetterTemplatesPostgresFactory());
+
+    private static async Task AssertSeedingOffAsync<TEntryPoint>(WebApplicationFactory<TEntryPoint> factory)
+        where TEntryPoint : class
+    {
+        await using (factory)
+        {
+            factory.Services.GetRequiredService<IOptions<VacancySeedOptions>>().Value.Enabled.Should().BeFalse();
+        }
     }
 
     [Fact]
-    public async Task OpenApiSchemaFactory_DevelopmentHost_KeepsSeedingOff()
+    public async Task DefaultFactory_KeepsSeedingOff_EvenWhenEnabledEarlierInTheConfigChain()
     {
-        await using var factory = new OpenApiSchemaFactory();
+        await using var factory = new EarlySeedValueApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var (authCookie, _) = await RegisterAsync(client);
+        var page = await BrowseAsync(client, authCookie, new { });
 
         factory.Services.GetRequiredService<IOptions<VacancySeedOptions>>().Value.Enabled.Should().BeFalse();
+        page.TotalCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task SeedingEnabledFactory_OverridesTheDefaultPin()
+    {
+        await using var factory = new SeedingEnabledApiFactory();
+
+        factory.Services.GetRequiredService<IOptions<VacancySeedOptions>>().Value.Enabled.Should().BeTrue();
     }
 
     [Fact]
@@ -302,30 +348,51 @@ public class VacancySeedingApiTests
     /// </summary>
     private sealed class SeedingEnabledApiFactory(bool useFailingSource = false) : JobNectoApiFactory
     {
+        public FailingJobSource FailingSource { get; } = new();
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
 
-            builder.ConfigureAppConfiguration((_, config) =>
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Seed:Vacancies:Enabled"] = "true",
-                }));
+            // Registered after the base factory's "off" pin, so this one wins.
+            builder.SetVacancySeeding(enabled: true);
 
             if (useFailingSource)
             {
                 builder.ConfigureTestServices(services =>
-                    services.Replace(ServiceDescriptor.Singleton<IJobSource, FailingJobSource>()));
+                    services.Replace(ServiceDescriptor.Singleton<IJobSource>(FailingSource)));
             }
+        }
+    }
+
+    /// <summary>
+    /// The default factory, with <c>Seed:Vacancies:Enabled = true</c> injected as host settings and as an
+    /// app-configuration source <em>before</em> the base factory's pin, i.e. earlier in the config chain.
+    /// </summary>
+    private sealed class EarlySeedValueApiFactory : JobNectoApiFactory
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseSetting(TestHostConfigurationExtensions.SeedVacanciesEnabledKey, "true");
+            builder.SetVacancySeeding(enabled: true);
+
+            base.ConfigureWebHost(builder);
         }
     }
 
     private sealed class FailingJobSource : IJobSource
     {
+        private int _calls;
+
+        public int Calls => Volatile.Read(ref _calls);
+
         public string Name => "Failing";
 
-        public Task<IReadOnlyList<JobPosting>> FetchAsync(CancellationToken ct) =>
+        public Task<IReadOnlyList<JobPosting>> FetchAsync(CancellationToken ct)
+        {
+            Interlocked.Increment(ref _calls);
             throw new InvalidOperationException("Simulated job source outage.");
+        }
     }
 
     private sealed class VacancyPagedResultDto

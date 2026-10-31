@@ -225,6 +225,7 @@ so that **the vacancy board has data now and can be swapped for real ingestion l
 - **Namespaces match folders** (AGENTS.md), e.g. `JobNecto.Infrastructure.JobSources.Static`, `JobNecto.Infrastructure.JobSources.Seeding`, `JobNecto.Application.JobSources`.
 - XML-doc every public type and every non-trivial method (AGENTS.md, `function-comments` skill).
 - Don't add Quartz, Redis or `HttpClient` usage. `Microsoft.Extensions.Http` is already referenced by the JobSources project; leave it, unused.
+  - *Note (2026-10-31, RV #3):* "unused" was not quite true. `Microsoft.Extensions.Http` transitively brought in `Microsoft.Extensions.Options.ConfigurationExtensions`, which `AddJobSources` needs for `Configure<T>(IConfiguration)`. That package is now referenced explicitly, so the Http reference really is unused and could be removed without breaking the build.
 - **Logging:** structured `ILogger` messages with `UserId` and counts. Never log connection strings or user emails.
 
 ### API / Contract Guardrail
@@ -369,6 +370,12 @@ Claude Opus 5.5 (`claude-opus-5-5`), `jobnecto-dev` skill, story mode. Review ba
 - **No pending migration:** `dotnet ef migrations has-pending-model-changes --project backend/src/JobNecto.Infrastructure --startup-project backend/src/JobNecto.API` gave `No changes have been made to the model since the last migration.`
 - **Contract unchanged:** `git diff --name-only 8d0bbcb` lists nothing under `backend/src/JobNecto.API/Controllers`, `backend/src/JobNecto.Application/Vacancies` or `backend/src/JobNecto.Infrastructure/Migrations`. `GetFilteredAsync` is untouched, so `/openapi/v1.json` can't have changed, and `OpenApiSchemaTests` pass.
 - **Frontend:** `git diff --name-only 8d0bbcb -- frontend` is empty.
+- **RV patch round (2026-10-31, on top of `3c03a05`):** applied RV #1, #3, #7a and #7b; the rest is logged in `deferred-work.md`.
+  - `dotnet test backend/JobNecto.slnx`: `Passed! - Failed: 0, Passed: 746, Skipped: 0, Total: 746` (739 + 7 new pin tests).
+  - `dotnet build backend/JobNecto.slnx --configuration Release --warnaserror --no-incremental`: `Build succeeded.` `0 Warning(s)` `0 Error(s)`. Release tests: `Passed: 746, Failed: 0`.
+  - Coverage gate, `python scripts/check_coverage.py ./coverage/backend --threshold 80`: `Coverage: 1980/2052 lines = 96.5% across 102 files (threshold 80%)` and `PASS: all files meet the threshold.` `./coverage` was deleted afterwards.
+  - **Mutation check:** removing `DisableVacancySeeding()` from `JobNectoApiFactory` turned `DefaultFactory_KeepsSeedingOff_EvenWhenEnabledEarlierInTheConfigChain` red (`Expected ... Enabled to be False, but found True`). The line was restored, and `git diff` shows only the one added line.
+  - **Postgres factories:** `UsersControllerConcurrencyFactory`, `CoverLettersPostgresFactory` and `CoverLetterTemplatesPostgresFactory` all subclass `WebApplicationFactory<Program>`, build a real Test-environment web host and register users over HTTP, so they publish `UserRegisteredNotification`. All three are now pinned off. While seeding is off, building their host touches no database, so their pin tests run without Postgres.
 
 ### Completion Notes List
 
@@ -455,6 +462,13 @@ Self-review: four parallel lenses (adversarial, edge-case hunter, verification g
 - `backend/tests/JobNecto.Tests/Infrastructure/UserRepositorytests.cs` (UPDATED — `GetAllIdsAsync` tests)
 - `backend/tests/JobNecto.Tests/API/CorsTests.cs` (UPDATED — force seeding off in the Development test host; review patch)
 - `backend/tests/JobNecto.Tests/API/OpenApiSchemaTests.cs` (UPDATED — force seeding off in the Development test host; review patch)
+- `backend/tests/JobNecto.Tests/API/TestHostConfigurationExtensions.cs` (CREATED — RV #1: shared `DisableVacancySeeding()` / `SetVacancySeeding()` app-configuration pin)
+- `backend/tests/JobNecto.Tests/API/JobNectoApiFactory.cs` (UPDATED — RV #1: pin seeding off; seeding-enabled subclasses override it)
+- `backend/tests/JobNecto.Tests/API/ExceptionHandlingTests.cs` (UPDATED — RV #1: pin seeding off in the Production host)
+- `backend/tests/JobNecto.Tests/API/AuthenticationTests.cs` (UPDATED — RV #1: pin seeding off after the source-clearing callback)
+- `backend/tests/JobNecto.Tests/API/UsersControllerConcurrencyTests.cs`, `CoverLetters/CoverLettersUniquenessApiTests.cs`, `CoverLetterTemplates/CoverLetterTemplatesUniquenessApiTests.cs` (UPDATED — RV #1: pin seeding off in the Postgres-backed hosts)
+- `backend/src/JobNecto.Infrastructure.JobSources/JobNecto.Infrastructure.JobSources.csproj` (UPDATED again — RV #3: explicit `Microsoft.Extensions.Options.ConfigurationExtensions` 10.0.3)
+- `backend/tests/JobNecto.Tests/API/Vacancies/VacancySeedingApiTests.cs` (UPDATED again — RV #1 pin tests for all 7 non-seeding hosts, the early-config-chain test and the override test; RV #7a `HaveCount(40)`; RV #7b failing-source call count)
 - `_bmad-output/planning-artifacts/architecture/demo-mvp-architecture-decisions.md` (UPDATED — §3.7 seam paragraph)
 - `README.md` (UPDATED — Development demo-catalogue note)
 - `_bmad-output/implementation-artifacts/deferred-work.md` (UPDATED — Story 3.1 deferred review items)
@@ -552,3 +566,9 @@ Not run: no live API or DB check (instructed not to start containers or servers)
 
 - 2026-10-27: Story created (ready-for-dev). User decision: ingest on registration + startup backfill, gated by `Seed:Vacancies:Enabled`.
 - 2026-10-27: Implemented (`jobnecto-dev`). Built the JobSource seam, per-user ingestion, registration notification, startup backfill and the 40-posting synthetic catalogue. The self-review applied 5 patches (Development test hosts force seeding off; token-based cancellation filters; end-to-end backfill/idempotency, all-ids and mapping tests) and deferred 6 items to `deferred-work.md`. Tests 670 → 739; Release build 0 warnings; coverage gate PASS (96.5%); live check 14/14 on a throwaway Postgres. Status → review; awaiting the independent PR Review (RV).
+- 2026-10-31: RV patch round (`jobnecto-dev`), applied after the RV "approve with follow-ups". Test-only changes, plus one build-only package reference:
+  - RV #1: seeding is pinned off in every non-seeding test host (`JobNectoApiFactory`, `ExceptionHandlingFactory`, `AuthenticationTestFactory`, the three Postgres factories, and Cors/OpenApi now through the shared helper), with a pin test per host, an early-config-chain test and an override test.
+  - RV #3: explicit `Microsoft.Extensions.Options.ConfigurationExtensions` reference.
+  - RV #7a/#7b: tighter seeding API tests.
+  - RV #2 (amended), #4, #5, #6, #7c and #7d are logged in `deferred-work.md`.
+  - Tests 739 → 746; Release build 0 warnings; coverage gate PASS (96.5%). Status unchanged (review).
